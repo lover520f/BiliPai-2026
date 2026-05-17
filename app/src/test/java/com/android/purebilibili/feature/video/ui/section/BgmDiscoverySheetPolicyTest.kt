@@ -1,6 +1,8 @@
 package com.android.purebilibili.feature.video.ui.section
 
+import com.android.purebilibili.data.model.response.BgmDetailData
 import com.android.purebilibili.data.model.response.BgmInfo
+import com.android.purebilibili.data.model.response.BgmRecommendVideo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
