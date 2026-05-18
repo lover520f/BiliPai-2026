@@ -255,9 +255,9 @@ class BottomBarMiuixStructureTest {
         assertTrue(sideBarBodySource.contains("val skinIconPath = uiSkinDecoration?.iconPathFor(item, selected = isSelected)"))
         assertTrue(sideBarBodySource.contains("BottomBarSkinIcon("))
         assertTrue(headerSource.contains("val topAtmosphereImagePath = uiSkinDecoration?.topAtmosphereImagePath"))
-        assertTrue(headerSource.contains("val topTabBackgroundImagePath = uiSkinDecoration?.topTabBackgroundImagePath"))
         assertTrue(headerSource.contains("model = File(topAtmosphereImagePath)"))
-        assertTrue(headerSource.contains("model = File(topTabBackgroundImagePath)"))
+        assertFalse(headerSource.contains("val topTabBackgroundImagePath = uiSkinDecoration?.topTabBackgroundImagePath"))
+        assertFalse(headerSource.contains("model = File(topTabBackgroundImagePath)"))
         assertTrue(headerSource.contains("ContentScale.Crop"))
     }
 

@@ -144,7 +144,7 @@ internal fun resolveHomeSkinTopTabUnselectedContentColor(contentColor: Color): C
     contentColor.copy(alpha = if (contentColor.luminance() > 0.5f) 0.84f else 0.78f)
 
 internal fun shouldUseHomeSkinPlainTopTabs(uiSkinDecoration: HomeUiSkinDecoration?): Boolean =
-    uiSkinDecoration != null
+    false
 
 internal fun resolveHomeSkinTopTabIndicatorColor(contentColor: Color): Color =
     contentColor.copy(alpha = maxOf(contentColor.alpha, 0.92f))
@@ -1547,17 +1547,13 @@ fun iOSHomeHeader(
     val headerOffset by remember { derivedStateOf(headerOffsetProvider) }
     
     val searchBarHeightDp = resolveHomeTopSearchBarHeight(uiPreset, androidNativeVariant)
-    val tabRowHeightDp = if (shouldUseSkinPlainTopTabs) {
-        resolveHomeSkinTopTabRowHeight()
-    } else {
-        resolveHomeTopTabRowHeight(
-            isTabFloating = isTabFloating,
-            uiPreset = uiPreset,
-            androidNativeVariant = androidNativeVariant,
-            labelMode = homeSettings?.topTabLabelMode
-                ?: com.android.purebilibili.core.store.SettingsManager.TopTabLabelMode.TEXT_ONLY
-        )
-    }
+    val tabRowHeightDp = resolveHomeTopTabRowHeight(
+        isTabFloating = isTabFloating,
+        uiPreset = uiPreset,
+        androidNativeVariant = androidNativeVariant,
+        labelMode = homeSettings?.topTabLabelMode
+            ?: com.android.purebilibili.core.store.SettingsManager.TopTabLabelMode.TEXT_ONLY
+    )
     val searchCollapseDistanceDp = resolveHomeTopSearchCollapseDistance(
         searchBarHeight = searchBarHeightDp,
         uiPreset = uiPreset,
@@ -1699,14 +1695,12 @@ fun iOSHomeHeader(
         animationSpec = AppMotionTokens.standardSpec(),
         label = "tabContentAlpha"
     )
-    val effectiveContinuousSlabRenderMode = if (shouldUseSkinPlainTopTabs) {
-        HomeTopChromeRenderMode.PLAIN
-    } else if (integratedCollapsedTopBar) {
+    val effectiveContinuousSlabRenderMode = if (integratedCollapsedTopBar) {
         topPanelChromeRenderMode
     } else {
         continuousSlabRenderMode
     }
-    val effectiveTopPanelChromeRenderMode = if (shouldUseSkinPlainTopTabs || integratedCollapsedTopBar) {
+    val effectiveTopPanelChromeRenderMode = if (integratedCollapsedTopBar) {
         HomeTopChromeRenderMode.PLAIN
     } else {
         topPanelChromeRenderMode
@@ -1778,15 +1772,7 @@ fun iOSHomeHeader(
         tabContentAlpha = tabContentAlpha
     )
     val tabBorderAlpha = if (isTabFloating) tabChromeStyle.borderAlpha else 0f
-    val skinPlainTopTabContentColor = uiSkinDecoration?.let {
-        resolveHomeSkinTopTabContentColor(
-            topAtmosphereTint = it.topAtmosphereTint,
-            hasTopAtmosphereImage = !it.topAtmosphereImagePath.isNullOrBlank(),
-            darkTheme = isSystemInDarkTheme()
-        )
-    }
     val topAtmosphereImagePath = uiSkinDecoration?.topAtmosphereImagePath
-    val topTabBackgroundImagePath = uiSkinDecoration?.topTabBackgroundImagePath
     val topTabsContent: @Composable () -> Unit = {
         HomeTopTabChrome(
             currentTabHeight = currentTabHeight,
@@ -1844,35 +1830,9 @@ fun iOSHomeHeader(
             gestureEnabled = topTabsVisible && !isHeaderCollapseEnabled,
             isTabsCollapsed = topTabsCollapsed,
             onTabsCollapsedChange = onTopTabsCollapsedChange,
-            drawChromeSurface = !shouldUseSkinPlainTopTabs &&
-                !useUnifiedTopPanel &&
+            drawChromeSurface = !useUnifiedTopPanel &&
                 drawTopTabOuterChromeSurface
         ) {
-            if (!topTabBackgroundImagePath.isNullOrBlank()) {
-                AsyncImage(
-                    model = File(topTabBackgroundImagePath),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(0.72f)
-                        .clearAndSetSemantics {}
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    headerChromeColors.containerColor.copy(alpha = 0.22f),
-                                    Color.Transparent,
-                                    headerChromeColors.containerColor.copy(alpha = 0.18f)
-                                )
-                            )
-                        )
-                        .clearAndSetSemantics {}
-                )
-            }
             CategoryTabRow(
                 categories = topCategories,
                 categoryKeys = topCategoryKeys,
@@ -1902,7 +1862,7 @@ fun iOSHomeHeader(
                 forceLowBlurBudget = forceLowBlurBudget,
                 isViewportSyncEnabled = isTopTabViewportSyncEnabled,
                 skinPlainStyle = shouldUseSkinPlainTopTabs,
-                skinPlainContentColor = skinPlainTopTabContentColor,
+                skinPlainContentColor = null,
                 topTabSkinIconPaths = uiSkinDecoration?.topTabSkinIconPaths.orEmpty(),
                 partitionSkinIconPath = uiSkinDecoration?.topTabPartitionIconPath()
             )

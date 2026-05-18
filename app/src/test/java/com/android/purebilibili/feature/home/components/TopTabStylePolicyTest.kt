@@ -644,9 +644,9 @@ class TopTabStylePolicyTest {
     }
 
     @Test
-    fun `skin decoration forces plain top tabs`() {
+    fun `skin decoration keeps host top tab readability strategy`() {
         assertFalse(shouldUseHomeSkinPlainTopTabs(null))
-        assertTrue(
+        assertFalse(
             shouldUseHomeSkinPlainTopTabs(
                 HomeUiSkinDecoration(
                     skinId = "test",

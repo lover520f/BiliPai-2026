@@ -1614,21 +1614,19 @@ class iOSHomeHeaderVisualPolicyTest {
     }
 
     @Test
-    fun `home header skin top tabs use flat official skin style`() {
+    fun `home header skin top tabs keep host readability and only pass sticker icons`() {
         val headerSource = loadSource("app/src/main/java/com/android/purebilibili/feature/home/components/iOSHomeHeader.kt")
         val topBarSource = loadSource("app/src/main/java/com/android/purebilibili/feature/home/components/TopBar.kt")
 
         assertTrue(headerSource.contains("val shouldUseSkinPlainTopTabs = shouldUseHomeSkinPlainTopTabs(uiSkinDecoration)"))
-        assertTrue(headerSource.contains("val tabRowHeightDp = if (shouldUseSkinPlainTopTabs)"))
-        assertTrue(headerSource.contains("resolveHomeSkinTopTabRowHeight()"))
-        assertTrue(headerSource.contains("val effectiveContinuousSlabRenderMode = if (shouldUseSkinPlainTopTabs)"))
-        assertTrue(headerSource.contains("drawChromeSurface = !shouldUseSkinPlainTopTabs"))
         assertTrue(headerSource.contains("skinPlainStyle = shouldUseSkinPlainTopTabs"))
+        assertTrue(headerSource.contains("topTabSkinIconPaths = uiSkinDecoration?.topTabSkinIconPaths.orEmpty()"))
+        assertTrue(headerSource.contains("partitionSkinIconPath = uiSkinDecoration?.topTabPartitionIconPath()"))
+        assertFalse(headerSource.contains("val topTabBackgroundImagePath = uiSkinDecoration?.topTabBackgroundImagePath"))
+        assertFalse(headerSource.contains("model = File(topTabBackgroundImagePath)"))
+        assertFalse(headerSource.contains("val tabRowHeightDp = if (shouldUseSkinPlainTopTabs)"))
         assertTrue(topBarSource.contains("val effectiveRenderer = if (skinPlainStyle) HomeTopTabRenderer.MD3 else renderer"))
         assertTrue(topBarSource.contains("if (!skinPlainStyle && presetStyle.renderer == HomeTopTabRenderer.MIUIX)"))
-        assertTrue(topBarSource.contains("skinPlainStyle -> Color.Transparent"))
-        assertTrue(topBarSource.contains("resolveHomeSkinTopTabIndicatorColor(skinPlainContentColor)"))
-        assertTrue(topBarSource.contains("if (skinPlainStyle) {\n                            Modifier\n                        } else {\n                            Modifier.clip"))
     }
 
     @Test
