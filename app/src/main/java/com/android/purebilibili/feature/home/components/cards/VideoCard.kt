@@ -218,8 +218,9 @@ fun ElegantVideoCard(
             FormatUtils.formatProgress(video.progress, video.duration)
         }
     }
-    val primaryStatBadgeMinWidth = remember(primaryStatText) {
-        resolveVideoCardPrimaryStatBadgeMinWidthDp(primaryStatText).dp
+    val secondaryStatText = remember(video.stat.reply, video.stat.danmaku) {
+        val commentCount = video.stat.reply.takeIf { it > 0 } ?: video.stat.danmaku
+        commentCount.takeIf { it > 0 }?.let { FormatUtils.formatStat(it.toLong()) }
     }
     val durationBadgeMinWidth = remember(durationText, durationBadgeStyle) {
         resolveVideoCardDurationBadgeMinWidthDp(
@@ -285,6 +286,11 @@ fun ElegantVideoCard(
     val historyProgressBarColor = resolveVideoCardHistoryProgressBarColor(
         themePrimary = MaterialTheme.colorScheme.primary
     )
+    val coverOverlayBottomLayout = remember(scrollLitePolicy.showHistoryProgressBar, showHistoryProgressBar) {
+        resolveVideoCardCoverOverlayBottomLayout(
+            showHistoryProgressBar = scrollLitePolicy.showHistoryProgressBar && showHistoryProgressBar
+        )
+    }
     
     //  [新增] 长按删除菜单状态
     var showDismissMenu by remember { mutableStateOf(false) }
@@ -626,7 +632,7 @@ fun ElegantVideoCard(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .height(2.dp)
+                        .height(coverOverlayBottomLayout.historyProgressBarHeightDp.dp)
                         .background(Color.White.copy(alpha = 0.24f))
                 )
                 if (historyProgressFraction > 0f) {
@@ -634,27 +640,52 @@ fun ElegantVideoCard(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .fillMaxWidth(historyProgressFraction)
-                            .height(2.dp)
+                            .height(coverOverlayBottomLayout.historyProgressBarHeightDp.dp)
                             .background(historyProgressBarColor)
                     )
                 }
             }
 
             if (scrollLitePolicy.showCompactStatsOnCover) {
-                Row(
+                BoxWithConstraints(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(
+                            start = 8.dp,
+                            top = 6.dp,
+                            end = 8.dp,
+                            bottom = coverOverlayBottomLayout.compactStatsBottomPaddingDp.dp
+                        )
                 ) {
+                    val compactStatsLayout = remember(
+                        maxWidth,
+                        primaryStatText,
+                        secondaryStatText,
+                        onlineCount,
+                        showDurationBadge,
+                        durationBadgeMinWidth
+                    ) {
+                        resolveVideoCardCompactCoverStatsLayout(
+                            availableWidthDp = maxWidth.value,
+                            primaryStatText = primaryStatText,
+                            secondaryStatText = secondaryStatText,
+                            hasOnlineCount = onlineCount.isNotEmpty(),
+                            durationBadgeMinWidthDp = if (showDurationBadge) {
+                                durationBadgeMinWidth.value
+                            } else {
+                                0f
+                            }
+                        )
+                    }
                     Row(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = compactStatsLayout.statsEndPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        var viewsOnCoverModifier = Modifier.widthIn(min = primaryStatBadgeMinWidth)
+                        var viewsOnCoverModifier = Modifier.widthIn(min = compactStatsLayout.primaryMinWidthDp.dp)
                         if (metadataSharedEnabled) {
                             with(requireNotNull(sharedTransitionScope)) {
                                 viewsOnCoverModifier = viewsOnCoverModifier.sharedBounds(
@@ -690,10 +721,9 @@ fun ElegantVideoCard(
                             )
                         }
 
-                        val commentCount = video.stat.reply.takeIf { it > 0 } ?: video.stat.danmaku
-                        if (commentCount > 0) {
+                        if (compactStatsLayout.showSecondaryStat && secondaryStatText != null) {
                             HomeVideoBadgePill(
-                                modifier = Modifier.weight(1f, fill = false),
+                                modifier = Modifier.widthIn(min = compactStatsLayout.secondaryMinWidthDp.dp),
                                 style = badgeStylePolicy.coverStyle,
                                 shape = AppShapes.container(ContainerLevel.Pill),
                                 containerColor = coverPillColors.containerColor,
@@ -706,7 +736,7 @@ fun ElegantVideoCard(
                                     tint = Color.White.copy(alpha = 0.90f)
                                 )
                                 Text(
-                                    text = FormatUtils.formatStat(commentCount.toLong()),
+                                    text = secondaryStatText,
                                     color = Color.White.copy(alpha = 0.90f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
@@ -717,7 +747,7 @@ fun ElegantVideoCard(
                             }
                         }
 
-                        if (onlineCount.isNotEmpty()) {
+                        if (compactStatsLayout.showOnlineCount) {
                             HomeVideoBadgePill(
                                 modifier = Modifier.weight(1f, fill = false),
                                 style = badgeStylePolicy.coverStyle,
@@ -747,6 +777,7 @@ fun ElegantVideoCard(
                     //  时长标签 (与播放量/评论数同行对齐)
                     if (showDurationBadge && badgeStylePolicy.coverStyle == HomeVideoBadgeStyle.GLASS) {
                         Surface(
+                            modifier = Modifier.align(Alignment.BottomEnd),
                             shape = RoundedCornerShape(smallCornerRadius),
                             color = emphasizedCoverPillColors.containerColor,
                             border = BorderStroke(0.8.dp, emphasizedCoverPillColors.borderColor)
@@ -785,7 +816,8 @@ fun ElegantVideoCard(
                                     offset = Offset(0f, 1f),
                                     blurRadius = durationBadgeStyle.textShadowBlurRadiusPx
                                 )
-                            )
+                            ),
+                            modifier = Modifier.align(Alignment.BottomEnd)
                         )
                     }
                 }
@@ -795,7 +827,12 @@ fun ElegantVideoCard(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(6.dp),
+                            .padding(
+                                start = 6.dp,
+                                top = 6.dp,
+                                end = 6.dp,
+                                bottom = coverOverlayBottomLayout.floatingDurationBottomPaddingDp.dp
+                            ),
                         shape = RoundedCornerShape(smallCornerRadius),
                         color = emphasizedCoverPillColors.containerColor,
                         border = BorderStroke(0.8.dp, emphasizedCoverPillColors.borderColor)
@@ -837,7 +874,12 @@ fun ElegantVideoCard(
                         ),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(10.dp)
+                            .padding(
+                                start = 10.dp,
+                                top = 10.dp,
+                                end = 10.dp,
+                                bottom = coverOverlayBottomLayout.floatingDurationBottomPaddingDp.dp
+                            )
                     )
                 }
             }
@@ -1183,8 +1225,7 @@ fun ElegantVideoCard(
                     }
                 }
 
-                val commentCount = video.stat.reply.takeIf { it > 0 } ?: video.stat.danmaku
-                if (commentCount > 0) {
+                if (secondaryStatText != null) {
                     HomeVideoBadgePill(
                         style = badgeStylePolicy.infoStyle,
                         shape = AppShapes.container(ContainerLevel.Pill),
@@ -1198,7 +1239,7 @@ fun ElegantVideoCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = FormatUtils.formatStat(commentCount.toLong()),
+                            text = secondaryStatText,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
