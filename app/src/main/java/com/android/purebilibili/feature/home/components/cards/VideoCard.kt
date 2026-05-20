@@ -420,13 +420,19 @@ fun ElegantVideoCard(
             coverSharedEnabled = coverSharedEnabled,
             isQuickReturnLimited = CardPositionManager.shouldLimitSharedElementsForQuickReturn()
         )
+        val homeSharedElementSourceRoute = com.android.purebilibili.navigation.ScreenRoutes.Home.route
         
         //  封面容器 - 官方 B 站风格，支持共享元素过渡（受开关控制）
         val coverModifier = if (coverSharedEnabled) {
             with(requireNotNull(sharedTransitionScope)) {
                 Modifier
                     .sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(video.bvid)),
+                        sharedContentState = rememberSharedContentState(
+                            key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(
+                                video.bvid,
+                                sourceRoute = homeSharedElementSourceRoute
+                            )
+                        ),
                         animatedVisibilityScope = requireNotNull(animatedVisibilityScope),
                         //  添加回弹效果的 spring 动画
                         boundsTransform = { _, _ ->

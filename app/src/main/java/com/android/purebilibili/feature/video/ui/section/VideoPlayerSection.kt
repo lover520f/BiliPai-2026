@@ -2502,6 +2502,9 @@ fun VideoPlayerSection(
         hasAnimatedVisibilityScope = animatedVisibilityScope != null,
         sourceRoute = CardPositionManager.lastVideoSourceRoute
     )
+    val forcedReturnCoverSharedElementSourceRoute = resolveForcedReturnCoverSharedElementSourceRoute(
+        CardPositionManager.lastVideoSourceRoute
+    )
     
     // [Debug] Logging
     LaunchedEffect(showCover, currentCoverUrl, isFirstFrameRendered, hasStartedSmoothReveal, uiState) {
@@ -2530,7 +2533,12 @@ fun VideoPlayerSection(
         val forcedReturnCoverModifier = if (forceReturnCoverSharedBoundsEnabled) {
             with(requireNotNull(sharedTransitionScope)) {
                 Modifier.sharedBounds(
-                    sharedContentState = rememberSharedContentState(key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(bvid)),
+                    sharedContentState = rememberSharedContentState(
+                        key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(
+                            bvid,
+                            sourceRoute = forcedReturnCoverSharedElementSourceRoute
+                        )
+                    ),
                     animatedVisibilityScope = requireNotNull(animatedVisibilityScope),
                     boundsTransform = { _, _ -> com.android.purebilibili.core.theme.AnimationSpecs.BiliPaiSpringSpec },
                     clipInOverlayDuringTransition = OverlayClip(coverCardShape)

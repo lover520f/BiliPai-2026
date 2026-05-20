@@ -42,4 +42,13 @@ class VideoPlayerCoverPolicyTest {
         assertTrue(shouldUseReturnLandingMotionForForcedReturnCover(true))
         assertFalse(shouldUseReturnLandingMotionForForcedReturnCover(false))
     }
+
+    @Test
+    fun homeSourceRouteIsCarriedIntoForcedReturnCoverSharedElementKey() {
+        val homeRoute = com.android.purebilibili.navigation.ScreenRoutes.Home.route
+
+        assertTrue(resolveForcedReturnCoverSharedElementSourceRoute(homeRoute) == homeRoute)
+        assertTrue(resolveForcedReturnCoverSharedElementSourceRoute("$homeRoute?from=tab") == homeRoute)
+        assertTrue(resolveForcedReturnCoverSharedElementSourceRoute("search") == null)
+    }
 }

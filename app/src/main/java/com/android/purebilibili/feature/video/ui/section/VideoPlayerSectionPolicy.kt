@@ -876,6 +876,15 @@ internal fun shouldEnableForcedReturnCoverSharedBounds(
         allowBySourceRoute
 }
 
+internal fun resolveForcedReturnCoverSharedElementSourceRoute(sourceRoute: String?): String? {
+    val sourceRouteBase = sourceRoute?.substringBefore("?")
+    return if (sourceRouteBase == com.android.purebilibili.navigation.ScreenRoutes.Home.route) {
+        sourceRouteBase
+    } else {
+        null
+    }
+}
+
 internal fun shouldUseReturnLandingMotionForForcedReturnCover(
     forceCoverDuringReturnAnimation: Boolean
 ): Boolean {

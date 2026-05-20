@@ -201,6 +201,7 @@ import com.android.purebilibili.feature.video.ui.feedback.TripleCelebrationPlace
 import com.android.purebilibili.feature.video.ui.feedback.resolveQualityReminderPlacement
 import com.android.purebilibili.feature.video.ui.feedback.resolveTripleCelebrationPlacement
 import com.android.purebilibili.feature.video.ui.feedback.resolveVideoFeedbackPlacement
+import com.android.purebilibili.feature.video.ui.section.resolveForcedReturnCoverSharedElementSourceRoute
 import com.android.purebilibili.feature.video.viewmodel.PlayerToastMessage
 import com.android.purebilibili.feature.video.viewmodel.PlayerToastPresentation
 import kotlin.math.abs
@@ -2710,6 +2711,9 @@ fun VideoDetailScreen(
                     //  尝试获取共享元素作用域
                     val sharedTransitionScope = LocalSharedTransitionScope.current
                     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+                    val coverSharedElementSourceRoute = resolveForcedReturnCoverSharedElementSourceRoute(
+                        CardPositionManager.lastVideoSourceRoute
+                    )
                     
                     //  为播放器容器添加共享元素标记（受开关控制）
                     val playerContainerModifier = if (
@@ -2722,7 +2726,12 @@ fun VideoDetailScreen(
                         with(requireNotNull(sharedTransitionScope)) {
                             Modifier
                                 .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(bvid)),
+                                    sharedContentState = rememberSharedContentState(
+                                        key = com.android.purebilibili.core.ui.transition.videoCoverSharedElementKey(
+                                            bvid,
+                                            sourceRoute = coverSharedElementSourceRoute
+                                        )
+                                    ),
                                     animatedVisibilityScope = requireNotNull(animatedVisibilityScope),
                                     boundsTransform = { _, _ ->
                                         com.android.purebilibili.core.theme.AnimationSpecs.BiliPaiSpringSpec
