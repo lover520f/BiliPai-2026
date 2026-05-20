@@ -51,6 +51,9 @@ import com.android.purebilibili.core.util.HapticType
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import com.android.purebilibili.core.ui.LocalSharedTransitionScope
 import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
 import com.android.purebilibili.core.ui.AppShapes
@@ -59,6 +62,7 @@ import com.android.purebilibili.core.ui.ContainerLevel
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.zIndex
 import com.android.purebilibili.core.ui.adaptive.MotionTier
 import com.android.purebilibili.core.ui.components.UpBadgeName
 import com.android.purebilibili.core.ui.components.resolveUpStatsText
@@ -67,6 +71,8 @@ import com.android.purebilibili.core.ui.transition.resolveVideoSharedTransitionO
 import com.android.purebilibili.core.ui.transition.shouldEnableVideoCoverSharedTransition
 import com.android.purebilibili.feature.home.resolveHomeCardEnterAnimationEnabledAtMount
 import com.android.purebilibili.feature.home.resolveHomeCardInfoSurfaceAppearance
+import com.android.purebilibili.feature.home.resolveHomeHeroFlyoutDurationMillis
+import com.android.purebilibili.feature.home.resolveHomeHeroFlyoutFrame
 import com.android.purebilibili.feature.home.rememberHomeGlassPillColors
 import com.android.purebilibili.feature.home.resolveHomeGlassCoverPillBaseColor
 import com.android.purebilibili.feature.video.controller.PlaybackProgressManager
@@ -166,6 +172,7 @@ fun ElegantVideoCard(
     transitionEnabled: Boolean = false, //  卡片过渡动画开关
     isReturningFromVideoDetail: Boolean = false,
     isQuickReturningFromVideoDetail: Boolean = false,
+    heroFlyoutActive: Boolean = false,
     scrollLiteModeEnabled: Boolean = false,
     showPublishTime: Boolean = false,   //  是否显示发布时间（搜索结果用）
     isDataSaverActive: Boolean = false, // 🚀 [性能优化] 从父级传入，避免每个卡片重复计算
@@ -373,6 +380,20 @@ fun ElegantVideoCard(
             isSwitchingCategory = CardPositionManager.isSwitchingCategory
         )
     }
+    val heroFlyoutProgress by animateFloatAsState(
+        targetValue = if (heroFlyoutActive) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = resolveHomeHeroFlyoutDurationMillis(),
+            easing = FastOutSlowInEasing
+        ),
+        label = "homeHeroFlyoutProgress"
+    )
+    val heroFlyoutFrame = remember(heroFlyoutProgress) {
+        resolveHomeHeroFlyoutFrame(heroFlyoutProgress)
+    }
+    val heroFlyoutTranslationYPx = with(density) {
+        heroFlyoutFrame.translationYDp.dp.toPx()
+    }
 
     Box(
         modifier = Modifier
@@ -386,6 +407,13 @@ fun ElegantVideoCard(
                 animationEnabled = enterAnimationEnabledAtMount,
                 motionTier = motionTier
             )
+            .zIndex(if (heroFlyoutActive || heroFlyoutProgress > 0f) 8f else 0f)
+            .graphicsLayer {
+                alpha = heroFlyoutFrame.alpha
+                scaleX = heroFlyoutFrame.scale
+                scaleY = heroFlyoutFrame.scale
+                translationY = heroFlyoutTranslationYPx
+            }
             //  [新增] 记录卡片位置
             .onGloballyPositioned { coordinates ->
                 cardBoundsRef.value = coordinates.boundsInRoot()

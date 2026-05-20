@@ -205,6 +205,7 @@ fun HomeScreen(
 
     // [Feature] Video Preview State (Global Scope)
     val targetVideoItemState = remember { mutableStateOf<VideoItem?>(null) }
+    var pendingHeroFlyoutRequest by remember { mutableStateOf<HomeVideoClickRequest?>(null) }
     val homeBackdrop = rememberLayerBackdrop()
 
     val coroutineScope = rememberCoroutineScope() // 用于双击回顶动画
@@ -1094,16 +1095,35 @@ fun HomeScreen(
     }
     var bottomBarRestoreJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var topTabsRevealJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    
+
+    LaunchedEffect(pendingHeroFlyoutRequest) {
+        val pendingRequest = pendingHeroFlyoutRequest ?: return@LaunchedEffect
+        delay(resolveHomeHeroFlyoutNavigationDelayMillis())
+        onVideoClick(pendingRequest)
+        delay(80L)
+        if (pendingHeroFlyoutRequest == pendingRequest) {
+            pendingHeroFlyoutRequest = null
+        }
+    }
 
     //  包装 onVideoClick：点击视频时先隐藏底栏再导航
-    val wrappedOnVideoClick: (HomeVideoClickRequest) -> Unit = remember(onVideoClick, setBottomBarVisible) {
+    val wrappedOnVideoClick: (HomeVideoClickRequest) -> Unit = remember(
+        onVideoClick,
+        setBottomBarVisible,
+        pendingHeroFlyoutRequest
+    ) {
         { request ->
-             hideTopTabsForForwardDetailNav = true
-             delayTopTabsUntilCardSettled = false
-             setBottomBarVisible(false)
-             isVideoNavigating = true
-             onVideoClick(request)
+            if (pendingHeroFlyoutRequest == null) {
+                hideTopTabsForForwardDetailNav = true
+                delayTopTabsUntilCardSettled = false
+                setBottomBarVisible(false)
+                isVideoNavigating = true
+                if (shouldRunHomeHeroFlyoutBeforeNavigation(request)) {
+                    pendingHeroFlyoutRequest = request
+                } else {
+                    onVideoClick(request)
+                }
+            }
         }
     }
     val onTodayWatchVideoClick: (VideoItem) -> Unit = remember(viewModel, wrappedOnVideoClick) {
@@ -1379,6 +1399,7 @@ fun HomeScreen(
                                      cardTransitionEnabled = cardTransitionEnabled,
                                      isReturningFromVideoDetail = isReturningFromVideoDetail,
                                      isQuickReturningFromVideoDetail = isQuickReturningFromVideoDetail,
+                                     heroFlyoutBvid = pendingHeroFlyoutRequest?.bvid,
                                      smartVisualGuardEnabled = false,
                                      isDataSaverActive = isDataSaverActive,
                                      preferLowQualityCover = homeSettings.lowQualityHomeCoverInDataSaver,
