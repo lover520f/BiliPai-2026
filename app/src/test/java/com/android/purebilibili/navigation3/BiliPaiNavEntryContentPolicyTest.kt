@@ -24,6 +24,17 @@ class BiliPaiNavEntryContentPolicyTest {
         assertEquals(BiliPaiNavEntryContentRole.ARTICLE_DETAIL, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.ArticleDetail(1L)))
         assertEquals(BiliPaiNavEntryContentRole.LIVE, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.Live(1L)))
         assertEquals(BiliPaiNavEntryContentRole.BANGUMI_DETAIL, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.BangumiDetail(1L)))
+        assertEquals(BiliPaiNavEntryContentRole.OPEN_SOURCE_LICENSES, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.OpenSourceLicenses))
+        assertEquals(BiliPaiNavEntryContentRole.APPEARANCE_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.AppearanceSettings))
+        assertEquals(BiliPaiNavEntryContentRole.ICON_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.IconSettings))
+        assertEquals(BiliPaiNavEntryContentRole.ANIMATION_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.AnimationSettings))
+        assertEquals(BiliPaiNavEntryContentRole.PLAYBACK_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.PlaybackSettings))
+        assertEquals(BiliPaiNavEntryContentRole.PERMISSION_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.PermissionSettings))
+        assertEquals(BiliPaiNavEntryContentRole.PLUGINS_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.PluginsSettings()))
+        assertEquals(BiliPaiNavEntryContentRole.BOTTOM_BAR_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.BottomBarSettings))
+        assertEquals(BiliPaiNavEntryContentRole.SETTINGS_SHARE, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.SettingsShare))
+        assertEquals(BiliPaiNavEntryContentRole.WEB_DAV_BACKUP, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.WebDavBackup))
+        assertEquals(BiliPaiNavEntryContentRole.TIPS_SETTINGS, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.TipsSettings))
     }
 
     @Test

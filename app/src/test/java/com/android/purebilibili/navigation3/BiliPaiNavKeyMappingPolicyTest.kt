@@ -41,6 +41,26 @@ class BiliPaiNavKeyMappingPolicyTest {
     }
 
     @Test
+    fun settingsSecondaryRoutes_mapToNavigation3Keys() {
+        assertEquals(BiliPaiNavKey.OpenSourceLicenses, legacyRouteToBiliPaiNavKey(ScreenRoutes.OpenSourceLicenses.route))
+        assertEquals(BiliPaiNavKey.AppearanceSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.AppearanceSettings.route))
+        assertEquals(BiliPaiNavKey.IconSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.IconSettings.route))
+        assertEquals(BiliPaiNavKey.AnimationSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.AnimationSettings.route))
+        assertEquals(BiliPaiNavKey.PlaybackSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.PlaybackSettings.route))
+        assertEquals(BiliPaiNavKey.PermissionSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.PermissionSettings.route))
+        assertEquals(BiliPaiNavKey.PluginsSettings(), legacyRouteToBiliPaiNavKey(ScreenRoutes.PluginsSettings.createRoute()))
+        val pluginImportRoute = "plugins_settings?importUrl=https%3A%2F%2Fexample.com%2Fa.bpplugin"
+        assertEquals(
+            BiliPaiNavKey.PluginsSettings(importUrl = "https://example.com/a.bpplugin"),
+            legacyRouteToBiliPaiNavKey(pluginImportRoute)
+        )
+        assertEquals(BiliPaiNavKey.BottomBarSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.BottomBarSettings.route))
+        assertEquals(BiliPaiNavKey.SettingsShare, legacyRouteToBiliPaiNavKey(ScreenRoutes.SettingsShare.route))
+        assertEquals(BiliPaiNavKey.WebDavBackup, legacyRouteToBiliPaiNavKey(ScreenRoutes.WebDavBackup.route))
+        assertEquals(BiliPaiNavKey.TipsSettings, legacyRouteToBiliPaiNavKey(ScreenRoutes.TipsSettings.route))
+    }
+
+    @Test
     fun cardReturnTargets_matchExistingSharedElementDestinations() {
         assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.Home))
         assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.Search))

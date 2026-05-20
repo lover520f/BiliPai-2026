@@ -11,6 +11,17 @@ internal fun BiliPaiNavKey.toLegacyRoute(): String {
         BiliPaiNavKey.Dynamic -> ScreenRoutes.Dynamic.route
         BiliPaiNavKey.Search -> ScreenRoutes.Search.route
         BiliPaiNavKey.Settings -> ScreenRoutes.Settings.route
+        BiliPaiNavKey.OpenSourceLicenses -> ScreenRoutes.OpenSourceLicenses.route
+        BiliPaiNavKey.AppearanceSettings -> ScreenRoutes.AppearanceSettings.route
+        BiliPaiNavKey.IconSettings -> ScreenRoutes.IconSettings.route
+        BiliPaiNavKey.AnimationSettings -> ScreenRoutes.AnimationSettings.route
+        BiliPaiNavKey.PlaybackSettings -> ScreenRoutes.PlaybackSettings.route
+        BiliPaiNavKey.PermissionSettings -> ScreenRoutes.PermissionSettings.route
+        is BiliPaiNavKey.PluginsSettings -> ScreenRoutes.PluginsSettings.createRoute(importUrl)
+        BiliPaiNavKey.BottomBarSettings -> ScreenRoutes.BottomBarSettings.route
+        BiliPaiNavKey.SettingsShare -> ScreenRoutes.SettingsShare.route
+        BiliPaiNavKey.WebDavBackup -> ScreenRoutes.WebDavBackup.route
+        BiliPaiNavKey.TipsSettings -> ScreenRoutes.TipsSettings.route
         BiliPaiNavKey.Login -> ScreenRoutes.Login.route
         BiliPaiNavKey.Profile -> ScreenRoutes.Profile.route
         BiliPaiNavKey.History -> ScreenRoutes.History.route
@@ -51,6 +62,17 @@ internal fun legacyRouteToBiliPaiNavKey(route: String?): BiliPaiNavKey {
         normalized == ScreenRoutes.Dynamic.route -> BiliPaiNavKey.Dynamic
         normalized == ScreenRoutes.Search.route -> BiliPaiNavKey.Search
         normalized == ScreenRoutes.Settings.route -> BiliPaiNavKey.Settings
+        normalized == ScreenRoutes.OpenSourceLicenses.route -> BiliPaiNavKey.OpenSourceLicenses
+        normalized == ScreenRoutes.AppearanceSettings.route -> BiliPaiNavKey.AppearanceSettings
+        normalized == ScreenRoutes.IconSettings.route -> BiliPaiNavKey.IconSettings
+        normalized == ScreenRoutes.AnimationSettings.route -> BiliPaiNavKey.AnimationSettings
+        normalized == ScreenRoutes.PlaybackSettings.route -> BiliPaiNavKey.PlaybackSettings
+        normalized == ScreenRoutes.PermissionSettings.route -> BiliPaiNavKey.PermissionSettings
+        routeBase == "plugins_settings" -> BiliPaiNavKey.PluginsSettings(importUrl = query["importUrl"])
+        normalized == ScreenRoutes.BottomBarSettings.route -> BiliPaiNavKey.BottomBarSettings
+        normalized == ScreenRoutes.SettingsShare.route -> BiliPaiNavKey.SettingsShare
+        normalized == ScreenRoutes.WebDavBackup.route -> BiliPaiNavKey.WebDavBackup
+        normalized == ScreenRoutes.TipsSettings.route -> BiliPaiNavKey.TipsSettings
         normalized == ScreenRoutes.Login.route -> BiliPaiNavKey.Login
         normalized == ScreenRoutes.Profile.route -> BiliPaiNavKey.Profile
         normalized == ScreenRoutes.History.route -> BiliPaiNavKey.History

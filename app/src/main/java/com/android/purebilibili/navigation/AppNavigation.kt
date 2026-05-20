@@ -1601,18 +1601,67 @@ fun AppNavigation(
                         }
                         BiliPaiNavEntryContentRole.SETTINGS -> SettingsScreen(
                                 onBack = { performSystemBackAction() },
-                                onOpenSourceLicensesClick = { pushNavigation3Route(ScreenRoutes.OpenSourceLicenses.route) },
-                                onAppearanceClick = { pushNavigation3Route(ScreenRoutes.AppearanceSettings.route) },
-                                onAnimationClick = { pushNavigation3Route(ScreenRoutes.AnimationSettings.route) },
-                                onPlaybackClick = { pushNavigation3Route(ScreenRoutes.PlaybackSettings.route) },
-                                onPermissionClick = { pushNavigation3Route(ScreenRoutes.PermissionSettings.route) },
-                                onPluginsClick = { pushNavigation3Route(ScreenRoutes.PluginsSettings.createRoute()) },
-                                onSettingsShareClick = { pushNavigation3Route(ScreenRoutes.SettingsShare.route) },
-                                onWebDavBackupClick = { pushNavigation3Route(ScreenRoutes.WebDavBackup.route) },
-                                onNavigateToBottomBarSettings = { pushNavigation3Route(ScreenRoutes.BottomBarSettings.route) },
-                                onTipsClick = { pushNavigation3Route(ScreenRoutes.TipsSettings.route) },
+                                onOpenSourceLicensesClick = { pushNavigation3Key(BiliPaiNavKey.OpenSourceLicenses) },
+                                onAppearanceClick = { pushNavigation3Key(BiliPaiNavKey.AppearanceSettings) },
+                                onAnimationClick = { pushNavigation3Key(BiliPaiNavKey.AnimationSettings) },
+                                onPlaybackClick = { pushNavigation3Key(BiliPaiNavKey.PlaybackSettings) },
+                                onPermissionClick = { pushNavigation3Key(BiliPaiNavKey.PermissionSettings) },
+                                onPluginsClick = { pushNavigation3Key(BiliPaiNavKey.PluginsSettings()) },
+                                onSettingsShareClick = { pushNavigation3Key(BiliPaiNavKey.SettingsShare) },
+                                onWebDavBackupClick = { pushNavigation3Key(BiliPaiNavKey.WebDavBackup) },
+                                onNavigateToBottomBarSettings = { pushNavigation3Key(BiliPaiNavKey.BottomBarSettings) },
+                                onTipsClick = { pushNavigation3Key(BiliPaiNavKey.TipsSettings) },
                                 onReplayOnboardingClick = { pushNavigation3Route(ScreenRoutes.Onboarding.route) },
                                 mainHazeState = mainHazeState
+                            )
+                        BiliPaiNavEntryContentRole.OPEN_SOURCE_LICENSES ->
+                            com.android.purebilibili.feature.settings.OpenSourceLicensesScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.APPEARANCE_SETTINGS ->
+                            AppearanceSettingsScreen(
+                                onBack = { performSystemBackAction() },
+                                onNavigateToIconSettings = { pushNavigation3Key(BiliPaiNavKey.IconSettings) },
+                                onNavigateToAnimationSettings = { pushNavigation3Key(BiliPaiNavKey.AnimationSettings) }
+                            )
+                        BiliPaiNavEntryContentRole.ICON_SETTINGS ->
+                            com.android.purebilibili.feature.settings.IconSettingsScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.ANIMATION_SETTINGS ->
+                            com.android.purebilibili.feature.settings.AnimationSettingsScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.PLAYBACK_SETTINGS ->
+                            PlaybackSettingsScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.PERMISSION_SETTINGS ->
+                            com.android.purebilibili.feature.settings.PermissionSettingsScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.PLUGINS_SETTINGS -> {
+                                val pluginsKey = key as BiliPaiNavKey.PluginsSettings
+                                com.android.purebilibili.feature.settings.PluginsScreen(
+                                    onBack = { performSystemBackAction() },
+                                    initialImportUrl = pluginsKey.importUrl
+                                )
+                            }
+                        BiliPaiNavEntryContentRole.BOTTOM_BAR_SETTINGS ->
+                            com.android.purebilibili.feature.settings.BottomBarSettingsScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.SETTINGS_SHARE ->
+                            com.android.purebilibili.feature.settings.share.SettingsShareScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.WEB_DAV_BACKUP ->
+                            com.android.purebilibili.feature.settings.webdav.WebDavBackupScreen(
+                                onBack = { performSystemBackAction() }
+                            )
+                        BiliPaiNavEntryContentRole.TIPS_SETTINGS ->
+                            com.android.purebilibili.feature.settings.TipsSettingsScreen(
+                                onBack = { performSystemBackAction() }
                             )
                         BiliPaiNavEntryContentRole.WATCH_LATER -> com.android.purebilibili.feature.watchlater.WatchLaterScreen(
                                 onBack = { performSystemBackAction() },

@@ -28,6 +28,63 @@ internal sealed interface BiliPaiNavKey : NavKey {
     }
 
     @Serializable
+    data object OpenSourceLicenses : BiliPaiNavKey {
+        override val routeBase: String = "open_source_licenses"
+    }
+
+    @Serializable
+    data object AppearanceSettings : BiliPaiNavKey {
+        override val routeBase: String = "appearance_settings"
+    }
+
+    @Serializable
+    data object IconSettings : BiliPaiNavKey {
+        override val routeBase: String = "icon_settings"
+    }
+
+    @Serializable
+    data object AnimationSettings : BiliPaiNavKey {
+        override val routeBase: String = "animation_settings"
+    }
+
+    @Serializable
+    data object PlaybackSettings : BiliPaiNavKey {
+        override val routeBase: String = "playback_settings"
+    }
+
+    @Serializable
+    data object PermissionSettings : BiliPaiNavKey {
+        override val routeBase: String = "permission_settings"
+    }
+
+    @Serializable
+    data class PluginsSettings(
+        val importUrl: String? = null
+    ) : BiliPaiNavKey {
+        override val routeBase: String = "plugins_settings"
+    }
+
+    @Serializable
+    data object BottomBarSettings : BiliPaiNavKey {
+        override val routeBase: String = "bottom_bar_settings"
+    }
+
+    @Serializable
+    data object SettingsShare : BiliPaiNavKey {
+        override val routeBase: String = "settings_share"
+    }
+
+    @Serializable
+    data object WebDavBackup : BiliPaiNavKey {
+        override val routeBase: String = "webdav_backup"
+    }
+
+    @Serializable
+    data object TipsSettings : BiliPaiNavKey {
+        override val routeBase: String = "tips_settings"
+    }
+
+    @Serializable
     data object Login : BiliPaiNavKey {
         override val routeBase: String = "login"
     }

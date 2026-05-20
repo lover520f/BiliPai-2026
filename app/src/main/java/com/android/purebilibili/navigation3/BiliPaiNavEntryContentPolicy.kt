@@ -5,6 +5,17 @@ internal enum class BiliPaiNavEntryContentRole {
     DYNAMIC,
     SEARCH,
     SETTINGS,
+    OPEN_SOURCE_LICENSES,
+    APPEARANCE_SETTINGS,
+    ICON_SETTINGS,
+    ANIMATION_SETTINGS,
+    PLAYBACK_SETTINGS,
+    PERMISSION_SETTINGS,
+    PLUGINS_SETTINGS,
+    BOTTOM_BAR_SETTINGS,
+    SETTINGS_SHARE,
+    WEB_DAV_BACKUP,
+    TIPS_SETTINGS,
     PROFILE,
     VIDEO_DETAIL,
     HISTORY,
@@ -29,6 +40,17 @@ internal fun resolveBiliPaiNavEntryContentRole(key: BiliPaiNavKey): BiliPaiNavEn
         BiliPaiNavKey.Dynamic -> BiliPaiNavEntryContentRole.DYNAMIC
         BiliPaiNavKey.Search -> BiliPaiNavEntryContentRole.SEARCH
         BiliPaiNavKey.Settings -> BiliPaiNavEntryContentRole.SETTINGS
+        BiliPaiNavKey.OpenSourceLicenses -> BiliPaiNavEntryContentRole.OPEN_SOURCE_LICENSES
+        BiliPaiNavKey.AppearanceSettings -> BiliPaiNavEntryContentRole.APPEARANCE_SETTINGS
+        BiliPaiNavKey.IconSettings -> BiliPaiNavEntryContentRole.ICON_SETTINGS
+        BiliPaiNavKey.AnimationSettings -> BiliPaiNavEntryContentRole.ANIMATION_SETTINGS
+        BiliPaiNavKey.PlaybackSettings -> BiliPaiNavEntryContentRole.PLAYBACK_SETTINGS
+        BiliPaiNavKey.PermissionSettings -> BiliPaiNavEntryContentRole.PERMISSION_SETTINGS
+        is BiliPaiNavKey.PluginsSettings -> BiliPaiNavEntryContentRole.PLUGINS_SETTINGS
+        BiliPaiNavKey.BottomBarSettings -> BiliPaiNavEntryContentRole.BOTTOM_BAR_SETTINGS
+        BiliPaiNavKey.SettingsShare -> BiliPaiNavEntryContentRole.SETTINGS_SHARE
+        BiliPaiNavKey.WebDavBackup -> BiliPaiNavEntryContentRole.WEB_DAV_BACKUP
+        BiliPaiNavKey.TipsSettings -> BiliPaiNavEntryContentRole.TIPS_SETTINGS
         BiliPaiNavKey.Profile -> BiliPaiNavEntryContentRole.PROFILE
         is BiliPaiNavKey.VideoDetail -> BiliPaiNavEntryContentRole.VIDEO_DETAIL
         BiliPaiNavKey.History -> BiliPaiNavEntryContentRole.HISTORY
