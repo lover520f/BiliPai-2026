@@ -24,15 +24,13 @@ internal fun shouldEnableVideoPredictiveReturnToCard(
     currentKey: BiliPaiNavKey?,
     previousKey: BiliPaiNavKey?,
     predictiveBackAnimationStyle: PredictiveBackAnimationStyle,
-    cardTransitionEnabled: Boolean,
     sourceMetadata: BiliPaiNavSourceMetadata,
     sourceBounds: Rect?
 ): Boolean {
     val videoKey = currentKey as? BiliPaiNavKey.VideoDetail ?: return false
     val normalizedSourceRoute = sourceMetadata.sourceRoute?.substringBefore("?")
     val normalizedVideoSourceRoute = videoKey.sourceRoute?.substringBefore("?")
-    return cardTransitionEnabled &&
-        predictiveBackAnimationStyle.usesPredictiveBack &&
+    return predictiveBackAnimationStyle.usesPredictiveBack &&
         previousKey == BiliPaiNavKey.Home &&
         normalizedSourceRoute == "home" &&
         normalizedVideoSourceRoute == "home" &&

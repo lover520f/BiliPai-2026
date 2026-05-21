@@ -11,9 +11,8 @@ import kotlin.test.assertTrue
 class AnimationSettingsPolicyTest {
 
     @Test
-    fun predictiveBackEntry_cardTransitionEnabled_usesSelectedStyleState() {
+    fun predictiveBackEntry_usesSelectedStyleState() {
         val aosp = resolvePredictiveBackToggleUiState(
-            cardTransitionEnabled = true,
             predictiveBackAnimationStyle = PredictiveBackAnimationStyle.AOSP
         )
         assertTrue(aosp.enabled)
@@ -23,7 +22,6 @@ class AnimationSettingsPolicyTest {
         assertEquals("当前：AOSP", aosp.subtitle)
 
         val none = resolvePredictiveBackToggleUiState(
-            cardTransitionEnabled = true,
             predictiveBackAnimationStyle = PredictiveBackAnimationStyle.NONE
         )
         assertTrue(none.enabled)
@@ -32,15 +30,15 @@ class AnimationSettingsPolicyTest {
     }
 
     @Test
-    fun predictiveBackEntry_cardTransitionDisabled_forcesDisabledNone() {
-        val disabledState = resolvePredictiveBackToggleUiState(
-            cardTransitionEnabled = false,
+    fun predictiveBackEntry_ignoresCardTransitionState() {
+        val state = resolvePredictiveBackToggleUiState(
             predictiveBackAnimationStyle = PredictiveBackAnimationStyle.AOSP
         )
-        assertFalse(disabledState.enabled)
-        assertEquals(PredictiveBackAnimationStyle.NONE, disabledState.selectedStyle)
-        assertEquals(PREDICTIVE_BACK_ANIMATION_TITLE, disabledState.title)
-        assertEquals(PREDICTIVE_BACK_TOGGLE_DEPENDENCY_SUBTITLE, disabledState.subtitle)
+
+        assertTrue(state.enabled)
+        assertEquals(PredictiveBackAnimationStyle.AOSP, state.selectedStyle)
+        assertEquals(PREDICTIVE_BACK_ANIMATION_TITLE, state.title)
+        assertEquals("当前：AOSP", state.subtitle)
     }
 
     @Test

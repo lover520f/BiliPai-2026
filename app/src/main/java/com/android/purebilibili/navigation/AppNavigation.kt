@@ -691,7 +691,6 @@ fun AppNavigation(
             currentNavigation3Key,
             previousNavigation3Key,
             predictiveBackAnimationStyle,
-            cardTransitionEnabled,
             navigation3SourceMetadata,
             CardPositionManager.lastClickedCardBounds
         ) {
@@ -699,7 +698,6 @@ fun AppNavigation(
                 currentKey = currentNavigation3Key,
                 previousKey = previousNavigation3Key,
                 predictiveBackAnimationStyle = predictiveBackAnimationStyle,
-                cardTransitionEnabled = cardTransitionEnabled,
                 sourceMetadata = navigation3SourceMetadata,
                 sourceBounds = CardPositionManager.lastClickedCardBounds
             )

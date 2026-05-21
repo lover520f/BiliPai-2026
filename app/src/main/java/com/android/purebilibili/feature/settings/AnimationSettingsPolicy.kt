@@ -8,8 +8,6 @@ import com.android.purebilibili.core.store.resolveLegacyLiquidGlassProgress
 
 internal const val PREDICTIVE_BACK_ANIMATION_TITLE = "预测性返回动画"
 internal const val PREDICTIVE_BACK_ANIMATION_SUBTITLE_PREFIX = "当前："
-internal const val PREDICTIVE_BACK_TOGGLE_DEPENDENCY_SUBTITLE =
-    "需先开启“过渡动画”后，才能调整返回动效"
 
 internal data class PredictiveBackToggleUiState(
     val title: String,
@@ -26,17 +24,8 @@ internal data class LiquidGlassPreviewUiState(
 )
 
 internal fun resolvePredictiveBackToggleUiState(
-    cardTransitionEnabled: Boolean,
     predictiveBackAnimationStyle: PredictiveBackAnimationStyle
 ): PredictiveBackToggleUiState {
-    if (!cardTransitionEnabled) {
-        return PredictiveBackToggleUiState(
-            title = PREDICTIVE_BACK_ANIMATION_TITLE,
-            enabled = false,
-            selectedStyle = PredictiveBackAnimationStyle.NONE,
-            subtitle = PREDICTIVE_BACK_TOGGLE_DEPENDENCY_SUBTITLE
-        )
-    }
     return PredictiveBackToggleUiState(
         title = PREDICTIVE_BACK_ANIMATION_TITLE,
         enabled = true,

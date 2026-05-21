@@ -142,11 +142,9 @@ fun AnimationSettingsContent(
         }
     }
     val predictiveBackToggleState = remember(
-        state.cardTransitionEnabled,
         state.predictiveBackAnimationStyle
     ) {
         resolvePredictiveBackToggleUiState(
-            cardTransitionEnabled = state.cardTransitionEnabled,
             predictiveBackAnimationStyle = state.predictiveBackAnimationStyle
         )
     }
