@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 
 internal fun BiliPaiNavKey.toLegacyRoute(): String {
     return when (this) {
+        BiliPaiNavKey.MainHost -> "main_host"
         BiliPaiNavKey.Home -> ScreenRoutes.Home.route
         BiliPaiNavKey.Dynamic -> ScreenRoutes.Dynamic.route
         BiliPaiNavKey.Search -> ScreenRoutes.Search.route
@@ -86,6 +87,7 @@ internal fun legacyRouteToBiliPaiNavKey(route: String?): BiliPaiNavKey {
     val query = parseQuery(normalized.substringAfter("?", missingDelimiterValue = ""))
 
     return when {
+        normalized == "main_host" -> BiliPaiNavKey.MainHost
         normalized == ScreenRoutes.Home.route -> BiliPaiNavKey.Home
         normalized == ScreenRoutes.Dynamic.route -> BiliPaiNavKey.Dynamic
         normalized == ScreenRoutes.Search.route -> BiliPaiNavKey.Search
@@ -230,6 +232,7 @@ internal fun legacyRouteToBiliPaiNavKey(route: String?): BiliPaiNavKey {
 internal fun isCardReturnTargetNavKey(key: BiliPaiNavKey): Boolean {
     return when (key) {
         BiliPaiNavKey.Home,
+        BiliPaiNavKey.MainHost,
         BiliPaiNavKey.Dynamic,
         BiliPaiNavKey.Search,
         BiliPaiNavKey.History,

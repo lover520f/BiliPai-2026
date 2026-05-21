@@ -7,14 +7,14 @@ internal fun resolveInitialBiliPaiBackStack(
     if (onboardingRequired) {
         return listOf(BiliPaiNavKey.Unknown("onboarding"))
     }
-    return listOf(legacyRouteToBiliPaiNavKey(firstRoute))
+    return listOf(BiliPaiNavKey.MainHost)
 }
 
 internal fun pushBiliPaiNavKey(
     currentStack: List<BiliPaiNavKey>,
     key: BiliPaiNavKey
 ): List<BiliPaiNavKey> {
-    val base = currentStack.ifEmpty { listOf(BiliPaiNavKey.Home) }
+    val base = currentStack.ifEmpty { listOf(BiliPaiNavKey.MainHost) }
     return if (base.last() == key) base else base + key
 }
 

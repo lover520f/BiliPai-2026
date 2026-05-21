@@ -15,7 +15,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Version-8.3.6-007AFF?style=flat-square&labelColor=ffffff" alt="Version 8.3.6" />
+  <img src="https://img.shields.io/badge/Version-8.3.7-007AFF?style=flat-square&labelColor=ffffff" alt="Version 8.3.7" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-34C759?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
   <img src="https://img.shields.io/badge/Kotlin-100%25-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/License-GPL--3.0-FF3B30?style=flat-square" alt="GPL-3.0" />
@@ -37,7 +37,7 @@
   </a>
 </p>
 
-<sub>README 更新：2026-05-20 · 当前构建版本以 app/build.gradle.kts 为准 · 发布记录以 <a href="CHANGELOG.md">CHANGELOG.md</a> 为准</sub>
+<sub>README 更新：2026-05-21 · 当前构建版本以 app/build.gradle.kts 为准 · 发布记录以 <a href="CHANGELOG.md">CHANGELOG.md</a> 为准</sub>
 
 </div>
 
@@ -179,13 +179,13 @@ cd BiliPai
 
 ## 最近更新
 
-当前仓库版本号已更新到 `8.3.6 / versionCode 200`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v8.3.6`：
+当前仓库版本号已更新到 `8.3.7 / versionCode 201`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v8.3.7`：
 
-- 修复视频详情共享元素返回首页时的 UI 错位，预测式返回开关开/关时都保持同一条卡片返回状态链路。
-- 修复历史、动态、空间等 Navigation3 页面点击时因 ViewModel 缺少 Application extras 导致的闪退。
-- 优化视频详情展开与返回收尾，移除 sharedBounds 期间额外内容 reveal，并为返回目标卡片加入更明显但克制的 spring 回弹。
-- 补齐 UP 主空间置顶视频、主页视频、投稿视频、聚合视频和动态视频卡片的共享元素进入/返回动画。
-- 补齐 Navigation3、共享元素、空间页高频卡片和返回回弹参数等回归测试。
+- 底栏一级页统一改由 `MainHost + HorizontalPager` 承载，底栏切换不再 push 旧顶级 route。
+- 底栏点击切换保留指示器折射和放大反馈，修复只位移、不出现玻璃折射过渡的问题。
+- 跨页切换保留连续分页位移，中间页参与真实横向滑动，动态/历史/我的等重页面加载延后到 settled 当前页。
+- 移除视频卡片进入详情页时误加入的回弹动画，减少进入详情时状态栏短暂露白。
+- 更新 Navigation3 初始栈、底栏 page/route 映射、返回键、Story 离屏预加载和结构测试。
 
 ## 路线图
 

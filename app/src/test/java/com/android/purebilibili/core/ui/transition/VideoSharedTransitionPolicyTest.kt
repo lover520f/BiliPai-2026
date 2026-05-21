@@ -196,38 +196,6 @@ class VideoSharedTransitionPolicyTest {
     }
 
     @Test
-    fun detailEnterSettle_enabledOnlyForHomeSharedTransition() {
-        val settle = resolveVideoDetailEnterSettleSpec(
-            sourceRoute = "home",
-            transitionEnabled = true
-        )
-
-        assertTrue(settle.enabled)
-        assertEquals(0.996f, settle.startScale, 0.0001f)
-        assertEquals(1.0f, settle.startTranslationYDp, 0.0001f)
-        assertEquals(0.78f, settle.dampingRatio, 0.0001f)
-        assertEquals(650f, settle.stiffness, 0.0001f)
-        assertTrue(settle.startScale >= 0.995f)
-        assertTrue(settle.startTranslationYDp <= 1.5f)
-    }
-
-    @Test
-    fun detailEnterSettle_disabledOutsideHomeSharedTransition() {
-        assertFalse(
-            resolveVideoDetailEnterSettleSpec(
-                sourceRoute = "dynamic",
-                transitionEnabled = true
-            ).enabled
-        )
-        assertFalse(
-            resolveVideoDetailEnterSettleSpec(
-                sourceRoute = "home",
-                transitionEnabled = false
-            ).enabled
-        )
-    }
-
-    @Test
     fun homeSharedTransitionCornerSpec_softlyConvergesFromCardToPlayer() {
         val corner = resolveHomeVideoSharedTransitionCornerSpec(
             sourceRoute = "home",

@@ -9,6 +9,7 @@ class BiliPaiNavKeyMappingPolicyTest {
 
     @Test
     fun topLevelRoutes_mapToNavigation3Keys() {
+        assertEquals(BiliPaiNavKey.MainHost, legacyRouteToBiliPaiNavKey("main_host"))
         assertEquals(BiliPaiNavKey.Home, legacyRouteToBiliPaiNavKey(ScreenRoutes.Home.route))
         assertEquals(BiliPaiNavKey.Dynamic, legacyRouteToBiliPaiNavKey(ScreenRoutes.Dynamic.route))
         assertEquals(BiliPaiNavKey.Search, legacyRouteToBiliPaiNavKey(ScreenRoutes.Search.route))
@@ -119,6 +120,7 @@ class BiliPaiNavKeyMappingPolicyTest {
 
     @Test
     fun cardReturnTargets_matchExistingSharedElementDestinations() {
+        assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.MainHost))
         assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.Home))
         assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.Search))
         assertEquals(true, isCardReturnTargetNavKey(BiliPaiNavKey.Space(42L)))

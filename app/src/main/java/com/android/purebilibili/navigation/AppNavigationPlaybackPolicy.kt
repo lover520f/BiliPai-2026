@@ -16,7 +16,7 @@ internal fun shouldDeferBottomBarRevealOnVideoReturn(
     isReturningFromDetail: Boolean,
     currentRoute: String?
 ): Boolean {
-    if (!isReturningFromDetail || currentRoute != ScreenRoutes.Home.route) return false
+    if (!isReturningFromDetail || currentRoute !in setOf(ScreenRoutes.Home.route, "main_host")) return false
     return false
 }
 
@@ -28,7 +28,8 @@ internal fun shouldClearReturningStateWhenDisposingVideoDestination(
 
 internal fun isVideoCardReturnTargetRoute(route: String?): Boolean {
     val routeBase = route?.substringBefore("?") ?: return false
-    return routeBase == ScreenRoutes.Home.route ||
+    return routeBase == "main_host" ||
+        routeBase == ScreenRoutes.Home.route ||
         routeBase == ScreenRoutes.History.route ||
         routeBase == ScreenRoutes.Favorite.route ||
         routeBase == ScreenRoutes.WatchLater.route ||

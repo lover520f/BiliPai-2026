@@ -33,7 +33,7 @@ internal fun BiliPaiNavDisplayHost(
     content: @Composable (BiliPaiNavKey) -> Unit
 ) {
     val safeBackStack = remember(backStack) {
-        backStack.ifEmpty { listOf(BiliPaiNavKey.Home) }
+        backStack.ifEmpty { listOf(BiliPaiNavKey.MainHost) }
     }
     val application = LocalContext.current.applicationContext as Application
     val scopedContent: @Composable (BiliPaiNavKey) -> Unit = remember(content, application) {

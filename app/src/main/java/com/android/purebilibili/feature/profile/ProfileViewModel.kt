@@ -63,7 +63,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         refreshSavedAccounts()
-        loadProfile()
     }
 
     fun refreshSavedAccounts() {

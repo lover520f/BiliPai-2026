@@ -8,14 +8,28 @@ import kotlin.test.assertTrue
 class BottomPagerStatePersistenceStructureTest {
 
     @Test
-    fun `bottom tabs no longer depend on local pager state holder`() {
+    fun `bottom tabs are hosted by main horizontal pager state`() {
         val source = loadSource("app/src/main/java/com/android/purebilibili/navigation/AppNavigation.kt")
 
         assertTrue(source.contains("BiliPaiNavDisplayHost("))
-        assertFalse(source.contains("bottomPagerSaveableStateHolder.SaveableStateProvider("))
-        assertFalse(source.contains("rememberSaveableStateHolder()"))
-        assertFalse(source.contains("HorizontalPager("))
+        assertTrue(source.contains("rememberPagerState("))
+        assertTrue(source.contains("rememberMainBottomPagerState("))
+        assertTrue(source.contains("HorizontalPager("))
+        assertTrue(source.contains("userScrollEnabled = shouldEnableBottomPagerUserScroll()"))
+        assertTrue(source.contains("resolveBottomPagerRenderBudget(isNavigating = mainBottomPagerState.isNavigating)"))
+        assertFalse(source.contains("pendingBottomTabTransitionRoute"))
+        assertFalse(source.contains("retainedBottomNavItem"))
+        assertFalse(source.contains("resolveBottomTabTransitionTargetRoute"))
         assertFalse(source.contains("VerticalPager("))
+    }
+
+    @Test
+    fun `main bottom pager keeps continuous scroll and tracks transition start page`() {
+        val source = loadSource("app/src/main/java/com/android/purebilibili/navigation/MainBottomPagerState.kt")
+
+        assertTrue(source.contains("navigationStartPage"))
+        assertTrue(source.contains("pagerState.animateScrollBy("))
+        assertFalse(source.contains("shouldUseDirectBottomPagerJump("))
     }
 
     private fun loadSource(path: String): String {

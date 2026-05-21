@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <sub>Last updated: 2026-05-21 · Synced to v8.3.6 (source of truth: <a href="CHANGELOG.md">CHANGELOG</a> + code)</sub>
+  <sub>Last updated: 2026-05-21 · Synced to v8.3.7 (source of truth: <a href="CHANGELOG.md">CHANGELOG</a> + code)</sub>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-8.3.6-fb7299?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Version-8.3.7-fb7299?style=flat-square" alt="Version">
   <img src="https://img.shields.io/github/stars/jay3-yy/BiliPai?style=flat-square&color=yellow" alt="Stars">
   <img src="https://img.shields.io/github/forks/jay3-yy/BiliPai?style=flat-square&color=green" alt="Forks">
   <img src="https://img.shields.io/github/last-commit/jay3-yy/BiliPai?style=flat-square&color=purple" alt="Last Commit">
@@ -432,14 +432,14 @@ A lightweight plugin format requiring **no coding**, just a simple JSON file to 
 
 See full changelog: [CHANGELOG.md](CHANGELOG.md)
 
-### Latest (v8.3.6 · 2026-05-21)
+### Latest (v8.3.7 · 2026-05-21)
 
-- Fixed shared-element returns from video detail so returning to Home no longer leaves the UI misaligned when predictive-back animation is disabled.
-- Kept video-card shared-element returns on the app back pipeline even when predictive-back animation is enabled, avoiding route-layer and shared-element animation conflicts.
-- Fixed Navigation3 ViewModel creation extras so History, Dynamic, Space, and similar pages no longer crash when opening ViewModel-backed content.
-- Added a perceptible but restrained spring rebound to matched return cards across Home and Dynamic video cards.
-- Extended shared-element video transitions to high-frequency Space surfaces, including pinned videos, home videos, contribution videos, and aggregate video cards.
-- Bumped the app to `8.3.6` with `versionCode` `200`.
+- Reworked bottom-bar primary pages around a single `MainHost + HorizontalPager` root, so tab switching no longer pushes legacy top-level routes.
+- Restored tap-switch indicator refraction and scale feedback so the bottom bar keeps a visible glass transition instead of only moving the indicator.
+- Preserved continuous pager motion: intermediate pages participate in the horizontal slide, while heavy Dynamic/History/Profile loading waits until the page is settled.
+- Removed the unintended rebound from video-card-to-detail entry, reducing the brief white status-bar flash during detail entry.
+- Updated Navigation3 root-stack, page/route mapping, back handling, Story offscreen preload, and structure tests.
+- Bumped the app to `8.3.7` with `versionCode` `201`.
 
 ---
 

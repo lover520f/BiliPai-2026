@@ -110,6 +110,7 @@ val LocalDynamicScrollChannel = compositionLocalOf<Channel<Unit>?> { null }
 @Composable
 fun DynamicScreen(
     viewModel: DynamicViewModel = viewModel(),
+    isCurrentPage: Boolean = true,
     onVideoClick: (String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit = { _, _ -> },
     onDynamicDetailClick: (String) -> Unit = {},
@@ -175,6 +176,12 @@ fun DynamicScreen(
     val hazeState = rememberRecoverableHazeState()
     val dynamicChromeBackdrop = rememberLayerBackdrop()
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(viewModel, isCurrentPage) {
+        if (isCurrentPage) {
+            viewModel.activateStartupLoads()
+        }
+    }
 
     val density = LocalDensity.current
     val statusBarHeight = WindowInsets.statusBars.getTop(density).let { with(density) { it.toDp() } }

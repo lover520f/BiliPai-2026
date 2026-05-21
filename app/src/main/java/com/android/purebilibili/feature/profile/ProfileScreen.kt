@@ -200,6 +200,7 @@ internal fun shouldShowProfileHistoryService(bottomBarVisibleTabIds: Collection<
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
+    isCurrentPage: Boolean = true,
     onBack: () -> Unit,
     onGoToLogin: () -> Unit,
     onLogoutSuccess: () -> Unit,
@@ -269,6 +270,12 @@ fun ProfileScreen(
                 insetsController.isAppearanceLightStatusBars = originalLightStatusBars
                 insetsController.isAppearanceLightNavigationBars = originalLightNavigationBars
             }
+        }
+    }
+
+    LaunchedEffect(viewModel, isCurrentPage) {
+        if (isCurrentPage) {
+            viewModel.loadProfile()
         }
     }
 

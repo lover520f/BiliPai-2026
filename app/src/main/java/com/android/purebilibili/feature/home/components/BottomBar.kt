@@ -673,7 +673,7 @@ internal fun shouldRenderBottomBarRefractionCapture(
     isBottomBarInteractionActive: Boolean = false
 ): Boolean {
     if (!glassEnabled || !hasBackdrop || captureProgress <= BottomBarTransientAlphaThreshold) return false
-    if (isTransitionRunning) return false
+    if (isTransitionRunning) return isBottomBarInteractionActive
     return shouldRenderBottomBarHeavyInteractiveEffects(
         isTransitionRunning = isTransitionRunning,
         isBottomBarInteractionActive = isBottomBarInteractionActive,

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.android.purebilibili.navigation.shouldUseInstantBottomTabTransition
 
 private const val BILI_PAI_NAV_ROUTE_BASE_METADATA_KEY = "biliPaiNavRouteBase"
 
@@ -22,6 +21,7 @@ internal fun biliPaiNavEntryProvider(
             )
         }
     ) {
+        entry<BiliPaiNavKey.MainHost>(metadata = { key -> biliPaiNavEntryMetadata(key, sourceMetadata, visibleBottomBarRoutes) }, content = content)
         entry<BiliPaiNavKey.Home>(metadata = { key -> biliPaiNavEntryMetadata(key, sourceMetadata, visibleBottomBarRoutes) }, content = content)
         entry<BiliPaiNavKey.Dynamic>(metadata = { key -> biliPaiNavEntryMetadata(key, sourceMetadata, visibleBottomBarRoutes) }, content = content)
         entry<BiliPaiNavKey.Search>(metadata = { key -> biliPaiNavEntryMetadata(key, sourceMetadata, visibleBottomBarRoutes) }, content = content)
@@ -111,18 +111,7 @@ internal fun resolveBiliPaiNavEntryForwardRouteTransition(
     toRoute: String?,
     visibleBottomBarRoutes: Set<String>
 ): BiliPaiNavRouteTransition {
-    if (defaultTransition != BiliPaiNavRouteTransition.FALLBACK) return defaultTransition
-    return if (
-        shouldUseInstantBottomTabTransition(
-            fromRoute = fromRoute,
-            toRoute = toRoute,
-            visibleBottomBarRoutes = visibleBottomBarRoutes
-        )
-    ) {
-        BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT
-    } else {
-        defaultTransition
-    }
+    return defaultTransition
 }
 
 private fun androidx.navigation3.scene.Scene<*>.biliPaiRouteBase(): String? {

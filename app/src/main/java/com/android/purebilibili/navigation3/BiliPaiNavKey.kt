@@ -8,6 +8,11 @@ internal sealed interface BiliPaiNavKey : NavKey {
     val routeBase: String
 
     @Serializable
+    data object MainHost : BiliPaiNavKey {
+        override val routeBase: String = "main_host"
+    }
+
+    @Serializable
     data object Home : BiliPaiNavKey {
         override val routeBase: String = "home"
     }

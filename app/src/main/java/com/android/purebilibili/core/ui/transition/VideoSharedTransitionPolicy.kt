@@ -21,10 +21,6 @@ private const val VIDEO_CARD_RETURN_REBOUND_START_SCALE = 0.984f
 private const val VIDEO_CARD_RETURN_REBOUND_TRANSLATION_Y_DP = 2.25f
 private const val VIDEO_CARD_RETURN_REBOUND_DAMPING_RATIO = 0.64f
 private const val VIDEO_CARD_RETURN_REBOUND_STIFFNESS = 520f
-private const val VIDEO_DETAIL_ENTER_SETTLE_START_SCALE = 0.996f
-private const val VIDEO_DETAIL_ENTER_SETTLE_TRANSLATION_Y_DP = 1.0f
-private const val VIDEO_DETAIL_ENTER_SETTLE_DAMPING_RATIO = 0.78f
-private const val VIDEO_DETAIL_ENTER_SETTLE_STIFFNESS = 650f
 private val VIDEO_CARD_IOS_LIKE_EASE_OUT = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
 internal data class VideoSharedTransitionOwnership(
@@ -64,14 +60,6 @@ internal data class VideoCardReturnReboundSpec(
     val dampingRatio: Float,
     val stiffness: Float,
     val easing: Easing
-)
-
-internal data class VideoDetailEnterSettleSpec(
-    val enabled: Boolean,
-    val startScale: Float,
-    val startTranslationYDp: Float,
-    val dampingRatio: Float,
-    val stiffness: Float
 )
 
 internal fun resolveVideoSharedTransitionProfile(): VideoSharedTransitionProfile {
@@ -244,31 +232,6 @@ internal fun resolveVideoCardReturnReboundSpec(
             dampingRatio = 1f,
             stiffness = 0f,
             easing = VIDEO_CARD_IOS_LIKE_EASE_OUT
-        )
-    }
-}
-
-internal fun resolveVideoDetailEnterSettleSpec(
-    sourceRoute: String?,
-    transitionEnabled: Boolean
-): VideoDetailEnterSettleSpec {
-    val enabled = transitionEnabled &&
-        sourceRoute?.substringBefore("?") == HOME_SOURCE_ROUTE
-    return if (enabled) {
-        VideoDetailEnterSettleSpec(
-            enabled = true,
-            startScale = VIDEO_DETAIL_ENTER_SETTLE_START_SCALE,
-            startTranslationYDp = VIDEO_DETAIL_ENTER_SETTLE_TRANSLATION_Y_DP,
-            dampingRatio = VIDEO_DETAIL_ENTER_SETTLE_DAMPING_RATIO,
-            stiffness = VIDEO_DETAIL_ENTER_SETTLE_STIFFNESS
-        )
-    } else {
-        VideoDetailEnterSettleSpec(
-            enabled = false,
-            startScale = 1f,
-            startTranslationYDp = 0f,
-            dampingRatio = 1f,
-            stiffness = 0f
         )
     }
 }

@@ -7,6 +7,7 @@ class BiliPaiNavEntryContentPolicyTest {
 
     @Test
     fun topLevelKeysResolveToDedicatedContentRoles() {
+        assertEquals(BiliPaiNavEntryContentRole.MAIN_HOST, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.MainHost))
         assertEquals(BiliPaiNavEntryContentRole.HOME, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.Home))
         assertEquals(BiliPaiNavEntryContentRole.DYNAMIC, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.Dynamic))
         assertEquals(BiliPaiNavEntryContentRole.SEARCH, resolveBiliPaiNavEntryContentRole(BiliPaiNavKey.Search))

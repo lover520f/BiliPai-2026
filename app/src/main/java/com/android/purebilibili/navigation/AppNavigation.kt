@@ -15,6 +15,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState //  新增
 import androidx.compose.runtime.getValue //  新增
@@ -24,7 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.luminance
@@ -80,6 +82,7 @@ import com.android.purebilibili.core.ui.SharedTransitionProvider
 import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
 import com.android.purebilibili.core.ui.LocalSharedTransitionScope
 import com.android.purebilibili.core.ui.transition.LocalVideoCardReturnTransitionState
+import com.android.purebilibili.core.ui.transition.LocalVideoCardSharedElementSourceRoute
 import com.android.purebilibili.core.ui.transition.VideoCardReturnTransitionState
 import com.android.purebilibili.data.model.response.BgmInfo
 
@@ -424,42 +427,34 @@ fun AppNavigation(
         val visibleBottomBarRoutes = remember(visibleBottomBarItems) {
             visibleBottomBarItems.map { it.route }.toSet()
         }
-        var retainedBottomNavItem by rememberSaveable { mutableStateOf(BottomNavItem.HOME) }
-        var pendingBottomTabTransitionRoute by remember { mutableStateOf<String?>(null) }
+        val bottomPagerState = rememberPagerState(
+            pageCount = { visibleBottomBarItems.size.coerceAtLeast(1) }
+        )
+        val mainBottomPagerState = rememberMainBottomPagerState(bottomPagerState)
+        var bottomPagerContentReady by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            withFrameNanos { }
+            bottomPagerContentReady = true
+        }
+        LaunchedEffect(bottomPagerState.currentPage, mainBottomPagerState) {
+            mainBottomPagerState.syncPage()
+        }
+        LaunchedEffect(visibleBottomBarItems, mainBottomPagerState.selectedPage) {
+            val lastPage = visibleBottomBarItems.lastIndex
+            if (lastPage >= 0 && mainBottomPagerState.selectedPage > lastPage) {
+                mainBottomPagerState.animateToPage(lastPage)
+            }
+        }
         val bottomPagerRenderBudget =
-            resolveBottomPagerRenderBudget(isNavigating = pendingBottomTabTransitionRoute != null)
+            resolveBottomPagerRenderBudget(isNavigating = mainBottomPagerState.isNavigating)
         val currentBottomNavItem = remember(
-            currentRoute,
-            retainedBottomNavItem,
+            mainBottomPagerState.selectedPage,
             visibleBottomBarItems
         ) {
-            resolveBottomNavItemForRoute(
-                currentRoute = currentRoute,
-                retainedItem = retainedBottomNavItem,
+            resolveBottomPagerItemForPage(
+                page = mainBottomPagerState.selectedPage,
                 visibleItems = visibleBottomBarItems
             )
-        }
-        LaunchedEffect(currentRoute, currentBottomNavItem) {
-            val routeBase = currentRoute?.substringBefore("?")
-            if (routeBase == ScreenRoutes.Home.route || routeBase in visibleBottomBarRoutes) {
-                retainedBottomNavItem = currentBottomNavItem
-            }
-        }
-        LaunchedEffect(currentRoute, pendingBottomTabTransitionRoute, visibleBottomBarRoutes) {
-            val pendingRoute = pendingBottomTabTransitionRoute ?: return@LaunchedEffect
-            val currentRouteBase = currentRoute?.substringBefore("?")
-            val pendingRouteBase = pendingRoute.substringBefore("?")
-            when {
-                currentRouteBase == pendingRouteBase -> {
-                    kotlinx.coroutines.delay(BOTTOM_TAB_RENDER_BUDGET_HOLD_MILLIS)
-                    if (pendingBottomTabTransitionRoute == pendingRoute) {
-                        pendingBottomTabTransitionRoute = null
-                    }
-                }
-                currentRouteBase != null && currentRouteBase !in visibleBottomBarRoutes -> {
-                    pendingBottomTabTransitionRoute = null
-                }
-            }
         }
 
         val bottomBarItemColors = appNavigationSettings.bottomBarItemColors
@@ -487,16 +482,15 @@ fun AppNavigation(
                 cardTransitionEnabled = cardTransitionEnabled
             )
         }
-        val hasPreviousBackStackEntry = navigation3BackStack.size > 1
+        val isAtMainHostRoot = navigation3BackStack.lastOrNull() == BiliPaiNavKey.MainHost
         val systemBackAction = remember(
-            currentRoute,
+            isAtMainHostRoot,
             currentBottomNavItem,
-            hasPreviousBackStackEntry
         ) {
             resolveAppSystemBackAction(
-                currentRoute = currentRoute,
+                isAtMainHostRoot = isAtMainHostRoot,
                 currentBottomItem = currentBottomNavItem,
-                hasPreviousBackStackEntry = hasPreviousBackStackEntry
+                homeItem = BottomNavItem.HOME
             )
         }
         val navigation3MotionMode = remember(predictiveBackAnimationEnabled, cardTransitionEnabled) {
@@ -552,8 +546,45 @@ fun AppNavigation(
                 key = key
             )
         }
+        fun requestBottomPagerPageForRoute(route: String, beforeNavigation: (() -> Unit)? = null): Boolean {
+            val page = resolveBottomPagerPageForRoute(
+                route = route,
+                visibleItems = visibleBottomBarItems
+            ) ?: return false
+            val target = legacyRouteToBiliPaiNavKey(route).toPrivacyNavigationTarget()
+            val performPagerNavigation = {
+                beforeNavigation?.invoke()
+                navigation3BackStack = listOf(BiliPaiNavKey.MainHost)
+                mainBottomPagerState.animateToPage(page)
+            }
+            if (
+                shouldRequirePrivacyAuthentication(
+                    privacyAuthenticationEnabled = privacyAuthenticationEnabled,
+                    privacySessionUnlocked = privacySessionUnlocked,
+                    target = target
+                )
+            ) {
+                onPrivacyAuthenticationRequired(
+                    PrivacyAuthenticationRequest(PrivacyAuthenticationReason.OPEN_PRIVACY_CONTENT)
+                ) { result ->
+                    when (result) {
+                        PrivacyAuthenticationResult.Success -> {
+                            privacySessionUnlocked = true
+                            performPagerNavigation()
+                        }
+                        is PrivacyAuthenticationResult.Failure -> {
+                            android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } else {
+                performPagerNavigation()
+            }
+            return true
+        }
         fun pushNavigation3Route(route: String, beforeNavigation: (() -> Unit)? = null) {
             if (!canNavigate(shouldBypassNavigationDebounceForRoute(route))) return
+            if (requestBottomPagerPageForRoute(route, beforeNavigation)) return
             pushNavigation3Key(legacyRouteToBiliPaiNavKey(route), beforeNavigation)
         }
         fun navigateToVideoRouteInNavigation3(route: String, sourceRoute: String?) {
@@ -672,7 +703,7 @@ fun AppNavigation(
                         (!predictiveBackAnimationEnabled && systemBackAction == AppSystemBackAction.NAVIGATE_UP)
             )
         }
-        val activeBottomTabRoute = if (currentRoute?.substringBefore("?") == ScreenRoutes.Home.route) {
+        val activeBottomTabRoute = if (currentNavigation3Key == BiliPaiNavKey.MainHost) {
             currentBottomNavItem.route
         } else {
             currentRoute
@@ -752,12 +783,7 @@ fun AppNavigation(
         val handleNavItemClick: (BottomNavItem) -> Unit = { item ->
             when (resolveBottomBarSelectionAction(currentBottomNavItem, item)) {
                 BottomBarSelectionAction.NAVIGATE -> {
-                    pendingBottomTabTransitionRoute = resolveBottomTabTransitionTargetRoute(
-                        currentRoute = currentRoute,
-                        targetRoute = item.route,
-                        visibleBottomBarRoutes = visibleBottomBarRoutes
-                    )
-                    pushNavigation3Route(item.route)
+                    requestBottomPagerPageForRoute(item.route)
                 }
                 BottomBarSelectionAction.RESELECT -> when (item) {
                     BottomNavItem.HOME -> homeScrollChannel.trySend(Unit)
@@ -944,8 +970,10 @@ fun AppNavigation(
             val performSystemBackAction = {
                 when (systemBackAction) {
                     AppSystemBackAction.RETURN_TO_HOME_TAB -> {
-                        markNavigation3VideoReturnBeforeBackAction(targetKey = BiliPaiNavKey.Home)
-                        pushNavigation3Key(BiliPaiNavKey.Home)
+                        val homeIndex = visibleBottomBarItems.indexOf(BottomNavItem.HOME)
+                        if (homeIndex >= 0) {
+                            mainBottomPagerState.animateToPage(homeIndex)
+                        }
                     }
                     AppSystemBackAction.NAVIGATE_UP -> {
                         val previousKey = navigation3BackStack.getOrNull(navigation3BackStack.lastIndex - 1)
@@ -1008,15 +1036,25 @@ fun AppNavigation(
                         appearance = globalHomeWallpaperAppearance,
                         baseColor = backgroundColor
                     )
-                BiliPaiNavDisplayHost(
-                    backStack = navigation3BackStack,
-                    motionMode = navigation3MotionMode,
-                    sourceMetadata = navigation3SourceMetadata,
-                    onBack = { performSystemBackAction() },
-                    modifier = Modifier.fillMaxSize(),
-                    sharedTransitionScope = LocalSharedTransitionScope.current,
-                    visibleBottomBarRoutes = visibleBottomBarRoutes
-                ) { key ->
+                fun bottomPagerNavKeyForItem(item: BottomNavItem): BiliPaiNavKey {
+                    return when (item) {
+                        BottomNavItem.HOME -> BiliPaiNavKey.Home
+                        BottomNavItem.DYNAMIC -> BiliPaiNavKey.Dynamic
+                        BottomNavItem.STORY -> BiliPaiNavKey.Story
+                        BottomNavItem.HISTORY -> BiliPaiNavKey.History
+                        BottomNavItem.PROFILE -> BiliPaiNavKey.Profile
+                        BottomNavItem.FAVORITE -> BiliPaiNavKey.Favorite
+                        BottomNavItem.LIVE -> BiliPaiNavKey.LiveList
+                        BottomNavItem.WATCHLATER -> BiliPaiNavKey.WatchLater
+                        BottomNavItem.SETTINGS -> BiliPaiNavKey.Settings
+                    }
+                }
+
+                @Composable
+                fun RenderNavigationContent(
+                    key: BiliPaiNavKey,
+                    isBottomPagerPageActive: Boolean = true
+                ) {
                     CompositionLocalProvider(
                         LocalVideoCardReturnTransitionState provides VideoCardReturnTransitionState(
                             sourceKey = navigation3ReturnSession.lastVideoSourceKey,
@@ -1026,12 +1064,50 @@ fun AppNavigation(
                         )
                     ) {
                         when (resolveBiliPaiNavEntryContentRole(key)) {
+                        BiliPaiNavEntryContentRole.MAIN_HOST -> {
+                            HorizontalPager(
+                                modifier = Modifier.fillMaxSize(),
+                                state = bottomPagerState,
+                                beyondViewportPageCount = resolveBottomPagerBeyondViewportPageCount(
+                                    contentReady = bottomPagerContentReady,
+                                    isNavigating = mainBottomPagerState.isNavigating,
+                                    currentPage = bottomPagerState.currentPage,
+                                    selectedPage = mainBottomPagerState.selectedPage
+                                ),
+                                userScrollEnabled = shouldEnableBottomPagerUserScroll()
+                            ) { page ->
+                                val item = visibleBottomBarItems.getOrNull(page) ?: BottomNavItem.HOME
+                                if (
+                                    shouldComposeBottomPagerPage(
+                                        item = item,
+                                        page = page,
+                                        currentPage = bottomPagerState.currentPage,
+                                        selectedPage = mainBottomPagerState.selectedPage,
+                                        isNavigating = mainBottomPagerState.isNavigating,
+                                        navigationStartPage = mainBottomPagerState.navigationStartPage,
+                                        contentReady = bottomPagerContentReady
+                                    )
+                                ) {
+                                    val pageKey = bottomPagerNavKeyForItem(item)
+                                    CompositionLocalProvider(
+                                        LocalVideoCardSharedElementSourceRoute provides pageKey.toLegacyRoute()
+                                    ) {
+                                        RenderNavigationContent(
+                                            key = pageKey,
+                                            isBottomPagerPageActive = page == bottomPagerState.settledPage
+                                        )
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.fillMaxSize())
+                                }
+                            }
+                        }
                         BiliPaiNavEntryContentRole.HOME -> HomeScreen(
                                 viewModel = homeViewModel,
                                 onVideoClick = { request -> navigateToHomeVideoInNavigation3(request) },
                                 onSearchClick = { pushNavigation3Key(BiliPaiNavKey.Search) },
                                 onAvatarClick = { pushNavigation3Key(BiliPaiNavKey.Login) },
-                                onProfileClick = { pushNavigation3Key(BiliPaiNavKey.Profile) },
+                                onProfileClick = { pushNavigation3Route(ScreenRoutes.Profile.route) },
                                 onLogout = {
                                     coroutineScope.launch {
                                         com.android.purebilibili.core.store.TokenManager.clear(context)
@@ -1044,9 +1120,9 @@ fun AppNavigation(
                                         homeViewModel.refresh()
                                     }
                                 },
-                                onSettingsClick = { pushNavigation3Key(BiliPaiNavKey.Settings) },
-                                onDynamicClick = { pushNavigation3Key(BiliPaiNavKey.Dynamic) },
-                                onHistoryClick = { pushNavigation3Key(BiliPaiNavKey.History) },
+                                onSettingsClick = { pushNavigation3Route(ScreenRoutes.Settings.route) },
+                                onDynamicClick = { pushNavigation3Route(ScreenRoutes.Dynamic.route) },
+                                onHistoryClick = { pushNavigation3Route(ScreenRoutes.History.route) },
                                 onPartitionClick = { pushNavigation3Key(BiliPaiNavKey.Partition) },
                                 onLiveClick = { roomId, title, uname ->
                                     pushNavigation3Route(ScreenRoutes.Live.createRoute(roomId, title, uname))
@@ -1057,12 +1133,12 @@ fun AppNavigation(
                                 onCategoryClick = { tid, name ->
                                     pushNavigation3Route(ScreenRoutes.Category.createRoute(tid, name))
                                 },
-                                onFavoriteClick = { pushNavigation3Key(BiliPaiNavKey.Favorite) },
+                                onFavoriteClick = { pushNavigation3Route(ScreenRoutes.Favorite.route) },
                                 onLiveListClick = { pushNavigation3Route(ScreenRoutes.LiveList.route) },
-                                onWatchLaterClick = { pushNavigation3Key(BiliPaiNavKey.WatchLater) },
+                                onWatchLaterClick = { pushNavigation3Route(ScreenRoutes.WatchLater.route) },
                                 onDownloadClick = { pushNavigation3Route(ScreenRoutes.DownloadList.route) },
                                 onInboxClick = { pushNavigation3Route(ScreenRoutes.Inbox.route) },
-                                onStoryClick = { pushNavigation3Key(BiliPaiNavKey.Story) },
+                                onStoryClick = { pushNavigation3Route(ScreenRoutes.Story.route) },
                                 onSpaceClick = { mid ->
                                     pushNavigation3Route(ScreenRoutes.Space.createRoute(mid))
                                 },
@@ -1078,8 +1154,17 @@ fun AppNavigation(
                         BiliPaiNavEntryContentRole.HISTORY -> {
                                 val historyViewModel: HistoryViewModel = viewModel()
                                 val historyNavigationScope = rememberCoroutineScope()
-                                androidx.compose.runtime.LaunchedEffect(Unit) {
-                                    historyViewModel.loadData()
+                                var historyHasActivated by remember(historyViewModel) {
+                                    mutableStateOf(false)
+                                }
+                                androidx.compose.runtime.LaunchedEffect(
+                                    historyViewModel,
+                                    isBottomPagerPageActive
+                                ) {
+                                    if (isBottomPagerPageActive && !historyHasActivated) {
+                                        historyHasActivated = true
+                                        historyViewModel.loadData()
+                                    }
                                 }
                                 CommonListScreen(
                                     viewModel = historyViewModel,
@@ -1170,6 +1255,7 @@ fun AppNavigation(
                                 )
                             }
                         BiliPaiNavEntryContentRole.DYNAMIC -> DynamicScreen(
+                            isCurrentPage = isBottomPagerPageActive,
                             onVideoClick = { bvid -> navigateToVideoInNavigation3(bvid, 0L, "") },
                             onBangumiClick = { seasonId, epId ->
                                 if (seasonId > 0L || epId > 0L) {
@@ -1183,9 +1269,9 @@ fun AppNavigation(
                             onLiveClick = { roomId, title, uname ->
                                 pushNavigation3Route(ScreenRoutes.Live.createRoute(roomId, title, uname))
                             },
-                            onBack = { pushNavigation3Key(BiliPaiNavKey.Home) },
+                            onBack = { pushNavigation3Route(ScreenRoutes.Home.route) },
                             onLoginClick = { pushNavigation3Key(BiliPaiNavKey.Login) },
-                            onHomeClick = { pushNavigation3Key(BiliPaiNavKey.Home) },
+                            onHomeClick = { pushNavigation3Route(ScreenRoutes.Home.route) },
                             globalHazeState = mainHazeState
                         )
                         BiliPaiNavEntryContentRole.SEARCH -> {
@@ -1235,7 +1321,7 @@ fun AppNavigation(
                                 },
                                 onAvatarClick = {
                                     if (homeState.user.isLogin) {
-                                        pushNavigation3Key(BiliPaiNavKey.Profile)
+                                        pushNavigation3Route(ScreenRoutes.Profile.route)
                                     } else {
                                         pushNavigation3Key(BiliPaiNavKey.Login)
                                     }
@@ -1274,7 +1360,8 @@ fun AppNavigation(
                                 pushNavigation3Route(route)
                             }
                             ProfileScreen(
-                                onBack = { pushNavigation3Key(BiliPaiNavKey.Home) },
+                                isCurrentPage = isBottomPagerPageActive,
+                                onBack = { pushNavigation3Route(ScreenRoutes.Home.route) },
                                 onGoToLogin = { pushNavigation3Key(BiliPaiNavKey.Login) },
                                 onLogoutSuccess = { homeViewModel.refresh() },
                                 onAccountSwitchSuccess = { homeViewModel.refresh() },
@@ -1383,7 +1470,7 @@ fun AppNavigation(
                                     navigation3ReturnSession =
                                         navigation3ReturnSession.markReturning(SystemClock.uptimeMillis())
                                     miniPlayerManager?.markLeavingByNavigation(expectedBvid = videoKey.bvid)
-                                    pushNavigation3Key(BiliPaiNavKey.Home)
+                                    pushNavigation3Route(ScreenRoutes.Home.route)
                                 },
                                 onNavigateToAudioMode = {
                                     isNavigatingToAudioMode = true
@@ -2016,6 +2103,18 @@ fun AppNavigation(
                         }
                     }
                     }
+
+                BiliPaiNavDisplayHost(
+                    backStack = navigation3BackStack,
+                    motionMode = navigation3MotionMode,
+                    sourceMetadata = navigation3SourceMetadata,
+                    onBack = { performSystemBackAction() },
+                    modifier = Modifier.fillMaxSize(),
+                    sharedTransitionScope = LocalSharedTransitionScope.current,
+                    visibleBottomBarRoutes = visibleBottomBarRoutes
+                ) { key ->
+                    RenderNavigationContent(key)
+                }
                 }
             } // End of Content Box
             } // End of Row

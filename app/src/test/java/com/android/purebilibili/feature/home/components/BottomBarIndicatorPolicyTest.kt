@@ -116,8 +116,8 @@ class BottomBarIndicatorPolicyTest {
     }
 
     @Test
-    fun `transitioning bottom pager disables hidden refraction capture`() {
-        assertFalse(
+    fun `transitioning bottom pager keeps hidden refraction capture during tap pulse`() {
+        assertTrue(
             shouldRenderBottomBarRefractionCapture(
                 glassEnabled = true,
                 hasBackdrop = true,
@@ -125,6 +125,16 @@ class BottomBarIndicatorPolicyTest {
                 isTransitionRunning = true,
                 isFeedScrollInProgress = false,
                 isBottomBarInteractionActive = true
+            )
+        )
+        assertFalse(
+            shouldRenderBottomBarRefractionCapture(
+                glassEnabled = true,
+                hasBackdrop = true,
+                captureProgress = 1f,
+                isTransitionRunning = true,
+                isFeedScrollInProgress = false,
+                isBottomBarInteractionActive = false
             )
         )
         assertTrue(
@@ -173,7 +183,7 @@ class BottomBarIndicatorPolicyTest {
                 allowTransitionIndicatorPulse = true
             )
         )
-        assertFalse(
+        assertTrue(
             shouldRenderBottomBarRefractionCapture(
                 glassEnabled = true,
                 hasBackdrop = true,

@@ -18,21 +18,32 @@ class BiliPaiNavBackStackPolicyTest {
     }
 
     @Test
-    fun push_skipsDuplicateTopEntry() {
-        val stack = listOf(BiliPaiNavKey.Home)
+    fun initialBackStack_usesMainHostForMainApp() {
+        assertEquals(
+            listOf(BiliPaiNavKey.MainHost),
+            resolveInitialBiliPaiBackStack(
+                firstRoute = ScreenRoutes.Profile.route,
+                onboardingRequired = false
+            )
+        )
+    }
 
-        assertEquals(stack, pushBiliPaiNavKey(stack, BiliPaiNavKey.Home))
+    @Test
+    fun push_skipsDuplicateTopEntry() {
+        val stack = listOf(BiliPaiNavKey.MainHost)
+
+        assertEquals(stack, pushBiliPaiNavKey(stack, BiliPaiNavKey.MainHost))
     }
 
     @Test
     fun pop_keepsRootEntry() {
         assertEquals(
-            listOf(BiliPaiNavKey.Home),
-            popBiliPaiNavKey(listOf(BiliPaiNavKey.Home))
+            listOf(BiliPaiNavKey.MainHost),
+            popBiliPaiNavKey(listOf(BiliPaiNavKey.MainHost))
         )
         assertEquals(
-            listOf(BiliPaiNavKey.Home),
-            popBiliPaiNavKey(listOf(BiliPaiNavKey.Home, BiliPaiNavKey.VideoDetail("BV1")))
+            listOf(BiliPaiNavKey.MainHost),
+            popBiliPaiNavKey(listOf(BiliPaiNavKey.MainHost, BiliPaiNavKey.VideoDetail("BV1")))
         )
     }
 }

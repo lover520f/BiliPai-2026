@@ -55,19 +55,17 @@ internal fun resolveBottomBarSelectionAction(
 }
 
 internal fun resolveAppSystemBackAction(
-    currentRoute: String?,
+    isAtMainHostRoot: Boolean,
     currentBottomItem: BottomNavItem,
-    hasPreviousBackStackEntry: Boolean
+    homeItem: BottomNavItem = BottomNavItem.HOME
 ): AppSystemBackAction {
-    val routeBase = currentRoute?.substringBefore("?")
-    if (routeBase == ScreenRoutes.Home.route && currentBottomItem != BottomNavItem.HOME) {
+    if (!isAtMainHostRoot) {
+        return AppSystemBackAction.NAVIGATE_UP
+    }
+    if (currentBottomItem != homeItem) {
         return AppSystemBackAction.RETURN_TO_HOME_TAB
     }
-    return if (hasPreviousBackStackEntry) {
-        AppSystemBackAction.NAVIGATE_UP
-    } else {
-        AppSystemBackAction.FINISH_ACTIVITY
-    }
+    return AppSystemBackAction.FINISH_ACTIVITY
 }
 
 internal fun shouldInterceptSystemBackForAppAction(
@@ -106,8 +104,19 @@ internal fun resolveBottomPagerNavigationDurationMillis(
     return 100 * distance + 100
 }
 
-internal fun resolveBottomPagerBeyondViewportPageCount(contentReady: Boolean): Int {
-    return if (contentReady) 1 else 0
+internal fun resolveBottomPagerBeyondViewportPageCount(
+    contentReady: Boolean,
+    isNavigating: Boolean,
+    currentPage: Int,
+    selectedPage: Int
+): Int {
+    if (!contentReady) return 0
+    val navigationDistance = if (isNavigating) {
+        kotlin.math.abs(selectedPage - currentPage)
+    } else {
+        0
+    }
+    return navigationDistance.coerceAtLeast(3)
 }
 
 internal fun resolveBottomPagerRenderBudget(isNavigating: Boolean): BottomPagerRenderBudget {
@@ -121,51 +130,21 @@ internal fun resolveBottomPagerRenderBudget(isNavigating: Boolean): BottomPagerR
 internal fun shouldEnableBottomPagerUserScroll(): Boolean = false
 
 internal fun shouldComposeBottomPagerPage(
+    item: BottomNavItem,
     page: Int,
     currentPage: Int,
     selectedPage: Int,
+    isNavigating: Boolean,
+    navigationStartPage: Int,
     contentReady: Boolean
 ): Boolean {
-    return contentReady || page == currentPage || page == selectedPage
-}
-
-internal fun resolveBottomNavItemForRoute(
-    currentRoute: String?,
-    retainedItem: BottomNavItem?,
-    visibleItems: List<BottomNavItem> = BottomNavItem.entries
-): BottomNavItem {
-    val routeBase = currentRoute?.substringBefore("?")
-    return visibleItems.firstOrNull { item -> item.route == routeBase }
-        ?: retainedItem
-        ?: BottomNavItem.HOME
-}
-
-internal fun shouldUseInstantBottomTabTransition(
-    fromRoute: String?,
-    toRoute: String?,
-    visibleBottomBarRoutes: Set<String>
-): Boolean {
-    val fromRouteBase = fromRoute?.substringBefore("?")
-    val toRouteBase = toRoute?.substringBefore("?")
-    return fromRouteBase != null &&
-        toRouteBase != null &&
-        fromRouteBase != toRouteBase &&
-        fromRouteBase in visibleBottomBarRoutes &&
-        toRouteBase in visibleBottomBarRoutes
-}
-
-internal fun resolveBottomTabTransitionTargetRoute(
-    currentRoute: String?,
-    targetRoute: String,
-    visibleBottomBarRoutes: Set<String>
-): String? {
-    return targetRoute.takeIf {
-        shouldUseInstantBottomTabTransition(
-            fromRoute = currentRoute,
-            toRoute = targetRoute,
-            visibleBottomBarRoutes = visibleBottomBarRoutes
-        )
+    if (item == BottomNavItem.STORY) {
+        return page == currentPage || page == selectedPage
     }
+    if (!contentReady) {
+        return page == navigationStartPage || page == selectedPage
+    }
+    return true
 }
 
 internal fun shouldBypassNavigationDebounceForRoute(targetRoute: String): Boolean {

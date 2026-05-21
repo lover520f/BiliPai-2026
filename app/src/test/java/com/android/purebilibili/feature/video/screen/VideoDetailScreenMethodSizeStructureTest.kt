@@ -2,6 +2,7 @@ package com.android.purebilibili.feature.video.screen
 
 import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class VideoDetailScreenMethodSizeStructureTest {
@@ -38,11 +39,11 @@ class VideoDetailScreenMethodSizeStructureTest {
     }
 
     @Test
-    fun videoDetailShellUsesHomeEnterSettleModifierWithoutReEnablingContentReveal() {
+    fun videoDetailShellDoesNotAddEnterSettleRebound() {
         val source = loadSource("app/src/main/java/com/android/purebilibili/feature/video/screen/VideoDetailScreen.kt")
 
-        assertTrue(source.contains("resolveVideoDetailEnterSettleSpec("))
-        assertTrue(source.contains(".videoDetailEnterSettle("))
+        assertFalse(source.contains("resolveVideoDetailEnterSettleSpec("))
+        assertFalse(source.contains(".videoDetailEnterSettle("))
         assertTrue(source.contains("resolveVideoDetailContentRevealMotion("))
     }
 

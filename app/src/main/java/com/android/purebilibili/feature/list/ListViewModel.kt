@@ -554,7 +554,6 @@ class HistoryViewModel(application: Application) : BaseListViewModel(application
     }
 
     init {
-        loadData()
         loadHistoryPauseState()
     }
 }

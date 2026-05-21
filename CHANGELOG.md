@@ -1,5 +1,27 @@
 # Changelog
 
+## v8.3.7 (2026-05-21)
+
+### 版本信息
+- 版本号从 `8.3.6` 升级到 `8.3.7`，`versionCode` 升级到 `201`。
+- 本次为“底栏一级页 HorizontalPager 主入口 + 点击折射与详情进入动画修复 + 连续分页体验”的维护更新，汇总 8.3.6 到 8.3.7 的全部改动。
+
+### 更新内容
+- **底栏一级页主入口重构**：非 Onboarding 初始栈固定为 `MainHost`，底栏首页、动态、历史、我的等一级页统一由 `HorizontalPager` 承载；底栏点击、页内一级入口和外部命中底栏 route 都切换 pager，不再把底栏 tab 当作 Navigation3 顶级详情页反复 push。
+- **详情页与底栏职责分离**：视频详情、空间、搜索、设置子页、消息页、直播详情、番剧详情等非底栏一级内容继续进入 Navigation3 backstack；返回键策略改为详情栈优先 pop，无详情且当前 pager 非首页时横滑回首页。
+- **底栏点击折射与放大反馈修复**：点击底栏项切换时保留隐藏捕获层与指示器折射，按压/切换阶段维持可见的玻璃折射和放大反馈，避免指示器只位移、不出现折射过渡。
+- **底栏跨页连续切换优化**：切换时保留连续 `HorizontalPager` 位移，中间页在内容就绪后参与真实横向滑动，不再以空白占位穿过；动态、历史、我的等重页面的首次加载延后到页面真正成为 settled 当前页后触发，减少首页到我的跨页切换时的卡顿尖峰。
+- **视频详情进入动画修复**：移除视频卡片进入详情页时误加入的收尾回弹，避免进入详情过程中状态栏短暂露出白色或出现额外回弹感。
+- **旧底栏切换补丁清理**：删除旧顶级 tab route push、instant transition hack、底栏 route 的 no-op 共享元素特判和不含 `HorizontalPager` 的结构假设，降低后续维护成本。
+- **版本与文档同步**：版本号升级到 `8.3.7` / `versionCode 201`，README、README_EN 和更新日志同步到 8.3.7。
+- **回归覆盖**：更新 Navigation3 初始栈、底栏 page/route 映射、返回键、Story 离屏预加载、HorizontalPager 结构、底栏指示器折射和视频详情进入动效相关测试。
+
+### 验证
+- `./gradlew :app:testDebugUnitTest --tests 'com.android.purebilibili.navigation.AppTopLevelNavigationPolicyTest' --tests 'com.android.purebilibili.navigation.BottomPagerStatePersistenceStructureTest'`
+- `./gradlew :app:testDebugUnitTest --tests 'com.android.purebilibili.navigation.AppTopLevelNavigationPolicyTest' --tests 'com.android.purebilibili.navigation3.BiliPaiNavEntryContentPolicyTest' --tests 'com.android.purebilibili.navigation3.BiliPaiNavBackStackPolicyTest'`
+- `./gradlew :app:compileDebugKotlin`
+- `git diff --check`
+
 ## v8.3.6 (2026-05-21)
 
 ### 版本信息

@@ -26,12 +26,19 @@ internal class MainBottomPagerState(
     var isNavigating by mutableStateOf(false)
         private set
 
+    var navigationStartPage by mutableIntStateOf(pagerState.currentPage)
+        private set
+
     private var navJob: Job? = null
 
     fun animateToPage(targetIndex: Int) {
         if (targetIndex == selectedPage) return
 
-        navJob?.cancel()
+        val previousJob = navJob
+        navJob = null
+        previousJob?.cancel()
+
+        navigationStartPage = pagerState.currentPage
         selectedPage = targetIndex
         isNavigating = true
 
@@ -44,6 +51,7 @@ internal class MainBottomPagerState(
                 } finally {
                     isNavigating = false
                     selectedPage = targetIndex
+                    navigationStartPage = targetIndex
                 }
             }
             return
@@ -71,6 +79,7 @@ internal class MainBottomPagerState(
                     }
                     isNavigating = false
                     selectedPage = targetIndex
+                    navigationStartPage = targetIndex
                 }
             }
         }

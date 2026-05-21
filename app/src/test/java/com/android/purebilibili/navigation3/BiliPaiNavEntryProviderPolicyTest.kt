@@ -1,7 +1,6 @@
 package com.android.purebilibili.navigation3
 
 import com.android.purebilibili.navigation.ScreenRoutes
-import com.android.purebilibili.navigation.VideoRoute
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -60,7 +59,7 @@ class BiliPaiNavEntryProviderPolicyTest {
     }
 
     @Test
-    fun bottomTabForwardNavigationUsesNoOpRouteLayer() {
+    fun bottomTabForwardNavigationKeepsFallbackBecausePagerOwnsTabMotion() {
         val visibleRoutes = setOf(
             ScreenRoutes.Home.route,
             ScreenRoutes.Dynamic.route,
@@ -69,7 +68,7 @@ class BiliPaiNavEntryProviderPolicyTest {
         )
 
         assertEquals(
-            BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT,
+            BiliPaiNavRouteTransition.FALLBACK,
             resolveBiliPaiNavEntryForwardRouteTransition(
                 defaultTransition = BiliPaiNavRouteTransition.FALLBACK,
                 fromRoute = ScreenRoutes.Home.route,
@@ -81,7 +80,7 @@ class BiliPaiNavEntryProviderPolicyTest {
             BiliPaiNavRouteTransition.FALLBACK,
             resolveBiliPaiNavEntryForwardRouteTransition(
                 defaultTransition = BiliPaiNavRouteTransition.FALLBACK,
-                fromRoute = VideoRoute.route,
+                fromRoute = ScreenRoutes.Search.route,
                 toRoute = ScreenRoutes.Profile.route,
                 visibleBottomBarRoutes = visibleRoutes
             )

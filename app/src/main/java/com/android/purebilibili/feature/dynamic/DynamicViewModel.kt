@@ -81,6 +81,7 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
     private var isFollowingsLoading: Boolean = false
     private var cacheSaveJob: Job? = null
     private var startupFollowingsHydrationScheduled: Boolean = false
+    private var startupLoadsActivated: Boolean = false
 
     private val _uiState = MutableStateFlow(DynamicUiState())
     val uiState: StateFlow<DynamicUiState> = _uiState.asStateFlow()
@@ -123,7 +124,6 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
     init {
-        val startupPlan = resolveDynamicStartupLoadPlan()
         viewModelScope.launch {
             SettingsManager.getIncrementalTimelineRefresh(appContext).collect { enabled ->
                 incrementalTimelineRefreshEnabled = enabled
@@ -133,7 +133,12 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
         loadCachedDynamics()
         rebuildFollowedUsers()
         observeFollowStateChanges()
-        refreshInBackground(startupPlan)
+    }
+
+    fun activateStartupLoads() {
+        if (startupLoadsActivated) return
+        startupLoadsActivated = true
+        refreshInBackground(resolveDynamicStartupLoadPlan())
     }
 
     private fun observeFollowStateChanges() {
