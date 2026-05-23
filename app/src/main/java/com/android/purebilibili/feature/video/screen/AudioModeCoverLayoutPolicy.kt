@@ -90,12 +90,11 @@ internal fun resolveAudioModeVerticalPageTransform(
 ): AudioModeVerticalPageTransform {
     val clampedOffset = pageOffset.coerceIn(-1f, 1f)
     val distance = abs(clampedOffset)
-    val maxScaleLoss = style.maxScaleLossPercent / 100f
     val maxAlphaLoss = style.maxAlphaLossPercent / 100f
     return AudioModeVerticalPageTransform(
         rotationXDegrees = clampedOffset * style.maxRotationDegrees,
         translationYDp = clampedOffset * -style.maxTranslationDp,
-        scale = 1f - (distance * maxScaleLoss).coerceIn(0f, maxScaleLoss),
+        scale = 1f,
         alpha = 1f - (distance * maxAlphaLoss).coerceIn(0f, maxAlphaLoss),
         pivotFractionY = if (clampedOffset < 0f) 1f else 0f
     )

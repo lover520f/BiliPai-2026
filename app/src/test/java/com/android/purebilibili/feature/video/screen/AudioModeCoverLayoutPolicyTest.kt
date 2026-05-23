@@ -79,7 +79,7 @@ class AudioModeCoverLayoutPolicyTest {
             AudioModeVerticalPageTransform(
                 rotationXDegrees = 9f,
                 translationYDp = -17f,
-                scale = 0.95f,
+                scale = 1f,
                 alpha = 0.86f,
                 pivotFractionY = 0f
             ),
@@ -98,7 +98,7 @@ class AudioModeCoverLayoutPolicyTest {
             AudioModeVerticalPageTransform(
                 rotationXDegrees = -18f,
                 translationYDp = 34f,
-                scale = 0.9f,
+                scale = 1f,
                 alpha = 0.72f,
                 pivotFractionY = 1f
             ),

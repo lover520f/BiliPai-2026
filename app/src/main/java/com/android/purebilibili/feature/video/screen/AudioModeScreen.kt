@@ -114,6 +114,8 @@ internal fun shouldCreateAudioModeStandalonePlayer(
     return !hasPlayer && initialBvid.isNotBlank()
 }
 
+internal fun resolveAudioModePageSwitchAutoPlay(): Boolean = true
+
 internal fun shouldShowAudioModePipButton(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.O
 
 internal fun parseAudioModeSleepTimerInput(raw: String): Int? {
@@ -345,7 +347,12 @@ fun AudioModeScreen(
                     val settledPage = pagerState.settledPage
                     if (settledPage != currentIndex && playlist.isNotEmpty() && settledPage in playlist.indices) {
                         val targetItem = PlaylistManager.playAt(settledPage)
-                        targetItem?.let { viewModel.loadVideo(it.bvid) }
+                        targetItem?.let {
+                            viewModel.loadVideo(
+                                bvid = it.bvid,
+                                autoPlay = resolveAudioModePageSwitchAutoPlay()
+                            )
+                        }
                     }
                 }
 
