@@ -1006,8 +1006,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         //  关注动态分类单独处理 (TODO: Adapt fetchFollowFeed to use categoryStates)
         if (currentCategory == HomeCategory.FOLLOW) {
-            fetchFollowFeed(isLoadMore)
-            return refreshNewItemsCount
+            return fetchFollowFeed(
+                isLoadMore = isLoadMore,
+                isManualRefresh = isManualRefresh
+            )
         }
         
         val currentCategoryState = _uiState.value.categoryStates[currentCategory] ?: CategoryContent()
@@ -1185,7 +1187,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     //  [新增] 获取关注动态列表
     //  [新增] 获取关注动态列表
-    private suspend fun fetchFollowFeed(isLoadMore: Boolean) {
+    private suspend fun fetchFollowFeed(
+        isLoadMore: Boolean,
+        isManualRefresh: Boolean
+    ): Int? {
         if (com.android.purebilibili.core.store.TokenManager.sessDataCache.isNullOrEmpty()) {
              updateCategoryState(HomeCategory.FOLLOW) { oldState ->
                 oldState.copy(
@@ -1194,7 +1199,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     videos = emptyList() // Ensure empty to trigger error state
                 )
             }
-            return
+            return null
         }
 
         if (!isLoadMore) {
@@ -1203,11 +1208,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         val result = com.android.purebilibili.data.repository.DynamicRepository.getDynamicFeed(
             refresh = !isLoadMore,
-            scope = com.android.purebilibili.data.repository.DynamicFeedScope.HOME_FOLLOW
+            scope = com.android.purebilibili.data.repository.DynamicFeedScope.HOME_FOLLOW,
+            type = "video"
         )
         
         if (isLoadMore) delay(100)
-        
+        var addedCount = 0
         result.onSuccess { items ->
             //  将 DynamicItem 转换为首页卡片：
             // - 仅保留可直接跳转的视频动态，避免与“动态”页图文流重复
@@ -1245,10 +1251,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             updateCategoryState(HomeCategory.FOLLOW) { oldState ->
+                val oldSize = oldState.videos.size
                 val mergedVideos = when {
                     isLoadMore -> appendDistinctByKey(oldState.videos, videos, ::videoItemKey)
                     incrementalTimelineRefreshEnabled -> prependDistinctByKey(oldState.videos, videos, ::videoItemKey)
                     else -> videos
+                }
+                if (isManualRefresh && !isLoadMore) {
+                    addedCount = if (incrementalTimelineRefreshEnabled) {
+                        (mergedVideos.size - oldSize).coerceAtLeast(0)
+                    } else {
+                        videos.size
+                    }
                 }
                 oldState.copy(
                     videos = mergedVideos,
@@ -1256,7 +1270,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     isLoading = false,
                     error = if (!isLoadMore && mergedVideos.isEmpty()) "暂无关注动态，请先关注一些UP主" else null,
                     hasMore = com.android.purebilibili.data.repository.DynamicRepository.hasMoreData(
-                        com.android.purebilibili.data.repository.DynamicFeedScope.HOME_FOLLOW
+                        scope = com.android.purebilibili.data.repository.DynamicFeedScope.HOME_FOLLOW,
+                        type = "video"
                     )
                 )
             }
@@ -1268,6 +1283,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+        return addedCount
     }
 
     private fun videoItemKey(item: com.android.purebilibili.data.model.response.VideoItem): String {
