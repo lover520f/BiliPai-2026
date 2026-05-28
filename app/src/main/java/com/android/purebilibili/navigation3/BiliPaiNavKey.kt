@@ -285,6 +285,7 @@ internal sealed interface BiliPaiNavKey : NavKey {
         val fullscreen: Boolean = false,
         val resumePositionMs: Long = 0L,
         val commentRootRpid: Long = 0L,
+        val commentTargetRpid: Long = 0L,
         val sourceRoute: String? = null
     ) : BiliPaiNavKey {
         override val routeBase: String = "video"

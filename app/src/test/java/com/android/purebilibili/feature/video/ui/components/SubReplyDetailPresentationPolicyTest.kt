@@ -34,6 +34,39 @@ class SubReplyDetailPresentationPolicyTest {
     }
 
     @Test
+    fun `sub reply target list index resolves root and child positions`() {
+        val replies = listOf(
+            ReplyItem(rpid = 20L),
+            ReplyItem(rpid = 30L)
+        )
+
+        assertEquals(
+            0,
+            resolveSubReplyTargetListIndex(
+                rootReplyId = 10L,
+                visibleReplies = replies,
+                targetReplyId = 10L
+            )
+        )
+        assertEquals(
+            2,
+            resolveSubReplyTargetListIndex(
+                rootReplyId = 10L,
+                visibleReplies = replies,
+                targetReplyId = 30L
+            )
+        )
+        assertEquals(
+            null,
+            resolveSubReplyTargetListIndex(
+                rootReplyId = 10L,
+                visibleReplies = replies,
+                targetReplyId = 99L
+            )
+        )
+    }
+
+    @Test
     fun `sub reply detail reveal motion stays blur free`() {
         val spec = resolveSubReplyDetailRevealSpec(levelIndex = 2)
 

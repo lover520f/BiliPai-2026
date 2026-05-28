@@ -637,7 +637,8 @@ fun VideoCommentSheetHost(
                                         onAvatarClick = { mid ->
                                             mid.toLongOrNull()?.let(onUserClick)
                                         },
-                                        maxTimestampMs = maxTimestampMs
+                                        maxTimestampMs = maxTimestampMs,
+                                        targetReplyId = subReplyState.targetReplyId
                                     )
                                 }
                             }

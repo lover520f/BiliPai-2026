@@ -67,7 +67,8 @@ internal fun BiliPaiNavKey.toLegacyRoute(): String {
             autoPortrait = autoPortrait,
             fullscreen = fullscreen,
             resumePositionMs = resumePositionMs,
-            commentRootRpid = commentRootRpid
+            commentRootRpid = commentRootRpid,
+            commentTargetRpid = commentTargetRpid
         )
         is BiliPaiNavKey.ArticleDetail -> ScreenRoutes.ArticleDetail.createRoute(articleId, title)
         is BiliPaiNavKey.DynamicDetail -> ScreenRoutes.DynamicDetail.createRoute(dynamicId)
@@ -185,6 +186,7 @@ internal fun legacyRouteToBiliPaiNavKey(route: String?): BiliPaiNavKey {
                 fullscreen = query["fullscreen"]?.toBooleanStrictOrNull() ?: false,
                 resumePositionMs = query["resumePositionMs"]?.toLongOrNull() ?: 0L,
                 commentRootRpid = query["commentRootRpid"]?.toLongOrNull() ?: 0L,
+                commentTargetRpid = query["commentTargetRpid"]?.toLongOrNull() ?: 0L,
                 sourceRoute = null
             )
         }

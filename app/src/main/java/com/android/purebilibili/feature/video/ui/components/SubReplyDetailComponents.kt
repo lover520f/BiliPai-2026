@@ -258,6 +258,17 @@ internal fun resolveSubReplyDetailListScrollResetKey(
     )
 }
 
+internal fun resolveSubReplyTargetListIndex(
+    rootReplyId: Long,
+    visibleReplies: List<ReplyItem>,
+    targetReplyId: Long
+): Int? {
+    if (targetReplyId <= 0L) return null
+    if (targetReplyId == rootReplyId) return 0
+    val replyIndex = visibleReplies.indexOfFirst { it.rpid == targetReplyId }
+    return replyIndex.takeIf { it >= 0 }?.plus(1)
+}
+
 internal fun resolveSubReplyAuxiliaryLabel(item: ReplyItem): String? {
     val visual = resolveFanGroupVisualFromMemberAndSailing(
         member = item.member,
@@ -335,7 +346,8 @@ internal fun VideoInlineSubReplyDetailContent(
         onUrlClick = onUrlClick,
         showIdentityDecorations = showIdentityDecorations,
         onAvatarClick = onAvatarClick,
-        maxTimestampMs = maxTimestampMs
+        maxTimestampMs = maxTimestampMs,
+        targetReplyId = state.targetReplyId
     )
 }
 
@@ -369,7 +381,8 @@ internal fun SubReplyDetailContent(
     showIdentityDecorations: Boolean = true,
     onAvatarClick: ((String) -> Unit)? = null,
     maxTimestampMs: Long? = null,
-    remoteReplyCount: Int = 0
+    remoteReplyCount: Int = 0,
+    targetReplyId: Long = 0
 ) {
     val layoutPolicy = remember {
         resolveSubReplyDetailLayoutPolicy(showRootCommentEntry = false)
@@ -424,6 +437,17 @@ internal fun SubReplyDetailContent(
     }
     LaunchedEffect(listScrollResetKey) {
         listState.scrollToItem(0)
+    }
+    LaunchedEffect(targetReplyId, visibleReplies, isLoading, isEnd) {
+        val targetIndex = resolveSubReplyTargetListIndex(
+            rootReplyId = rootReply.rpid,
+            visibleReplies = visibleReplies,
+            targetReplyId = targetReplyId
+        )
+        when {
+            targetIndex != null -> listState.animateScrollToItem(targetIndex)
+            targetReplyId > 0L && !isLoading && !isEnd && !effectiveConversationMode -> onLoadMore()
+        }
     }
 
     Column(

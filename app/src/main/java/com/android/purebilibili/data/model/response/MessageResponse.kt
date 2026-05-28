@@ -322,6 +322,18 @@ data class MessageFeedReplyItem(
 
 @Serializable
 data class MessageFeedReplyContent(
+    @SerialName("subject_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val subjectId: Long = 0,
+    @SerialName("root_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val rootId: Long = 0,
+    @SerialName("source_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val sourceId: Long = 0,
+    @SerialName("target_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val targetId: Long = 0,
     val business: String = "",
     @SerialName("business_id")
     val businessId: Int = 0,
@@ -432,6 +444,18 @@ data class MessageFeedLikeItem(
 
 @Serializable
 data class MessageFeedLikeContent(
+    @SerialName("subject_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val subjectId: Long = 0,
+    @SerialName("root_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val rootId: Long = 0,
+    @SerialName("source_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val sourceId: Long = 0,
+    @SerialName("target_id")
+    @Serializable(with = FlexibleLongSerializer::class)
+    val targetId: Long = 0,
     val business: String = "",
     @SerialName("business_id")
     val businessId: Int = 0,

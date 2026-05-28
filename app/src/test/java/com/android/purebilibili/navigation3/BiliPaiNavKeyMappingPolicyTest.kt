@@ -19,7 +19,7 @@ class BiliPaiNavKeyMappingPolicyTest {
     @Test
     fun videoRoute_preservesNavigationArguments() {
         val route = "video/BV1xx411c7mD?cid=123&cover=https%3A%2F%2Fexample.com%2Fcover.jpg" +
-            "&startAudio=true&autoPortrait=true&fullscreen=true&resumePositionMs=456&commentRootRpid=789"
+            "&startAudio=true&autoPortrait=true&fullscreen=true&resumePositionMs=456&commentRootRpid=789&commentTargetRpid=790"
 
         val key = assertIs<BiliPaiNavKey.VideoDetail>(legacyRouteToBiliPaiNavKey(route))
 
@@ -31,6 +31,7 @@ class BiliPaiNavKeyMappingPolicyTest {
         assertEquals(true, key.fullscreen)
         assertEquals(456L, key.resumePositionMs)
         assertEquals(789L, key.commentRootRpid)
+        assertEquals(790L, key.commentTargetRpid)
     }
 
     @Test

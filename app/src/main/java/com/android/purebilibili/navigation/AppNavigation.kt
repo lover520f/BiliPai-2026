@@ -157,7 +157,7 @@ import java.nio.charset.StandardCharsets
 // 定义路由参数结构
 object VideoRoute {
     const val base = "video"
-    const val route = "$base/{bvid}?cid={cid}&cover={cover}&startAudio={startAudio}&autoPortrait={autoPortrait}&fullscreen={fullscreen}&resumePositionMs={resumePositionMs}&commentRootRpid={commentRootRpid}"
+    const val route = "$base/{bvid}?cid={cid}&cover={cover}&startAudio={startAudio}&autoPortrait={autoPortrait}&fullscreen={fullscreen}&resumePositionMs={resumePositionMs}&commentRootRpid={commentRootRpid}&commentTargetRpid={commentTargetRpid}"
 
     internal fun resolveVideoRoutePath(
         bvid: String,
@@ -167,9 +167,10 @@ object VideoRoute {
         autoPortrait: Boolean,
         fullscreen: Boolean = false,
         resumePositionMs: Long = 0L,
-        commentRootRpid: Long = 0L
+        commentRootRpid: Long = 0L,
+        commentTargetRpid: Long = 0L
     ): String {
-        return "$base/$bvid?cid=$cid&cover=$encodedCover&startAudio=$startAudio&autoPortrait=$autoPortrait&fullscreen=$fullscreen&resumePositionMs=${resumePositionMs.coerceAtLeast(0L)}&commentRootRpid=${commentRootRpid.coerceAtLeast(0L)}"
+        return "$base/$bvid?cid=$cid&cover=$encodedCover&startAudio=$startAudio&autoPortrait=$autoPortrait&fullscreen=$fullscreen&resumePositionMs=${resumePositionMs.coerceAtLeast(0L)}&commentRootRpid=${commentRootRpid.coerceAtLeast(0L)}&commentTargetRpid=${commentTargetRpid.coerceAtLeast(0L)}"
     }
 
     // 构建 helper
@@ -181,7 +182,8 @@ object VideoRoute {
         autoPortrait: Boolean = false,
         fullscreen: Boolean = false,
         resumePositionMs: Long = 0L,
-        commentRootRpid: Long = 0L
+        commentRootRpid: Long = 0L,
+        commentTargetRpid: Long = 0L
     ): String {
         val encodedCover = Uri.encode(coverUrl)
         return resolveVideoRoutePath(
@@ -192,7 +194,8 @@ object VideoRoute {
             autoPortrait = autoPortrait,
             fullscreen = fullscreen,
             resumePositionMs = resumePositionMs,
-            commentRootRpid = commentRootRpid
+            commentRootRpid = commentRootRpid,
+            commentTargetRpid = commentTargetRpid
         )
     }
 }
@@ -213,7 +216,8 @@ internal fun resolveStandardVideoRoute(
     autoPortrait: Boolean = shouldAutoEnterPortraitForStandardVideoNavigation(),
     fullscreen: Boolean = false,
     resumePositionMs: Long = 0L,
-    commentRootRpid: Long = 0L
+    commentRootRpid: Long = 0L,
+    commentTargetRpid: Long = 0L
 ): String {
     val encodedCover = URLEncoder.encode(coverUrl, StandardCharsets.UTF_8.toString())
     return VideoRoute.resolveVideoRoutePath(
@@ -224,7 +228,8 @@ internal fun resolveStandardVideoRoute(
         autoPortrait = autoPortrait,
         fullscreen = fullscreen,
         resumePositionMs = resumePositionMs,
-        commentRootRpid = commentRootRpid
+        commentRootRpid = commentRootRpid,
+        commentTargetRpid = commentTargetRpid
     )
 }
 
@@ -879,7 +884,8 @@ fun AppNavigation(
                             bvid = action.videoId,
                             cid = 0L,
                             coverUrl = "",
-                            commentRootRpid = action.rootReplyId
+                            commentRootRpid = action.rootReplyId,
+                            commentTargetRpid = action.targetReplyId
                         ),
                         sourceRoute = currentRoute
                     )
@@ -1444,6 +1450,7 @@ fun AppNavigation(
                                 autoEnterPortraitFromRoute = videoKey.autoPortrait,
                                 resumePositionMsFromRoute = videoKey.resumePositionMs,
                                 openCommentRootRpidFromRoute = videoKey.commentRootRpid,
+                                openCommentTargetRpidFromRoute = videoKey.commentTargetRpid,
                                 sourceRouteForSharedElement = videoKey.sourceRoute,
                                 isReturningFromDetail = navigation3ReturnSession.isReturningFromDetail,
                                 isQuickReturningFromDetail = navigation3ReturnSession.isQuickReturnFromDetail,

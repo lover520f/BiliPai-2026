@@ -1040,6 +1040,7 @@ fun VideoDetailScreen(
     autoEnterPortraitFromRoute: Boolean = false,
     resumePositionMsFromRoute: Long = 0L,
     openCommentRootRpidFromRoute: Long = 0L,
+    openCommentTargetRpidFromRoute: Long = 0L,
     sourceRouteForSharedElement: String? = null,
     isReturningFromDetail: Boolean = false,
     isQuickReturningFromDetail: Boolean = false,
@@ -1103,7 +1104,11 @@ fun VideoDetailScreen(
     var isNavigatingToMiniMode by remember { mutableStateOf(false) }
     var hasAutoEnteredAudioMode by rememberSaveable { mutableStateOf(false) }
     var hasAutoEnteredPortraitFromRoute by rememberSaveable(bvid) { mutableStateOf(false) }
-    var hasHandledCommentRootFromRoute by rememberSaveable(bvid, openCommentRootRpidFromRoute) { mutableStateOf(false) }
+    var hasHandledCommentRootFromRoute by rememberSaveable(
+        bvid,
+        openCommentRootRpidFromRoute,
+        openCommentTargetRpidFromRoute
+    ) { mutableStateOf(false) }
     // 🔄 [Seamless Playback] Internal BVID state to support seamless switching in portrait mode
     var currentBvid by rememberSaveable(bvid) { mutableStateOf(bvid) }
 
@@ -1243,6 +1248,7 @@ fun VideoDetailScreen(
 
     LaunchedEffect(
         openCommentRootRpidFromRoute,
+        openCommentTargetRpidFromRoute,
         commentState.replies,
         commentState.isRepliesLoading,
         subReplyState.visible
@@ -1253,9 +1259,13 @@ fun VideoDetailScreen(
 
         val rootReply = commentState.replies.firstOrNull { it.rpid == openCommentRootRpidFromRoute }
         if (rootReply != null) {
-            commentViewModel.openSubReply(rootReply)
+            commentViewModel.openSubReply(rootReply, openCommentTargetRpidFromRoute)
             hasHandledCommentRootFromRoute = true
-        } else if (!commentState.isRepliesLoading && commentState.isRepliesEnd) {
+        } else if (!commentState.isRepliesLoading) {
+            commentViewModel.openSubReplyFromRoute(
+                rootReplyId = openCommentRootRpidFromRoute,
+                targetReplyId = openCommentTargetRpidFromRoute
+            )
             hasHandledCommentRootFromRoute = true
         }
     }

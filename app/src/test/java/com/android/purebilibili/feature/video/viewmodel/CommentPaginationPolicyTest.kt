@@ -140,4 +140,45 @@ class CommentPaginationPolicyTest {
             )
         )
     }
+
+    @Test
+    fun `routed comment root prefers loaded root reply`() {
+        val loaded = ReplyItem(rpid = 11L)
+        val remote = ReplyData(root = ReplyItem(rpid = 11L, content = com.android.purebilibili.data.model.response.ReplyContent(message = "remote")))
+
+        assertEquals(
+            loaded,
+            resolveRoutedCommentRootReply(
+                loadedReplies = listOf(loaded),
+                remoteData = remote,
+                rootReplyId = 11L
+            )
+        )
+    }
+
+    @Test
+    fun `routed comment root falls back to remote root reply`() {
+        val remoteRoot = ReplyItem(rpid = 22L)
+
+        assertEquals(
+            remoteRoot,
+            resolveRoutedCommentRootReply(
+                loadedReplies = emptyList(),
+                remoteData = ReplyData(root = remoteRoot),
+                rootReplyId = 22L
+            )
+        )
+    }
+
+    @Test
+    fun `routed comment root ignores unrelated remote reply`() {
+        assertEquals(
+            null,
+            resolveRoutedCommentRootReply(
+                loadedReplies = emptyList(),
+                remoteData = ReplyData(root = ReplyItem(rpid = 33L)),
+                rootReplyId = 44L
+            )
+        )
+    }
 }

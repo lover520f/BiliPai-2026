@@ -66,7 +66,8 @@ fun SubReplySheet(
                 likedComments = likedComments,
                 onUrlClick = onUrlClick,
                 showIdentityDecorations = showIdentityDecorations,
-                onAvatarClick = onAvatarClick
+                onAvatarClick = onAvatarClick,
+                targetReplyId = state.targetReplyId
             )
         }
     }
