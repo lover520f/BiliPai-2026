@@ -203,6 +203,26 @@ internal fun formatHomeTopRightUnreadBadge(
     return if (unreadCount > 99) "99+" else unreadCount.toString()
 }
 
+internal data class HomeTopRightUnreadBadgeLayout(
+    val offsetX: Dp,
+    val offsetY: Dp,
+    val minWidth: Dp,
+    val minHeight: Dp,
+    val horizontalPadding: Dp,
+    val verticalPadding: Dp
+)
+
+internal fun resolveHomeTopRightUnreadBadgeLayout(): HomeTopRightUnreadBadgeLayout {
+    return HomeTopRightUnreadBadgeLayout(
+        offsetX = (-2).dp,
+        offsetY = 2.dp,
+        minWidth = 18.dp,
+        minHeight = 18.dp,
+        horizontalPadding = 5.dp,
+        verticalPadding = 1.dp
+    )
+}
+
 internal fun resolveHomeTopRightActionContentDescription(
     action: HomeTopRightAction,
     unreadCount: Int
@@ -1530,6 +1550,7 @@ fun iOSHomeHeader(
         action = topRightAction,
         unreadCount = topRightUnreadCount
     )
+    val topRightUnreadBadgeLayout = resolveHomeTopRightUnreadBadgeLayout()
     val onTopRightActionClick = if (topRightAction == HomeTopRightAction.INBOX) {
         onInboxClick
     } else {
@@ -2661,15 +2682,24 @@ fun iOSHomeHeader(
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .offset(x = 7.dp, y = (-5).dp)
-                                            .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                                            .offset(
+                                                x = topRightUnreadBadgeLayout.offsetX,
+                                                y = topRightUnreadBadgeLayout.offsetY
+                                            )
+                                            .defaultMinSize(
+                                                minWidth = topRightUnreadBadgeLayout.minWidth,
+                                                minHeight = topRightUnreadBadgeLayout.minHeight
+                                            )
                                             .background(iOSRed, CircleShape)
                                             .border(
                                                 width = 1.dp,
                                                 color = AppSurfaceTokens.cardContainer(),
                                                 shape = CircleShape
                                             )
-                                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                                            .padding(
+                                                horizontal = topRightUnreadBadgeLayout.horizontalPadding,
+                                                vertical = topRightUnreadBadgeLayout.verticalPadding
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(

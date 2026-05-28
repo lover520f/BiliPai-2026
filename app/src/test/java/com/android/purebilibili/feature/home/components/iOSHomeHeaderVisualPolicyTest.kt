@@ -32,6 +32,18 @@ class iOSHomeHeaderVisualPolicyTest {
     }
 
     @Test
+    fun `top right unread badge stays inside action button bounds`() {
+        val layout = resolveHomeTopRightUnreadBadgeLayout()
+
+        assertTrue(layout.offsetX <= 0.dp)
+        assertTrue(layout.offsetY >= 0.dp)
+        assertEquals(18.dp, layout.minWidth)
+        assertEquals(18.dp, layout.minHeight)
+        assertEquals(5.dp, layout.horizontalPadding)
+        assertEquals(1.dp, layout.verticalPadding)
+    }
+
+    @Test
     fun `top right inbox content description includes unread count`() {
         assertEquals(
             "消息，8 条未读",

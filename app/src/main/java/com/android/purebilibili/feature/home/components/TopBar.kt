@@ -675,6 +675,7 @@ private fun LightweightHomeTopTabs(
     val listState = rememberLazyListState()
     var tabViewportLeftInWindowPx by remember { mutableFloatStateOf(Float.NaN) }
     var selectedItemLeftInWindowPx by remember { mutableFloatStateOf(Float.NaN) }
+    val pagerIsDragging = rememberTopTabPagerDragHeld(pagerState)
     val currentPosition by remember(pagerState, selectedIndex) {
         derivedStateOf {
             resolveTopTabIndicatorRenderPosition(
@@ -774,21 +775,29 @@ private fun LightweightHomeTopTabs(
             measuredSelectedItemLeftPx,
             itemWidth,
             density,
-            rowScrollOffsetPx
+            rowScrollOffsetPx,
+            pagerState,
+            pagerIsDragging
         ) {
             derivedStateOf {
+                val pagerIsScrolling = pagerState?.isScrollInProgress == true
                 with(density) {
                     resolveIosTopTabCapsuleTargetTranslationPx(
                         measuredSelectedItemLeftPx = measuredSelectedItemLeftPx,
                         absolutePagerPosition = selectedContentPosition,
                         itemWidthPx = itemWidth.toPx(),
                         rowScrollOffsetPx = rowScrollOffsetPx,
-                        contentPaddingPx = 2.dp.toPx()
+                        contentPaddingPx = 2.dp.toPx(),
+                        followPagerPosition = pagerIsDragging || pagerIsScrolling
                     )
                 }
             }
         }
-        val iosCapsuleTranslationXPx by animateFloatAsState(
+        val shouldAnimateIosCapsule = shouldAnimateIosTopTabCapsule(
+            pagerIsDragging = pagerIsDragging,
+            pagerIsScrolling = pagerState?.isScrollInProgress == true
+        )
+        val animatedIosCapsuleTranslationXPx by animateFloatAsState(
             targetValue = iosCapsuleTargetTranslationXPx,
             animationSpec = spring(
                 dampingRatio = 0.68f,
@@ -796,6 +805,11 @@ private fun LightweightHomeTopTabs(
             ),
             label = "iosTopTabCapsuleTranslation"
         )
+        val iosCapsuleTranslationXPx = if (shouldAnimateIosCapsule) {
+            animatedIosCapsuleTranslationXPx
+        } else {
+            iosCapsuleTargetTranslationXPx
+        }
         Row(
             modifier = Modifier
                 .fillMaxSize()

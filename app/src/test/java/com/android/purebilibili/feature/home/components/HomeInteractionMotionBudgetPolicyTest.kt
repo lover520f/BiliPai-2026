@@ -261,9 +261,9 @@ class HomeInteractionMotionBudgetPolicyTest {
     }
 
     @Test
-    fun topTabSelectedContentPosition_staysOnSelectedTabDuringPagerSwipe() {
+    fun topTabSelectedContentPosition_tracksPagerOffsetWhileUserSwipesContent() {
         assertEquals(
-            0f,
+            0.35f,
             resolveTopTabSelectedContentPosition(
                 selectedIndex = 0,
                 pagerCurrentPage = 0,
@@ -370,5 +370,28 @@ class HomeInteractionMotionBudgetPolicyTest {
             ),
             0.001f
         )
+    }
+
+    @Test
+    fun iosTopTabCapsuleTranslation_ignoresMeasuredSelectedItemLeftDuringPagerSwipe() {
+        assertEquals(
+            66f,
+            resolveIosTopTabCapsuleTargetTranslationPx(
+                measuredSelectedItemLeftPx = 184f,
+                absolutePagerPosition = 0.4f,
+                itemWidthPx = 160f,
+                rowScrollOffsetPx = 0f,
+                contentPaddingPx = 2f,
+                followPagerPosition = true
+            ),
+            0.001f
+        )
+    }
+
+    @Test
+    fun iosTopTabCapsule_disablesSpringAnimationDuringPagerDrag() {
+        assertFalse(shouldAnimateIosTopTabCapsule(pagerIsDragging = true, pagerIsScrolling = false))
+        assertFalse(shouldAnimateIosTopTabCapsule(pagerIsDragging = false, pagerIsScrolling = true))
+        assertTrue(shouldAnimateIosTopTabCapsule(pagerIsDragging = false, pagerIsScrolling = false))
     }
 }
