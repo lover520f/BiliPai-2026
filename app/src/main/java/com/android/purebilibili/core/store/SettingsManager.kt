@@ -28,8 +28,11 @@ import com.android.purebilibili.feature.settings.share.SettingsShareSection
 import com.android.purebilibili.feature.settings.AppLanguage
 import com.android.purebilibili.feature.settings.AppThemeMode
 import com.android.purebilibili.feature.settings.DarkThemeStyle
+import com.android.purebilibili.feature.settings.Md3ColorSource
+import com.android.purebilibili.feature.settings.normalizeMd3CustomColorHex
 import com.android.purebilibili.feature.settings.resolveAppLanguagePreference
 import com.android.purebilibili.feature.settings.resolveDarkThemeStylePreference
+import com.android.purebilibili.feature.settings.resolveMd3ColorSourcePreference
 import com.android.purebilibili.feature.settings.resolveThemeModePreference
 import com.android.purebilibili.feature.screenshot.AppScreenshotCaptureMode
 import com.android.purebilibili.feature.screenshot.AppScreenshotGestureMode
@@ -749,6 +752,8 @@ object SettingsManager {
     private val KEY_UI_PRESET = intPreferencesKey("ui_preset")
     private val KEY_ANDROID_NATIVE_VARIANT = intPreferencesKey("android_native_variant_v1")
     private val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+    private val KEY_MD3_COLOR_SOURCE = stringPreferencesKey("md3_color_source")
+    private val KEY_MD3_CUSTOM_COLOR_HEX = stringPreferencesKey("md3_custom_color_hex")
     private val KEY_THEME_COLOR_STYLE = stringPreferencesKey("theme_color_style")
     private val KEY_THEME_COLOR_SPEC = stringPreferencesKey("theme_color_spec")
     private val KEY_BG_PLAY = booleanPreferencesKey("bg_play")
@@ -1328,10 +1333,43 @@ object SettingsManager {
 
     // --- Dynamic Color ---
     fun getDynamicColor(context: Context): Flow<Boolean> = context.settingsDataStore.data
-        .map { preferences -> preferences[KEY_DYNAMIC_COLOR] ?: true }
+        .map { preferences ->
+            resolveMd3ColorSourcePreference(
+                sourceValue = preferences[KEY_MD3_COLOR_SOURCE],
+                legacyDynamicColorEnabled = preferences[KEY_DYNAMIC_COLOR]
+            ) == Md3ColorSource.FOLLOW_WALLPAPER
+        }
 
     suspend fun setDynamicColor(context: Context, value: Boolean) {
-        context.settingsDataStore.edit { preferences -> preferences[KEY_DYNAMIC_COLOR] = value }
+        setMd3ColorSource(
+            context = context,
+            source = if (value) Md3ColorSource.FOLLOW_WALLPAPER else Md3ColorSource.CUSTOM
+        )
+    }
+
+    fun getMd3ColorSource(context: Context): Flow<Md3ColorSource> = context.settingsDataStore.data
+        .map { preferences ->
+            resolveMd3ColorSourcePreference(
+                sourceValue = preferences[KEY_MD3_COLOR_SOURCE],
+                legacyDynamicColorEnabled = preferences[KEY_DYNAMIC_COLOR]
+            )
+        }
+
+    suspend fun setMd3ColorSource(context: Context, source: Md3ColorSource) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[KEY_MD3_COLOR_SOURCE] = source.name
+            // 保持旧 key 同步，避免旧入口或导入旧配置时出现来源状态不一致。
+            preferences[KEY_DYNAMIC_COLOR] = source == Md3ColorSource.FOLLOW_WALLPAPER
+        }
+    }
+
+    fun getMd3CustomColorHex(context: Context): Flow<String> = context.settingsDataStore.data
+        .map { preferences -> normalizeMd3CustomColorHex(preferences[KEY_MD3_CUSTOM_COLOR_HEX]) }
+
+    suspend fun setMd3CustomColorHex(context: Context, hex: String) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[KEY_MD3_CUSTOM_COLOR_HEX] = normalizeMd3CustomColorHex(hex)
+        }
     }
 
     fun getThemeColorStyle(context: Context): Flow<PaletteStyle> = context.settingsDataStore.data
@@ -5110,6 +5148,8 @@ object SettingsManager {
             IntShareablePreferenceDefinition(KEY_DARK_THEME_STYLE, SettingsShareSection.APPEARANCE),
             IntShareablePreferenceDefinition(KEY_APP_LANGUAGE, SettingsShareSection.APPEARANCE),
             BooleanShareablePreferenceDefinition(KEY_DYNAMIC_COLOR, SettingsShareSection.APPEARANCE),
+            StringShareablePreferenceDefinition(KEY_MD3_COLOR_SOURCE, SettingsShareSection.APPEARANCE),
+            StringShareablePreferenceDefinition(KEY_MD3_CUSTOM_COLOR_HEX, SettingsShareSection.APPEARANCE),
             StringShareablePreferenceDefinition(KEY_THEME_COLOR_STYLE, SettingsShareSection.APPEARANCE),
             StringShareablePreferenceDefinition(KEY_THEME_COLOR_SPEC, SettingsShareSection.APPEARANCE),
             IntShareablePreferenceDefinition(KEY_THEME_COLOR_INDEX, SettingsShareSection.APPEARANCE),

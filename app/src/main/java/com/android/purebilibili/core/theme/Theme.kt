@@ -28,11 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.android.purebilibili.feature.settings.AppThemeMode
+import com.android.purebilibili.feature.settings.Md3ColorSource
+import com.android.purebilibili.feature.settings.normalizeMd3CustomColorHex
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
@@ -94,6 +97,39 @@ internal fun shouldObserveSystemWallpaperForDynamicColor(
     sdkInt: Int
 ): Boolean {
     return dynamicColorActive && sdkInt >= Build.VERSION_CODES.S
+}
+
+internal fun resolveMd3DynamicColorEnabled(
+    source: Md3ColorSource,
+    sdkInt: Int
+): Boolean {
+    return source == Md3ColorSource.FOLLOW_WALLPAPER && sdkInt >= Build.VERSION_CODES.S
+}
+
+internal fun resolveMd3ThemeSeedColor(
+    source: Md3ColorSource,
+    customColorHex: String,
+    themeColorIndex: Int
+): Color {
+    return when (source) {
+        Md3ColorSource.FOLLOW_WALLPAPER -> ThemeColors.getOrElse(
+            normalizeThemeColorIndex(themeColorIndex)
+        ) { iOSSystemBlue }
+        Md3ColorSource.CUSTOM -> parseMd3CustomColorHex(customColorHex)
+    }
+}
+
+internal fun parseMd3CustomColorHex(
+    rawValue: String
+): Color {
+    val normalized = normalizeMd3CustomColorHex(rawValue)
+    val rgb = normalized.removePrefix("#").toLong(radix = 16)
+    return Color(0xFF000000 or rgb)
+}
+
+internal fun formatMd3CustomColorHex(color: Color): String {
+    val rgb = color.toArgb() and 0x00FFFFFF
+    return "#${rgb.toString(16).uppercase().padStart(6, '0')}"
 }
 
 internal fun resolveMiuixColorSchemeMode(
@@ -704,6 +740,12 @@ fun PureBiliBiliTheme(
     dynamicColor: Boolean = false,
     amoledDarkTheme: Boolean = false,
     themeColorIndex: Int = 0, //  默认 0 = iOS 蓝色
+    md3ColorSource: Md3ColorSource = if (dynamicColor) {
+        Md3ColorSource.FOLLOW_WALLPAPER
+    } else {
+        Md3ColorSource.CUSTOM
+    },
+    md3CustomColorHex: String = "#007AFF",
     colorStyle: PaletteStyle = PaletteStyle.TonalSpot,
     colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021,
     fontSizePreset: AppFontSizePreset = AppFontSizePreset.DEFAULT,
@@ -712,14 +754,21 @@ fun PureBiliBiliTheme(
 ) {
     val context = LocalContext.current
     
-    //  获取自定义主题色 (默认 iOS 蓝)
-    val customPrimaryColor = ThemeColors.getOrElse(themeColorIndex) { iOSSystemBlue }
+    //  获取 MD3 主题种子色。跟随壁纸时仍保留旧预设色作为非 S 设备后备。
+    val customPrimaryColor = resolveMd3ThemeSeedColor(
+        source = md3ColorSource,
+        customColorHex = md3CustomColorHex,
+        themeColorIndex = themeColorIndex
+    )
 
     val isDynamicColorActive = resolveEffectiveDynamicColorEnabled(
-        dynamicColorEnabled = dynamicColor,
+        dynamicColorEnabled = resolveMd3DynamicColorEnabled(
+            source = md3ColorSource,
+            sdkInt = Build.VERSION.SDK_INT
+        ),
         amoledDarkTheme = amoledDarkTheme,
         uiPreset = uiPreset
-    ) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    )
     val shapes = resolveMaterialShapes(uiPreset, androidNativeVariant)
     val appFontFamily = remember(context, appFontFileName) {
         loadStoredAppFontFamily(context, appFontFileName)

@@ -42,6 +42,8 @@ data class SettingsUiState(
     val darkThemeStyle: DarkThemeStyle = DarkThemeStyle.DEFAULT,
     val appLanguage: AppLanguage = AppLanguage.FOLLOW_SYSTEM,
     val dynamicColor: Boolean = true,
+    val md3ColorSource: Md3ColorSource = Md3ColorSource.FOLLOW_WALLPAPER,
+    val md3CustomColorHex: String = "#007AFF",
     val colorStyle: PaletteStyle = PaletteStyle.TonalSpot,
     val colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021,
     val appFontSizePreset: AppFontSizePreset = AppFontSizePreset.DEFAULT,
@@ -104,6 +106,8 @@ private data class CoreSettings(
     val darkThemeStyle: DarkThemeStyle,
     val appLanguage: AppLanguage,
     val dynamicColor: Boolean,
+    val md3ColorSource: Md3ColorSource,
+    val md3CustomColorHex: String,
     val colorStyle: PaletteStyle,
     val colorSpec: ColorSpec.SpecVersion,
     val bgPlay: Boolean
@@ -164,6 +168,8 @@ private data class BaseSettings(
     val darkThemeStyle: DarkThemeStyle,
     val appLanguage: AppLanguage,
     val dynamicColor: Boolean,
+    val md3ColorSource: Md3ColorSource,
+    val md3CustomColorHex: String,
     val colorStyle: PaletteStyle,
     val colorSpec: ColorSpec.SpecVersion,
     val appFontSizePreset: AppFontSizePreset,
@@ -231,6 +237,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         SettingsManager.getDarkThemeStyle(context).asAnyFlow(),
         SettingsManager.getAppLanguage(context).asAnyFlow(),
         SettingsManager.getDynamicColor(context).asAnyFlow(),
+        SettingsManager.getMd3ColorSource(context).asAnyFlow(),
+        SettingsManager.getMd3CustomColorHex(context).asAnyFlow(),
         SettingsManager.getThemeColorStyle(context).asAnyFlow(),
         SettingsManager.getThemeColorSpec(context).asAnyFlow(),
         SettingsManager.getBgPlay(context).asAnyFlow()
@@ -243,9 +251,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             darkThemeStyle = values[4] as DarkThemeStyle,
             appLanguage = values[5] as AppLanguage,
             dynamicColor = values[6] as Boolean,
-            colorStyle = values[7] as PaletteStyle,
-            colorSpec = values[8] as ColorSpec.SpecVersion,
-            bgPlay = values[9] as Boolean
+            md3ColorSource = values[7] as Md3ColorSource,
+            md3CustomColorHex = values[8] as String,
+            colorStyle = values[9] as PaletteStyle,
+            colorSpec = values[10] as ColorSpec.SpecVersion,
+            bgPlay = values[11] as Boolean
         )
     }
     
@@ -446,6 +456,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             darkThemeStyle = core.darkThemeStyle,
             appLanguage = core.appLanguage,
             dynamicColor = core.dynamicColor,
+            md3ColorSource = core.md3ColorSource,
+            md3CustomColorHex = core.md3CustomColorHex,
             colorStyle = core.colorStyle,
             colorSpec = core.colorSpec,
             appFontSizePreset = extra.appFontSizePreset,
@@ -502,6 +514,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             darkThemeStyle = settings.darkThemeStyle,
             appLanguage = settings.appLanguage,
             dynamicColor = settings.dynamicColor,
+            md3ColorSource = settings.md3ColorSource,
+            md3CustomColorHex = settings.md3CustomColorHex,
             colorStyle = settings.colorStyle,
             colorSpec = settings.colorSpec,
             appFontSizePreset = settings.appFontSizePreset,
@@ -608,6 +622,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
     fun toggleDynamicColor(value: Boolean) { viewModelScope.launch { SettingsManager.setDynamicColor(context, value) } }
+    fun setMd3ColorSource(source: Md3ColorSource) {
+        viewModelScope.launch { SettingsManager.setMd3ColorSource(context, source) }
+    }
+    fun setMd3CustomColorHex(hex: String) {
+        viewModelScope.launch { SettingsManager.setMd3CustomColorHex(context, hex) }
+    }
     fun setThemeColorStyle(style: PaletteStyle) {
         viewModelScope.launch { SettingsManager.setThemeColorStyle(context, style) }
     }
@@ -635,10 +655,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setThemeColorIndex(index: Int) { 
         viewModelScope.launch { 
             SettingsManager.setThemeColorIndex(context, index)
-            //  选择自定义主题色时，自动关闭动态取色
-            if (index != 0) {
-                SettingsManager.setDynamicColor(context, false)
-            }
         }
     }
 

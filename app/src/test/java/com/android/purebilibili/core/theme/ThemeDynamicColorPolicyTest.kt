@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.android.purebilibili.feature.settings.AppThemeMode
+import com.android.purebilibili.feature.settings.Md3ColorSource
 import kotlin.test.Test
 import kotlin.test.assertNotEquals
 import kotlin.test.assertEquals
@@ -60,6 +61,39 @@ class ThemeDynamicColorPolicyTest {
             shouldObserveSystemWallpaperForDynamicColor(
                 dynamicColorActive = true,
                 sdkInt = android.os.Build.VERSION_CODES.R
+            )
+        )
+    }
+
+    @Test
+    fun `md3 color source maps wallpaper to monet and custom to static seed`() {
+        assertTrue(
+            resolveMd3DynamicColorEnabled(
+                source = Md3ColorSource.FOLLOW_WALLPAPER,
+                sdkInt = android.os.Build.VERSION_CODES.S
+            )
+        )
+        assertEquals(
+            false,
+            resolveMd3DynamicColorEnabled(
+                source = Md3ColorSource.CUSTOM,
+                sdkInt = android.os.Build.VERSION_CODES.S
+            )
+        )
+        assertEquals(
+            Color(0xFFFF5722),
+            resolveMd3ThemeSeedColor(
+                source = Md3ColorSource.CUSTOM,
+                customColorHex = "#FF5722",
+                themeColorIndex = 0
+            )
+        )
+        assertEquals(
+            Color(0xFF007AFF),
+            resolveMd3ThemeSeedColor(
+                source = Md3ColorSource.FOLLOW_WALLPAPER,
+                customColorHex = "#FF5722",
+                themeColorIndex = 0
             )
         )
     }

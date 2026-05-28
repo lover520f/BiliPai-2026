@@ -92,6 +92,7 @@ import com.android.purebilibili.feature.settings.AppUpdateInstallAction
 import com.android.purebilibili.feature.settings.AppLanguage
 import com.android.purebilibili.feature.settings.AppThemeMode
 import com.android.purebilibili.feature.settings.DarkThemeStyle
+import com.android.purebilibili.feature.settings.Md3ColorSource
 import com.android.purebilibili.feature.settings.applyAppLanguage
 import com.android.purebilibili.core.theme.resolveEffectiveDynamicColorEnabled
 import com.android.purebilibili.core.theme.UiPreset
@@ -116,6 +117,7 @@ import com.android.purebilibili.feature.settings.resolveUpdateReleaseNotesText
 import com.android.purebilibili.feature.settings.selectPreferredAppUpdateAsset
 import com.android.purebilibili.feature.settings.shouldRunAppEntryAutoCheck
 import com.android.purebilibili.feature.settings.resolveThemePreferenceState
+import com.android.purebilibili.core.theme.resolveMd3DynamicColorEnabled
 import com.android.purebilibili.feature.screenshot.AppScreenshotCaptureMode
 import com.android.purebilibili.feature.screenshot.AppScreenshotGestureMode
 import com.android.purebilibili.feature.screenshot.AppScreenshotGestureBlockState
@@ -1066,7 +1068,12 @@ open class MainActivity : AppCompatActivity() {
             // LaunchedEffect(Unit) { ... }
 
             //  2. [新增] 获取动态取色设置 (默认为 true)
-            val dynamicColor by SettingsManager.getDynamicColor(context).collectAsState(initial = true)
+            val md3ColorSource by SettingsManager.getMd3ColorSource(context).collectAsState(
+                initial = Md3ColorSource.FOLLOW_WALLPAPER
+            )
+            val md3CustomColorHex by SettingsManager.getMd3CustomColorHex(context).collectAsState(
+                initial = "#007AFF"
+            )
             val colorStyle by SettingsManager.getThemeColorStyle(context).collectAsState(
                 initial = PaletteStyle.TonalSpot
             )
@@ -1106,7 +1113,10 @@ open class MainActivity : AppCompatActivity() {
             val useDarkTheme = themePreferenceState.useDarkTheme
             val useAmoledDarkTheme = themePreferenceState.useAmoledDarkTheme
             val effectiveDynamicColor = resolveEffectiveDynamicColorEnabled(
-                dynamicColorEnabled = dynamicColor,
+                dynamicColorEnabled = resolveMd3DynamicColorEnabled(
+                    source = md3ColorSource,
+                    sdkInt = Build.VERSION.SDK_INT
+                ),
                 amoledDarkTheme = useAmoledDarkTheme,
                 uiPreset = uiPreset
             )
@@ -1167,6 +1177,8 @@ open class MainActivity : AppCompatActivity() {
                 dynamicColor = effectiveDynamicColor,
                 amoledDarkTheme = useAmoledDarkTheme,
                 themeColorIndex = themeColorIndex, //  传入主题色索引
+                md3ColorSource = md3ColorSource,
+                md3CustomColorHex = md3CustomColorHex,
                 colorStyle = colorStyle,
                 colorSpec = colorSpec,
                 fontSizePreset = appFontSizePreset,

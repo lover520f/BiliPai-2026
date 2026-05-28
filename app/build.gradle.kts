@@ -305,6 +305,7 @@ dependencies {
     // --- 3.1 Palette (颜色提取 - 动态取色) ---
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("com.materialkolor:material-kolor:4.1.1")
+    implementation("com.github.skydoves:colorpicker-compose:1.1.4")
     
     // --- 3.2 Lottie (动画效果) ---
     implementation("com.airbnb.android:lottie-compose:6.7.1")

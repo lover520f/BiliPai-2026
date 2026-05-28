@@ -95,6 +95,18 @@ class SettingsSearchPolicyTest {
     }
 
     @Test
+    fun queryByCustomMd3Color_focusesAppearanceThemeSection() {
+        val results = resolveSettingsSearchResults("自定义md3颜色")
+
+        assertTrue(
+            results.any {
+                it.target == SettingsSearchTarget.APPEARANCE &&
+                    it.focusId == SettingsSearchFocusIds.APPEARANCE_THEME
+            }
+        )
+    }
+
+    @Test
     fun queryByAndroidNativeLiquidGlass_focusesAppearanceThemeSection() {
         val result = resolveSettingsSearchResults("安卓原生液态玻璃").firstOrNull()
 

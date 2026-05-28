@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -57,6 +58,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.android.purebilibili.core.ui.components.*
 import com.android.purebilibili.core.ui.animation.staggeredEntrance
+import com.github.skydoves.colorpicker.compose.BrightnessSlider
+import com.github.skydoves.colorpicker.compose.HsvColorPicker
+import com.github.skydoves.colorpicker.compose.HueSlider
+import com.github.skydoves.colorpicker.compose.SaturationSlider
+import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import top.yukonga.miuix.kmp.basic.Scaffold as MiuixScaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar as MiuixSmallTopAppBar
 
@@ -419,9 +425,15 @@ fun AppearanceSettingsContent(
         .getShowOnlineCount(context)
         .collectAsState(initial = false)
     val isLiquidGlassAvailable = shouldAllowHomeChromeLiquidGlass(Build.VERSION.SDK_INT)
-    val showMd3DynamicColorControl =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val showThemeColorPicker = !state.dynamicColor
+    val showThemeColorPicker = state.md3ColorSource == Md3ColorSource.CUSTOM
+    var showMd3ColorPickerDialog by remember { mutableStateOf(false) }
+    val md3ColorSourceOptions = remember { resolveMd3ColorSourceOptions() }
+    val selectedMd3ColorSourceLabel = md3ColorSourceOptions
+        .firstOrNull { it.value == state.md3ColorSource }
+        ?.label ?: state.md3ColorSource.label
+    val selectedCustomThemeColor = remember(state.md3CustomColorHex) {
+        parseMd3CustomColorHex(state.md3CustomColorHex)
+    }
     val colorStyleOptions = remember { resolveColorStyleOptions() }
     val colorSpecOptions = remember { resolveColorSpecOptions() }
     val selectedColorStyleLabel = colorStyleOptions
@@ -571,16 +583,26 @@ fun AppearanceSettingsContent(
                         IOSDivider()
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 动态取色开关
-                        if (showMd3DynamicColorControl) {
-	                             IOSSwitchItem(
-	                                icon = rememberSettingsSemanticIcon(SettingsIconRole.DYNAMIC_COLOR),
-                                title = "动态取色（Material You）",
-                                subtitle = "跟随系统壁纸变换应用主题色",
-                                checked = state.dynamicColor,
-                                onCheckedChange = { viewModel.toggleDynamicColor(it) },
-                                iconTint = iOSPink
-                            )
+                        IOSSlidingSegmentedSetting(
+                            title = "MD3 颜色来源：$selectedMd3ColorSourceLabel",
+                            subtitle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                "可跟随系统壁纸，也可使用自定义主题色"
+                            } else {
+                                "当前系统不支持 Monet 壁纸取色，可使用自定义主题色"
+                            },
+                            options = md3ColorSourceOptions,
+                            selectedValue = state.md3ColorSource,
+                            onSelectionChange = viewModel::setMd3ColorSource
+                        )
+
+                        AnimatedVisibility(
+                            visible = state.md3ColorSource == Md3ColorSource.FOLLOW_WALLPAPER,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(modifier = Modifier.padding(top = 12.dp)) {
+                                DynamicColorPreview()
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -629,14 +651,14 @@ fun AppearanceSettingsContent(
                                         .background(
                                             brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                                                 colors = listOf(
-                                                    ThemeColors[state.themeColorIndex].copy(alpha = 0.15f),
-                                                    ThemeColors[state.themeColorIndex].copy(alpha = 0.05f)
+                                                    selectedCustomThemeColor.copy(alpha = 0.15f),
+                                                    selectedCustomThemeColor.copy(alpha = 0.05f)
                                                 )
                                             )
                                         )
                                         .border(
                                             width = 1.dp,
-                                            color = ThemeColors[state.themeColorIndex].copy(alpha = 0.3f),
+                                            color = selectedCustomThemeColor.copy(alpha = 0.3f),
                                             shape = RoundedCornerShape(20.dp)
                                         ),
                                     contentAlignment = Alignment.Center
@@ -650,8 +672,8 @@ fun AppearanceSettingsContent(
                                                 .background(
                                                     brush = androidx.compose.ui.graphics.Brush.linearGradient(
                                                         colors = listOf(
-                                                            ThemeColors[state.themeColorIndex],
-                                                            ThemeColors[state.themeColorIndex].copy(alpha = 0.8f)
+                                                            selectedCustomThemeColor,
+                                                            selectedCustomThemeColor.copy(alpha = 0.8f)
                                                         )
                                                     ),
                                                     shape = RoundedCornerShape(16.dp)
@@ -668,17 +690,28 @@ fun AppearanceSettingsContent(
                                         
                                         // 当前选中颜色名称
                                         Text(
-                                            text = ThemeColorNames.getOrElse(state.themeColorIndex) { "自定义" },
+                                            text = state.md3CustomColorHex,
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "正在预览当前主题色",
+                                            text = "正在预览自定义 MD3 主题色",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
+
+                                IOSClickableItem(
+                                    icon = rememberSettingsSemanticIcon(SettingsIconRole.COLOR_STYLE),
+                                    title = "编辑自定义颜色",
+                                    subtitle = "使用 HSV 取色器或 HEX 输入精确选择",
+                                    value = state.md3CustomColorHex,
+                                    onClick = { showMd3ColorPickerDialog = true },
+                                    iconTint = selectedCustomThemeColor
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
 
                                 //  [Redesign] Theme Color Grid - Strict 2 Rows x 5 Columns
                                 val spacing = 12.dp
@@ -694,7 +727,7 @@ fun AppearanceSettingsContent(
                                         ) {
                                             rowColors.forEach { color ->
                                                 val index = ThemeColors.indexOf(color)
-                                                val isSelected = state.themeColorIndex == index
+                                                val isSelected = selectedCustomThemeColor == color
                                                 
                                                 Column(
                                                     modifier = Modifier.weight(1f),
@@ -743,8 +776,9 @@ fun AppearanceSettingsContent(
                                                                     end = androidx.compose.ui.geometry.Offset(100f, 100f)
                                                                 )
                                                             )
-                                                            .clickable { 
+                                                            .clickable {
                                                                 viewModel.setThemeColorIndex(index)
+                                                                viewModel.setMd3CustomColorHex(formatMd3CustomColorHex(color))
                                                             },
                                                         contentAlignment = Alignment.Center
                                                     ) {
@@ -1593,6 +1627,135 @@ fun AppearanceSettingsContent(
         
 
     }
+
+    if (showMd3ColorPickerDialog) {
+        Md3CustomColorPickerDialog(
+            initialHex = state.md3CustomColorHex,
+            onDismiss = { showMd3ColorPickerDialog = false },
+            onConfirm = { hex ->
+                viewModel.setMd3ColorSource(Md3ColorSource.CUSTOM)
+                viewModel.setMd3CustomColorHex(hex)
+                showMd3ColorPickerDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun Md3CustomColorPickerDialog(
+    initialHex: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val controller = rememberColorPickerController()
+    var pendingHex by remember(initialHex) { mutableStateOf(normalizeMd3CustomColorHex(initialHex)) }
+    val pendingColor = remember(pendingHex) { parseMd3CustomColorHex(pendingHex) }
+    val invalidInput = normalizeMd3CustomColorHex(pendingHex) != pendingHex.uppercase()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onConfirm(normalizeMd3CustomColorHex(pendingHex)) }) {
+                Text("确认")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        },
+        title = { Text("自定义 MD3 颜色") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(pendingColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = normalizeMd3CustomColorHex(pendingHex),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (pendingColor.luminance() < 0.5f) Color.White else Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                HsvColorPicker(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                    controller = controller,
+                    initialColor = pendingColor,
+                    onColorChanged = { envelope ->
+                        if (envelope.fromUser) {
+                            pendingHex = formatMd3CustomColorHex(envelope.color)
+                        }
+                    }
+                )
+
+                HueSlider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp),
+                    controller = controller
+                )
+                SaturationSlider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp),
+                    controller = controller
+                )
+                BrightnessSlider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp),
+                    controller = controller
+                )
+
+                OutlinedTextField(
+                    value = pendingHex,
+                    onValueChange = { pendingHex = it.uppercase().take(9) },
+                    label = { Text("HEX") },
+                    singleLine = true,
+                    isError = invalidInput,
+                    supportingText = {
+                        if (invalidInput) {
+                            Text("请输入 #RRGGBB 格式")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(ThemeColors.size) { index ->
+                        val color = ThemeColors[index]
+                        val hex = formatMd3CustomColorHex(color)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (normalizeMd3CustomColorHex(pendingHex) == hex) 2.dp else 1.dp,
+                                    color = if (normalizeMd3CustomColorHex(pendingHex) == hex) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                    shape = CircleShape
+                                )
+                                .clickable { pendingHex = hex }
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable

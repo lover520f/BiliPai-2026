@@ -31,6 +31,13 @@ internal fun resolveColorSpecOptions(): List<PlaybackSegmentOption<ColorSpec.Spe
     }
 }
 
+internal fun resolveMd3ColorSourceOptions(): List<PlaybackSegmentOption<Md3ColorSource>> {
+    return listOf(
+        PlaybackSegmentOption(Md3ColorSource.FOLLOW_WALLPAPER, Md3ColorSource.FOLLOW_WALLPAPER.label),
+        PlaybackSegmentOption(Md3ColorSource.CUSTOM, Md3ColorSource.CUSTOM.label)
+    )
+}
+
 internal fun resolveDarkThemeStyleSegmentOptions(
     defaultLabel: String = DarkThemeStyle.DEFAULT.label,
     amoledLabel: String = DarkThemeStyle.AMOLED.label

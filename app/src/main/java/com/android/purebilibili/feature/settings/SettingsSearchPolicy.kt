@@ -160,6 +160,12 @@ private val SETTINGS_SEARCH_INDEX: List<SettingsSearchEntry> = listOf(
             "卡片宽度",
             "首页卡片宽度",
             "动态取色",
+            "自定义md3颜色",
+            "自定义 MD3 颜色",
+            "自定义颜色",
+            "md3颜色",
+            "主题色",
+            "hex",
             "material you",
             "materialyou",
             "动态颜色",
@@ -486,9 +492,9 @@ private val SETTINGS_SEARCH_INDEX: List<SettingsSearchEntry> = listOf(
     SettingsSearchEntry(
         target = SettingsSearchTarget.APPEARANCE,
         title = "界面预设 / 主题模式",
-        subtitle = "iOS、安卓原生、深色风格、应用语言",
+        subtitle = "iOS、安卓原生、深色风格、MD3 颜色来源、应用语言",
         section = "外观设置",
-        aliases = listOf("界面预设", "主题模式", "深色风格", "应用语言", "语言", "material you", "动态取色"),
+        aliases = listOf("界面预设", "主题模式", "深色风格", "应用语言", "语言", "material you", "动态取色", "自定义md3颜色", "自定义 MD3 颜色", "自定义颜色", "md3颜色", "主题色", "hex"),
         focusId = SettingsSearchFocusIds.APPEARANCE_THEME
     ),
     SettingsSearchEntry(
