@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import com.android.purebilibili.core.store.HomeSettings
+import com.android.purebilibili.core.store.HomeTopRightAction
 import com.android.purebilibili.core.ui.blur.BlurSurfaceType
 import com.android.purebilibili.feature.home.HomeGlassResolvedColors
 import com.android.purebilibili.core.ui.blur.BlurIntensity
@@ -21,6 +22,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class iOSHomeHeaderVisualPolicyTest {
+
+    @Test
+    fun `top right unread badge only appears for inbox action`() {
+        assertEquals("8", formatHomeTopRightUnreadBadge(HomeTopRightAction.INBOX, 8))
+        assertEquals("99+", formatHomeTopRightUnreadBadge(HomeTopRightAction.INBOX, 120))
+        assertEquals(null, formatHomeTopRightUnreadBadge(HomeTopRightAction.INBOX, 0))
+        assertEquals(null, formatHomeTopRightUnreadBadge(HomeTopRightAction.SETTINGS, 8))
+    }
+
+    @Test
+    fun `top right inbox content description includes unread count`() {
+        assertEquals(
+            "消息，8 条未读",
+            resolveHomeTopRightActionContentDescription(HomeTopRightAction.INBOX, 8)
+        )
+        assertEquals(
+            "消息，99+ 条未读",
+            resolveHomeTopRightActionContentDescription(HomeTopRightAction.INBOX, 120)
+        )
+        assertEquals(
+            HomeTopRightAction.INBOX.label,
+            resolveHomeTopRightActionContentDescription(HomeTopRightAction.INBOX, 0)
+        )
+        assertEquals(
+            HomeTopRightAction.SETTINGS.label,
+            resolveHomeTopRightActionContentDescription(HomeTopRightAction.SETTINGS, 8)
+        )
+    }
 
     @Test
     fun `wide liquid glass chrome prefers flat treatment to avoid center seam`() {

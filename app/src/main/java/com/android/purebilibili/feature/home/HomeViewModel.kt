@@ -23,8 +23,10 @@ import com.android.purebilibili.core.util.Logger
 import com.android.purebilibili.core.util.prependDistinctByKey
 import com.android.purebilibili.data.model.response.VideoItem
 import com.android.purebilibili.data.repository.HistoryRepository
+import com.android.purebilibili.data.repository.MessageRepository
 import com.android.purebilibili.data.repository.VideoRepository
 import com.android.purebilibili.data.repository.LiveRepository
+import com.android.purebilibili.feature.message.totalMessageUnreadCount
 import com.android.purebilibili.feature.plugin.EyeProtectionPlugin
 import com.android.purebilibili.feature.plugin.TodayWatchPlugin
 import com.android.purebilibili.feature.plugin.TodayWatchPluginConfig
@@ -213,6 +215,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var _undoSnapshot: HomeRefreshUndoSnapshot? = null
     private var undoDismissJob: Job? = null
     private var userInfoRefreshJob: Job? = null
+    private var messageUnreadRefreshJob: Job? = null
 
     // [Feature] Blocked UPs
     private val blockedUpRepository = com.android.purebilibili.data.repository.BlockedUpRepository(application)
@@ -1022,6 +1025,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun refreshMessageUnreadInBackground() {
+        if (messageUnreadRefreshJob?.isActive == true) return
+        messageUnreadRefreshJob = viewModelScope.launch {
+            refreshMessageUnreadCount()
+        }
+    }
+
+    private suspend fun refreshMessageUnreadCount() {
+        if (com.android.purebilibili.core.store.TokenManager.sessDataCache.isNullOrEmpty()) {
+            _uiState.value = _uiState.value.copy(messageUnreadCount = 0)
+            return
+        }
+
+        val unreadResult = MessageRepository.getUnreadCount()
+        val feedUnreadResult = MessageRepository.getFeedUnread()
+        if (unreadResult.isSuccess && feedUnreadResult.isSuccess) {
+            _uiState.value = _uiState.value.copy(
+                messageUnreadCount = totalMessageUnreadCount(
+                    unreadData = unreadResult.getOrNull(),
+                    feedUnread = feedUnreadResult.getOrNull()
+                )
+            )
+        }
+    }
+
     private suspend fun fetchData(
         isLoadMore: Boolean,
         isManualRefresh: Boolean = false,
@@ -1478,10 +1506,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         isVip = isVip
                     )
                 )
+                refreshMessageUnreadInBackground()
                 
                 //  获取关注列表（异步，不阻塞主流程）
                 fetchFollowingList(navData.mid)
             } else {
+                messageUnreadRefreshJob?.cancel()
+                messageUnreadRefreshJob = null
                 com.android.purebilibili.core.store.TokenManager.isVipCache = false
                 com.android.purebilibili.core.store.TokenManager.midCache = null
                 com.android.purebilibili.core.util.AnalyticsHelper.syncUserContext(
@@ -1492,7 +1523,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 _uiState.value = _uiState.value.copy(
                     user = UserState(isLogin = false),
-                    followingMids = emptySet()
+                    followingMids = emptySet(),
+                    messageUnreadCount = 0
                 )
             }
         }

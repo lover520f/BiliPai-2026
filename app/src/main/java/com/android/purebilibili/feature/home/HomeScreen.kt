@@ -1567,6 +1567,7 @@ fun HomeScreen(
             },
             onSettingsClick = onSettingsClick,
             onInboxClick = onInboxClick,
+            topRightUnreadCount = state.messageUnreadCount,
             onSearchClick = onSearchClick,
             topCategories = localizedTopCategoryLabels,
             topCategoryKeys = topCategories.map { it.name },

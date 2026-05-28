@@ -156,6 +156,7 @@ data class HomeUiState(
     val popularSubCategory: PopularSubCategory = PopularSubCategory.COMPREHENSIVE,
     val refreshKey: Long = 0L,
     val followingMids: Set<Long> = emptySet(),
+    val messageUnreadCount: Int = 0,
     //  [新增] 标签页显示索引（独立于内容分类，用于特殊分类导航后保持标签位置）
     val displayedTabIndex: Int = 0,
     //  [彩蛋] 刷新成功后的趣味消息

@@ -42,6 +42,18 @@ fun totalPrivateUnreadCount(unreadData: MessageUnreadData?): Int {
         unreadData.custom_unread
 }
 
+fun totalMessageUnreadCount(
+    unreadData: MessageUnreadData?,
+    feedUnread: MessageFeedUnreadData?
+): Int {
+    val feedUnreadCount = if (feedUnread == null) {
+        0
+    } else {
+        feedUnread.reply + feedUnread.at + feedUnread.like + feedUnread.sysMsg
+    }
+    return totalPrivateUnreadCount(unreadData) + feedUnreadCount
+}
+
 fun buildMessageCenterTopItems(feedUnread: MessageFeedUnreadData?): List<MessageCenterTopItem> {
     return listOf(
         MessageCenterTopItem(

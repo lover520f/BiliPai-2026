@@ -55,6 +55,7 @@ import com.android.purebilibili.core.util.iOSTapEffect
 import com.android.purebilibili.core.util.rememberHapticFeedback
 import com.android.purebilibili.feature.home.UserState
 import com.android.purebilibili.core.theme.iOSSystemGray
+import com.android.purebilibili.core.theme.iOSRed
 import com.android.purebilibili.core.store.LiquidGlassStyle
 import dev.chrisbanes.haze.HazeState
 import com.android.purebilibili.core.ui.blur.shouldAllowDirectHazeLiquidGlassFallback
@@ -192,6 +193,22 @@ internal fun resolveHomeTopLinkedBottomBarAppearance(
             androidNativeLiquidGlassEnabled = resolvedHomeSettings.androidNativeLiquidGlassEnabled
         )
     )
+}
+
+internal fun formatHomeTopRightUnreadBadge(
+    action: HomeTopRightAction,
+    unreadCount: Int
+): String? {
+    if (action != HomeTopRightAction.INBOX || unreadCount <= 0) return null
+    return if (unreadCount > 99) "99+" else unreadCount.toString()
+}
+
+internal fun resolveHomeTopRightActionContentDescription(
+    action: HomeTopRightAction,
+    unreadCount: Int
+): String {
+    val badgeText = formatHomeTopRightUnreadBadge(action, unreadCount) ?: return action.label
+    return "${action.label}，$badgeText 条未读"
 }
 
 internal fun resolveHomeTopChromeLiquidGlassEnabled(
@@ -1453,6 +1470,7 @@ fun iOSHomeHeader(
     onAvatarClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onInboxClick: () -> Unit = {},
+    topRightUnreadCount: Int = 0,
     onSearchClick: () -> Unit,
     topCategories: List<String> = resolveHomeTopCategories().map { it.label },
     topCategoryKeys: List<String> = resolveHomeTopCategories().map { it.name },
@@ -1504,7 +1522,14 @@ fun iOSHomeHeader(
     val settingsIcon = rememberAppSettingsIcon()
     val inboxIcon = rememberAppInboxIcon()
     val topRightActionIcon = if (topRightAction == HomeTopRightAction.INBOX) inboxIcon else settingsIcon
-    val topRightActionContentDescription = topRightAction.label
+    val topRightActionContentDescription = resolveHomeTopRightActionContentDescription(
+        action = topRightAction,
+        unreadCount = topRightUnreadCount
+    )
+    val topRightUnreadBadge = formatHomeTopRightUnreadBadge(
+        action = topRightAction,
+        unreadCount = topRightUnreadCount
+    )
     val onTopRightActionClick = if (topRightAction == HomeTopRightAction.INBOX) {
         onInboxClick
     } else {
@@ -2632,6 +2657,31 @@ fun iOSHomeHeader(
                                     },
                                     modifier = Modifier.size(resolveHomeTopSettingsIconSize(uiPreset, androidNativeVariant))
                                 )
+                                if (topRightUnreadBadge != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 7.dp, y = (-5).dp)
+                                            .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                                            .background(iOSRed, CircleShape)
+                                            .border(
+                                                width = 1.dp,
+                                                color = AppSurfaceTokens.cardContainer(),
+                                                shape = CircleShape
+                                            )
+                                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = topRightUnreadBadge,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            lineHeight = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
