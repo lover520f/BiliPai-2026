@@ -1405,6 +1405,7 @@ fun AppNavigation(
                                         )
                                     }
                                 },
+                                onBangumiMoreClick = { navigateFromProfile(ScreenRoutes.Bangumi.createRoute(1)) },
                                 deferImmersiveRenderBudget = bottomPagerRenderBudget.deferProfileImmersiveBackground
                             )
                         }

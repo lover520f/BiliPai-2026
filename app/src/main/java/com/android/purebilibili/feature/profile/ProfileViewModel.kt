@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -186,7 +187,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                         favoriteFoldersFallback = profileData.favoriteFolders,
                         bangumiItems = profileData.bangumiItems,
                         dynamicItems = profileData.dynamicItems
-                    )
+                    ).let { state ->
+                        state.copy(favoriteFolders = resolveFavoriteFoldersWithPreviewCovers(state.favoriteFolders))
+                    }
                     val editableAccount = resolveProfileEditableAccountState(
                         account = profileData.account,
                         user = userState,
@@ -296,6 +299,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         val params = WbiUtils.sign(mapOf("mid" to mid.toString()), imgKey, subKey)
         val response = NetworkModule.spaceApi.getSpaceInfo(params)
         return if (response.code == 0) response.data else null
+    }
+
+    private suspend fun resolveFavoriteFoldersWithPreviewCovers(folders: List<FavFolder>): List<FavFolder> {
+        if (folders.isEmpty()) return folders
+        return kotlinx.coroutines.supervisorScope {
+            folders.map { folder ->
+                async {
+                    if (folder.cover.isNotBlank() || folder.id <= 0L) {
+                        folder
+                    } else {
+                        val previewCover = FavoriteRepository.getFavoriteList(mediaId = folder.id, pn = 1)
+                            .getOrNull()
+                            ?.let { data -> data.info?.cover?.ifBlank { null } ?: data.medias?.firstOrNull()?.cover }
+                            .orEmpty()
+                        if (previewCover.isBlank()) folder else folder.copy(cover = previewCover)
+                    }
+                }
+            }.awaitAll()
+        }
     }
 
     fun selectProfileSpaceTab(tab: ProfileSpaceMainTab) {

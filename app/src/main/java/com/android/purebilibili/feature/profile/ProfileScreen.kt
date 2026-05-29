@@ -99,11 +99,13 @@ import com.android.purebilibili.core.ui.components.IOSSwitchItem
 import com.android.purebilibili.core.ui.components.IOSSectionTitle
 import com.android.purebilibili.core.ui.components.IOSGridItem
 import com.android.purebilibili.core.store.StoredAccountSession
+import com.android.purebilibili.core.store.SettingsManager
 import com.android.purebilibili.data.model.response.FavFolder
 import com.android.purebilibili.data.model.response.FollowBangumiItem
 import com.android.purebilibili.data.model.response.SpaceAggregateArchiveItem
 import com.android.purebilibili.data.model.response.SpaceDynamicItem
 import com.android.purebilibili.data.model.response.SpaceVideoItem
+import com.android.purebilibili.feature.home.components.BottomBarLiquidSegmentedControl
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 import com.android.purebilibili.core.ui.blur.rememberRecoverableHazeState
@@ -221,6 +223,7 @@ fun ProfileScreen(
     onInboxClick: () -> Unit = {},  //  [新增] 私信入口点击
     onVideoClick: (String) -> Unit = {},  // [新增] 视频点击（三连彩蛋跳转用）
     onBangumiClick: (Long, Long) -> Unit = { _, _ -> },
+    onBangumiMoreClick: () -> Unit = {},
     deferImmersiveRenderBudget: Boolean = false
     // [注意] 移除了 globalHazeState - 双 hazeSource 模式与 Haze 库冲突
 ) {
@@ -549,6 +552,7 @@ fun ProfileScreen(
                         onInboxClick = onInboxClick,
                         onVideoClick = onVideoClick,
                         onBangumiClick = onBangumiClick,
+                        onBangumiMoreClick = onBangumiMoreClick,
                         scrollBehavior = scrollBehavior,
                         onBack = onBack,
                         onSettingsClick = onSettingsClick,
@@ -828,6 +832,7 @@ private fun ProfileSpaceContent(
     onInboxClick: () -> Unit,
     onVideoClick: (String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit,
+    onBangumiMoreClick: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     onBack: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -965,6 +970,7 @@ private fun ProfileSpaceContent(
                     onFavoriteClick = onFavoriteClick,
                     onFavoriteFolderClick = onFavoriteFolderClick,
                     onBangumiClick = onBangumiClick,
+                    onBangumiMoreClick = onBangumiMoreClick,
                     onVideoClick = onVideoClick,
                     onHistoryClick = onHistoryClick,
                     showHistoryService = showHistoryService,
@@ -1017,6 +1023,7 @@ private fun ProfileSpaceContent(
                         onFavoriteClick = onFavoriteClick,
                         onFavoriteFolderClick = onFavoriteFolderClick,
                         onBangumiClick = onBangumiClick,
+                        onBangumiMoreClick = onBangumiMoreClick,
                         onVideoClick = onVideoClick,
                         onHistoryClick = onHistoryClick,
                         showHistoryService = showHistoryService,
@@ -1066,6 +1073,7 @@ private fun ProfileSpaceFeedColumn(
     onFavoriteClick: () -> Unit,
     onFavoriteFolderClick: (Long, Long, String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit,
+    onBangumiMoreClick: () -> Unit,
     onVideoClick: (String) -> Unit,
     onHistoryClick: () -> Unit,
     showHistoryService: Boolean,
@@ -1090,6 +1098,7 @@ private fun ProfileSpaceFeedColumn(
                 onFavoriteClick = onFavoriteClick,
                 onFavoriteFolderClick = onFavoriteFolderClick,
                 onBangumiClick = onBangumiClick,
+                onBangumiMoreClick = onBangumiMoreClick,
                 onVideoClick = onVideoClick,
                 onHistoryClick = onHistoryClick,
                 showHistoryService = showHistoryService,
@@ -1252,6 +1261,29 @@ private fun ProfileSpaceStat(label: String, value: Int, color: Color, onClick: (
 
 @Composable
 private fun ProfileSpaceTabs(selectedTab: ProfileSpaceMainTab, onTabSelected: (ProfileSpaceMainTab) -> Unit) {
+    val tabs = remember { defaultProfileSpaceTabs() }
+    val context = LocalContext.current
+    val bottomBarLiquidGlassEnabled by SettingsManager
+        .getBottomBarLiquidGlassEnabled(context)
+        .collectAsState(initial = true, context = EmptyCoroutineContext)
+    val selectedIndex = tabs.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
+    if (bottomBarLiquidGlassEnabled) {
+        BottomBarLiquidSegmentedControl(
+            items = tabs.map { it.title },
+            selectedIndex = selectedIndex,
+            onSelected = { index -> tabs.getOrNull(index)?.let { onTabSelected(it.tab) } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                .padding(horizontal = 18.dp, vertical = 8.dp),
+            height = 46.dp,
+            indicatorHeight = 40.dp,
+            labelFontSize = 16.sp,
+            forceLiquidChrome = true
+        )
+        return
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1260,7 +1292,7 @@ private fun ProfileSpaceTabs(selectedTab: ProfileSpaceMainTab, onTabSelected: (P
             .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(28.dp)
     ) {
-        defaultProfileSpaceTabs().forEach { item ->
+        tabs.forEach { item ->
             val selected = item.tab == selectedTab
             Column(
                 modifier = Modifier
@@ -1297,6 +1329,7 @@ private fun ProfileSpaceTabBody(
     onFavoriteClick: () -> Unit,
     onFavoriteFolderClick: (Long, Long, String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit,
+    onBangumiMoreClick: () -> Unit,
     onVideoClick: (String) -> Unit,
     onHistoryClick: () -> Unit,
     showHistoryService: Boolean,
@@ -1315,6 +1348,7 @@ private fun ProfileSpaceTabBody(
             onFavoriteClick = onFavoriteClick,
             onFavoriteFolderClick = onFavoriteFolderClick,
             onBangumiClick = onBangumiClick,
+            onBangumiMoreClick = onBangumiMoreClick,
             onVideoClick = onVideoClick,
             onHistoryClick = onHistoryClick,
             showHistoryService = showHistoryService,
@@ -1340,6 +1374,7 @@ private fun ProfileSpaceHome(
     onFavoriteClick: () -> Unit,
     onFavoriteFolderClick: (Long, Long, String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit,
+    onBangumiMoreClick: () -> Unit,
     onVideoClick: (String) -> Unit,
     onHistoryClick: () -> Unit,
     showHistoryService: Boolean,
@@ -1368,7 +1403,12 @@ private fun ProfileSpaceHome(
                     onMoreClick = onFavoriteClick,
                     onFolderClick = onFavoriteFolderClick
                 )
-                ProfileSpaceHomeSection.BANGUMI -> ProfileBangumiStrip(space.bangumiItems, space.bangumiCount, onBangumiClick)
+                ProfileSpaceHomeSection.BANGUMI -> ProfileBangumiStrip(
+                    items = space.bangumiItems,
+                    count = space.bangumiCount,
+                    onMoreClick = onBangumiMoreClick,
+                    onBangumiClick = onBangumiClick
+                )
                 ProfileSpaceHomeSection.COIN_VIDEOS -> ProfileAggregateVideoStrip("最近投币的视频", space.coinVideoCount, space.coinVideos, onVideoClick)
                 ProfileSpaceHomeSection.LIKE_VIDEOS -> ProfileAggregateVideoStrip("最近点赞的视频", space.likeVideoCount, space.likeVideos, onVideoClick)
                 ProfileSpaceHomeSection.CONTRIBUTIONS -> ProfileVideoStrip("投稿预览", space.contributionVideoCount, space.contributionVideos, onVideoClick)
@@ -1454,8 +1494,13 @@ private fun ProfileFavoriteFolderStrip(
 }
 
 @Composable
-private fun ProfileBangumiStrip(items: List<FollowBangumiItem>, count: Int, onBangumiClick: (Long, Long) -> Unit) {
-    ProfileSpaceSection(title = "追番", count = count, onMoreClick = {}) {
+private fun ProfileBangumiStrip(
+    items: List<FollowBangumiItem>,
+    count: Int,
+    onMoreClick: () -> Unit,
+    onBangumiClick: (Long, Long) -> Unit
+) {
+    ProfileSpaceSection(title = "追番", count = count, onMoreClick = onMoreClick) {
         items.take(8).forEach { item ->
             ProfileSpacePosterCard(
                 title = item.title,
@@ -1662,17 +1707,91 @@ private fun ProfileDynamicList(items: List<SpaceDynamicItem>, onVideoClick: (Str
     }
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.forEach { item ->
-            val dynamic = item.modules.module_dynamic
-            val archive = dynamic?.major?.archive
-            val title = archive?.title?.ifBlank { dynamic.desc?.text.orEmpty() }
-                ?: dynamic?.desc?.text.orEmpty()
-                .ifBlank { "动态" }
-            ProfileSpaceListRow(
-                title = title,
-                subtitle = item.modules.module_author?.pub_time.orEmpty(),
-                imageUrl = resolveProfileDynamicCover(item),
-                onClick = { archive?.bvid?.takeIf { it.isNotBlank() }?.let(onVideoClick) }
+            ProfileDynamicCard(item = item, onVideoClick = onVideoClick)
+        }
+    }
+}
+
+@Composable
+private fun ProfileDynamicCard(item: SpaceDynamicItem, onVideoClick: (String) -> Unit) {
+    val dynamic = item.modules.module_dynamic
+    val archive = dynamic?.major?.archive
+    val cover = resolveProfileDynamicCover(item)
+    val summary = dynamic?.desc?.text
+        ?.ifBlank { dynamic.major?.opus?.summary?.text.orEmpty() }
+        ?.ifBlank { dynamic.major?.article?.desc.orEmpty() }
+        .orEmpty()
+    val title = archive?.title
+        ?: dynamic?.major?.opus?.title?.takeIf { it.isNotBlank() }
+        ?: dynamic?.major?.article?.title?.takeIf { it.isNotBlank() }
+        ?: summary.takeIf { it.isNotBlank() }
+        ?: if (item.type.contains("FORWARD", ignoreCase = true)) "转发动态" else "动态"
+    val timeText = item.modules.module_author?.pub_time.orEmpty()
+    val clickableBvid = archive?.bvid?.takeIf { it.isNotBlank() }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .then(
+                if (clickableBvid != null) {
+                    Modifier.clickable { onVideoClick(clickableBvid) }
+                } else {
+                    Modifier
+                }
+            ),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+        shadowElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (archive != null) "视频动态" else if (item.type.contains("FORWARD", ignoreCase = true)) "转发动态" else "动态",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
+            if (summary.isNotBlank() && summary != title) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (cover.isNotBlank()) {
+                AsyncImage(
+                    model = cover,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(170.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            }
         }
     }
 }
