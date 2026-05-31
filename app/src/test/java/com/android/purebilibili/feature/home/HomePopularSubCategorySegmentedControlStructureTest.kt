@@ -21,6 +21,26 @@ class HomePopularSubCategorySegmentedControlStructureTest {
         assertFalse(source.contains("PopularSubCategory.entries.forEach { subCategory ->\n                            FilterChip("))
     }
 
+    @Test
+    fun `popular subcategory content switches through pager instead of clearing list`() {
+        val screenSource = loadSource(
+            "app/src/main/java/com/android/purebilibili/feature/home/HomeScreen.kt"
+        )
+        val viewModelSource = loadSource(
+            "app/src/main/java/com/android/purebilibili/feature/home/HomeViewModel.kt"
+        )
+        val switchSource = viewModelSource
+            .substringAfter("fun switchPopularSubCategory")
+            .substringBefore("//  [新增] 添加到稍后再看")
+
+        assertTrue(screenSource.contains("val popularPagerState = rememberPagerState("))
+        assertTrue(screenSource.contains("HorizontalPager(\n                                         state = popularPagerState"))
+        assertTrue(screenSource.contains("state.popularCategoryStates[subCategory] ?: CategoryContent()"))
+        assertTrue(viewModelSource.contains("popularCategoryStates = PopularSubCategory.entries.associateWith"))
+        assertTrue(viewModelSource.contains("private fun updatePopularCategoryState("))
+        assertFalse(switchSource.contains("videos = emptyList()"))
+    }
+
     private fun loadSource(path: String): String {
         val normalizedPath = path.removePrefix("app/")
         val sourceFile = listOf(

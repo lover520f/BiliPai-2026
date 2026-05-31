@@ -214,6 +214,15 @@ fun HomeScreen(
             LazyGridState()
         }
     }
+    val popularGridStates = remember { mutableMapOf<PopularSubCategory, LazyGridState>() }
+    PopularSubCategory.entries.forEach { subCategory ->
+        popularGridStates[subCategory] = rememberSaveable(
+            "popular_${subCategory.name}",
+            saver = LazyGridState.Saver
+        ) {
+            LazyGridState()
+        }
+    }
     val staggeredGridState = rememberLazyStaggeredGridState() // 🌊 瀑布流状态
     val localHazeState = rememberRecoverableHazeState(initialBlurEnabled = true)
     // 首页使用独立 HazeState，避免命中外层全局 source 的祖先过滤规则导致无模糊。
@@ -275,7 +284,11 @@ fun HomeScreen(
             launch {
                 // 双击首页回顶时强制展开顶部，避免收缩头部与回顶状态错位导致空白
                 setHeaderOffsetImmediate(0f)
-                val gridState = gridStates[state.currentCategory]
+                val gridState = if (state.currentCategory == HomeCategory.POPULAR) {
+                    popularGridStates[state.popularSubCategory]
+                } else {
+                    gridStates[state.currentCategory]
+                }
                 val isAtTop = gridState == null || (gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset < 50)
 
                 if (isAtTop) {
@@ -436,9 +449,13 @@ fun HomeScreen(
     }
 
     // [修复] 刷新时仅在列表不在顶部时回顶，避免与下拉手势状态冲突导致“卡一下”
-    LaunchedEffect(isRefreshing, state.currentCategory) {
+    LaunchedEffect(isRefreshing, state.currentCategory, state.popularSubCategory) {
         if (!isRefreshing) return@LaunchedEffect
-        val gridState = gridStates[state.currentCategory] ?: return@LaunchedEffect
+        val gridState = if (state.currentCategory == HomeCategory.POPULAR) {
+            popularGridStates[state.popularSubCategory]
+        } else {
+            gridStates[state.currentCategory]
+        } ?: return@LaunchedEffect
         if (!shouldResetToTopOnRefreshStart(
                 firstVisibleItemIndex = gridState.firstVisibleItemIndex,
                 firstVisibleItemScrollOffset = gridState.firstVisibleItemScrollOffset
@@ -899,7 +916,11 @@ fun HomeScreen(
             BottomNavItem.HOME -> {
                 coroutineScope.launch { 
                     setHeaderOffsetImmediate(0f)
-                    val gridState = gridStates[state.currentCategory]
+                    val gridState = if (state.currentCategory == HomeCategory.POPULAR) {
+                        popularGridStates[state.popularSubCategory]
+                    } else {
+                        gridStates[state.currentCategory]
+                    }
                     val isAtTop = gridState == null || (gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset < 50)
                     
                     if (isAtTop) {
@@ -975,17 +996,25 @@ fun HomeScreen(
     }
     
     //  [新增] 滚动方向检测状态（用于上滑隐藏模式）
-    var bottomBarScrollState by remember(state.currentCategory) {
+    var bottomBarScrollState by remember(state.currentCategory, state.popularSubCategory) {
         mutableStateOf(
             HomeBottomBarScrollState(
-                firstVisibleItem = gridStates[state.currentCategory]?.firstVisibleItemIndex ?: 0,
-                scrollOffset = gridStates[state.currentCategory]?.firstVisibleItemScrollOffset ?: 0
+                firstVisibleItem = if (state.currentCategory == HomeCategory.POPULAR) {
+                    popularGridStates[state.popularSubCategory]?.firstVisibleItemIndex ?: 0
+                } else {
+                    gridStates[state.currentCategory]?.firstVisibleItemIndex ?: 0
+                },
+                scrollOffset = if (state.currentCategory == HomeCategory.POPULAR) {
+                    popularGridStates[state.popularSubCategory]?.firstVisibleItemScrollOffset ?: 0
+                } else {
+                    gridStates[state.currentCategory]?.firstVisibleItemScrollOffset ?: 0
+                }
             )
         )
     }
     
     //  [新增] 滚动方向检测逻辑
-    LaunchedEffect(state.currentCategory, bottomBarVisibilityMode, useSideNavigation) {
+    LaunchedEffect(state.currentCategory, state.popularSubCategory, bottomBarVisibilityMode, useSideNavigation) {
         resolveHomeBottomBarBaseVisibility(
             useSideNavigation = useSideNavigation,
             mode = bottomBarVisibilityMode
@@ -995,7 +1024,11 @@ fun HomeScreen(
         }
         
         // 上滑隐藏模式：监听滚动方向
-        val currentGridState = gridStates[state.currentCategory] ?: return@LaunchedEffect
+        val currentGridState = if (state.currentCategory == HomeCategory.POPULAR) {
+            popularGridStates[state.popularSubCategory]
+        } else {
+            gridStates[state.currentCategory]
+        } ?: return@LaunchedEffect
         snapshotFlow {
             Pair(currentGridState.firstVisibleItemIndex, currentGridState.firstVisibleItemScrollOffset)
         }
@@ -1130,7 +1163,11 @@ fun HomeScreen(
     val bottomBarVisibleState = LocalSetBottomBarVisible.current
     
     // [Feature] Global Scroll Offset for Liquid Glass
-    val activeGridState = gridStates[state.currentCategory]
+    val activeGridState = if (state.currentCategory == HomeCategory.POPULAR) {
+        popularGridStates[state.popularSubCategory]
+    } else {
+        gridStates[state.currentCategory]
+    }
     val canRevealHeader by remember(activeGridState) {
         derivedStateOf {
             activeGridState != null &&
@@ -1296,7 +1333,11 @@ fun HomeScreen(
                             }
                             is HomeTopTabEntry.Category -> {
                         val category = entry.category
-                        val categoryState = state.categoryStates[category] ?: com.android.purebilibili.feature.home.CategoryContent()
+                        val categoryState = if (category == HomeCategory.POPULAR) {
+                            state.popularCategoryStates[state.popularSubCategory] ?: com.android.purebilibili.feature.home.CategoryContent()
+                        } else {
+                            state.categoryStates[category] ?: com.android.purebilibili.feature.home.CategoryContent()
+                        }
                         
                         //  独立的 PullToRefreshState，避免所有页面共享一个状态导致冲突
                         val pullRefreshState = rememberPullToRefreshState()
@@ -1347,7 +1388,11 @@ fun HomeScreen(
                         
                         //  每个页面独立的 GridState
                         //  使用 saveable 记住滚动位置
-                        val pageGridState = gridStates[category] ?: rememberLazyGridState()
+                        val pageGridState = if (category == HomeCategory.POPULAR) {
+                            popularGridStates[state.popularSubCategory] ?: rememberLazyGridState()
+                        } else {
+                            gridStates[category] ?: rememberLazyGridState()
+                        }
                         
                         //  把 GridState 提升给父级用于控制 Header? 
                         
@@ -1430,7 +1475,7 @@ fun HomeScreen(
                                          translationY = calculateDragOffset()
                                      }
                              ) {
-                             if (categoryState.isLoading && categoryState.videos.isEmpty() && categoryState.liveRooms.isEmpty()) {
+                             if (category != HomeCategory.POPULAR && categoryState.isLoading && categoryState.videos.isEmpty() && categoryState.liveRooms.isEmpty()) {
                                  // Loading Skeleton per page
                                  LazyVerticalGrid(
                                      columns = GridCells.Fixed(gridColumns),
@@ -1486,21 +1531,30 @@ fun HomeScreen(
                                      { subCategory: PopularSubCategory -> viewModel.switchPopularSubCategory(subCategory) }
                                  }
 
+                                 val homePageContentPadding = PaddingValues(
+                                     bottom = homeListBottomPadding,
+                                     start = 8.dp,
+                                     end = 8.dp,
+                                     top = listTopPadding
+                                 )
+                                 val renderHomeCategoryPage: @Composable (
+                                     CategoryContent,
+                                     LazyGridState,
+                                     PopularSubCategory,
+                                     () -> Unit
+                                 ) -> Unit = { pageCategoryState, contentGridState, selectedPopularSubCategory, onPageLoadMore ->
                                  HomeCategoryPageContent(
                                      category = category,
-                                     categoryState = categoryState,
-                                     gridState = pageGridState,
+                                     categoryState = pageCategoryState,
+                                     gridState = contentGridState,
                                      gridColumns = gridColumns,
-                                     contentPadding = PaddingValues(
-                                         bottom = homeListBottomPadding,
-                                         start = 8.dp, end = 8.dp, top = listTopPadding 
-                                     ),
+                                     contentPadding = homePageContentPadding,
                                      dissolvingVideos = state.dissolvingVideos,
                                      followingMids = state.followingMids,
                                      onVideoClick = wrappedOnVideoClick,
                                      onUpClick = onHomeFeedUpClick,
                                      onLiveClick = onLiveClickCallback,
-                                     onLoadMore = onLoadMoreCallback,
+                                     onLoadMore = onPageLoadMore,
                                      onDismissVideo = onDismissVideoCallback,
                                      onWatchLater = onWatchLaterCallback,
                                      onDissolveComplete = onDissolveCompleteCallback,
@@ -1556,12 +1610,67 @@ fun HomeScreen(
                                      onTodayWatchCollapsedChange = onTodayWatchCollapsedChange,
                                      onTodayWatchRefresh = onTodayWatchRefresh,
                                      onTodayWatchUpClick = onTodayWatchUpClick,
-                                     popularSubCategory = state.popularSubCategory,
+                                     popularSubCategory = selectedPopularSubCategory,
                                      onPopularSubCategoryChange = onPopularSubCategoryChange,
                                      onTodayWatchVideoClick = onTodayWatchVideoClick,
                                      uiSkinDecoration = homeUiSkinDecoration,
                                      firstGridItemModifier = Modifier
                                  )
+                                 }
+                                 if (category == HomeCategory.POPULAR) {
+                                     val popularSubCategories = PopularSubCategory.entries
+                                     val selectedPopularPage = popularSubCategories
+                                         .indexOf(state.popularSubCategory)
+                                         .coerceAtLeast(0)
+                                     val popularPagerState = rememberPagerState(
+                                         initialPage = selectedPopularPage
+                                     ) { popularSubCategories.size }
+
+                                     LaunchedEffect(popularPagerState, selectedPopularPage) {
+                                         if (popularPagerState.currentPage != selectedPopularPage &&
+                                             popularPagerState.targetPage != selectedPopularPage
+                                         ) {
+                                             popularPagerState.animateScrollToPage(selectedPopularPage)
+                                         }
+                                     }
+                                     LaunchedEffect(popularPagerState) {
+                                         snapshotFlow { popularPagerState.settledPage }
+                                             .distinctUntilChanged()
+                                             .collect { page ->
+                                                 val settledSubCategory = popularSubCategories.getOrNull(page) ?: return@collect
+                                                 viewModel.switchPopularSubCategory(settledSubCategory)
+                                             }
+                                     }
+
+                                     HorizontalPager(
+                                         state = popularPagerState,
+                                         beyondViewportPageCount = 1,
+                                         modifier = Modifier.fillMaxSize(),
+                                         key = { index -> popularSubCategories[index].name }
+                                     ) { subPage ->
+                                         val subCategory = popularSubCategories[subPage]
+                                         val subCategoryState = state.popularCategoryStates[subCategory] ?: CategoryContent()
+                                         val subCategoryGridState = popularGridStates[subCategory] ?: rememberLazyGridState()
+                                         val onSubCategoryLoadMore = if (subCategory == state.popularSubCategory) {
+                                             onLoadMoreCallback
+                                         } else {
+                                             {}
+                                         }
+                                         renderHomeCategoryPage(
+                                             subCategoryState,
+                                             subCategoryGridState,
+                                             subCategory,
+                                             onSubCategoryLoadMore
+                                         )
+                                     }
+                                 } else {
+                                     renderHomeCategoryPage(
+                                         categoryState,
+                                         pageGridState,
+                                         state.popularSubCategory,
+                                         onLoadMoreCallback
+                                     )
+                                 }
                              }
                              } // Close Box wrapper
                         }
@@ -1690,7 +1799,7 @@ fun HomeScreen(
             },
             onStatusBarDoubleTap = {
                 coroutineScope.launch {
-                    gridStates[state.currentCategory]?.animateScrollToItem(0)
+                    activeGridState?.animateScrollToItem(0)
                     setHeaderOffsetImmediate(0f) // [Refinement] Reset header on double tap
                     globalScrollOffset.floatValue = 0f
                 }
@@ -1999,7 +2108,11 @@ fun HomeScreen(
     //  计算滚动偏移量用于头部动画 -  优化：量化减少重组
     val scrollOffset by remember {
         derivedStateOf {
-            val currentGridState = gridStates[state.currentCategory]
+            val currentGridState = if (state.currentCategory == HomeCategory.POPULAR) {
+                popularGridStates[state.popularSubCategory]
+            } else {
+                gridStates[state.currentCategory]
+            }
             if (currentGridState == null) return@derivedStateOf 0f
             
             val firstVisibleItem = currentGridState.firstVisibleItemIndex
@@ -2015,12 +2128,16 @@ fun HomeScreen(
 
     //  [性能优化] 图片预加载 - 提前加载即将显示的视频封面
     // 📉 [省流量] 省流量模式下禁用预加载
-    LaunchedEffect(state.currentCategory, isDataSaverActive, preloadAheadCount) {
+    LaunchedEffect(state.currentCategory, state.popularSubCategory, isDataSaverActive, preloadAheadCount) {
         // 📉 省流量模式下跳过预加载
         if (isDataSaverActive) return@LaunchedEffect
         if (preloadAheadCount <= 0) return@LaunchedEffect
         
-        val currentGridState = gridStates[state.currentCategory] ?: return@LaunchedEffect
+        val currentGridState = if (state.currentCategory == HomeCategory.POPULAR) {
+            popularGridStates[state.popularSubCategory]
+        } else {
+            gridStates[state.currentCategory]
+        } ?: return@LaunchedEffect
         
         snapshotFlow {
             val lastVisibleIndex = currentGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
@@ -2028,7 +2145,11 @@ fun HomeScreen(
         }
             .distinctUntilChanged()
             .collect { (lastVisibleIndex, isScrollInProgress) ->
-                val videos = state.categoryStates[state.currentCategory]?.videos ?: state.videos
+                val videos = if (state.currentCategory == HomeCategory.POPULAR) {
+                    state.popularCategoryStates[state.popularSubCategory]?.videos ?: state.videos
+                } else {
+                    state.categoryStates[state.currentCategory]?.videos ?: state.videos
+                }
                 val preloadRange = resolveHomeCoverPreloadRange(
                     isDataSaverActive = isDataSaverActive,
                     isScrollInProgress = isScrollInProgress,

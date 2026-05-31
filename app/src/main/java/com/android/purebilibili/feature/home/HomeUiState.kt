@@ -149,6 +149,8 @@ data class HomeUiState(
     // 📺 [核心变更] 各分类独立状态缓存
     // 使用 Map 保存每个分类的数据，切换时直接读取
     val categoryStates: Map<HomeCategory, CategoryContent> = emptyMap(),
+    // 热门子页签需要独立缓存，切换时保留旧页内容并让 Pager 负责横向位移。
+    val popularCategoryStates: Map<PopularSubCategory, CategoryContent> = emptyMap(),
     
     val user: UserState = UserState(),
     val currentCategory: HomeCategory = HomeCategory.RECOMMEND,
