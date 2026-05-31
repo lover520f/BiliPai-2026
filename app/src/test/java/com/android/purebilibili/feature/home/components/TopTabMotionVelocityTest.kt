@@ -184,6 +184,42 @@ class TopTabMotionVelocityTest {
     }
 
     @Test
+    fun `top tab long press drag only starts inside visible indicator bounds`() {
+        val inside = shouldStartTopTabIndicatorLongPressDrag(
+            pointerX = 134f,
+            indicatorPosition = 2f,
+            itemWidthPx = 72f,
+            rowScrollOffsetPx = 64f,
+            contentPaddingPx = 2f,
+            indicatorWidthPx = 56f
+        )
+        val outside = shouldStartTopTabIndicatorLongPressDrag(
+            pointerX = 80f,
+            indicatorPosition = 2f,
+            itemWidthPx = 72f,
+            rowScrollOffsetPx = 64f,
+            contentPaddingPx = 2f,
+            indicatorWidthPx = 56f
+        )
+
+        assertEquals(true, inside)
+        assertEquals(false, outside)
+    }
+
+    @Test
+    fun `top tab indicator hit bounds account for row scroll offset`() {
+        val indicatorLeft = resolveTopTabIndicatorHitLeftPx(
+            indicatorPosition = 3f,
+            itemWidthPx = 80f,
+            rowScrollOffsetPx = 120f,
+            contentPaddingPx = 0f,
+            indicatorWidthPx = 32f
+        )
+
+        assertEquals(144f, indicatorLeft, 0.001f)
+    }
+
+    @Test
     fun `ios capsule uses moving shared container instead of per item fill`() {
         assertEquals(
             false,
