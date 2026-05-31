@@ -72,7 +72,11 @@ internal fun BiliPaiNavKey.toLegacyRoute(): String {
             initialVertical = initialVertical
         )
         is BiliPaiNavKey.ArticleDetail -> ScreenRoutes.ArticleDetail.createRoute(articleId, title)
-        is BiliPaiNavKey.DynamicDetail -> ScreenRoutes.DynamicDetail.createRoute(dynamicId)
+        is BiliPaiNavKey.DynamicDetail -> ScreenRoutes.DynamicDetail.createRoute(
+            dynamicId = dynamicId,
+            commentRootRpid = commentRootRpid,
+            commentTargetRpid = commentTargetRpid
+        )
         is BiliPaiNavKey.Space -> ScreenRoutes.Space.createRoute(mid)
         is BiliPaiNavKey.Category -> ScreenRoutes.Category.createRoute(tid, name)
         is BiliPaiNavKey.Live -> ScreenRoutes.Live.createRoute(roomId, title, uname)
@@ -199,7 +203,11 @@ internal fun legacyRouteToBiliPaiNavKey(route: String?): BiliPaiNavKey {
             )
         }
         segments.firstOrNull() == "dynamic_detail" && segments.size >= 2 -> {
-            BiliPaiNavKey.DynamicDetail(dynamicId = decodeRouteValue(segments[1]))
+            BiliPaiNavKey.DynamicDetail(
+                dynamicId = decodeRouteValue(segments[1]),
+                commentRootRpid = query["commentRootRpid"]?.toLongOrNull() ?: 0L,
+                commentTargetRpid = query["commentTargetRpid"]?.toLongOrNull() ?: 0L
+            )
         }
         segments.firstOrNull() == "space" && segments.size >= 2 -> {
             BiliPaiNavKey.Space(mid = segments[1].toLongOrNull() ?: 0L)

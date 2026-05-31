@@ -1,5 +1,8 @@
 package com.android.purebilibili.navigation
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
 sealed class ScreenRoutes(val route: String) {
     object Home : ScreenRoutes("home")
     object Search : ScreenRoutes("search")
@@ -48,9 +51,16 @@ sealed class ScreenRoutes(val route: String) {
     object Dynamic : ScreenRoutes("dynamic")
 
     //  动态详情页面
-    object DynamicDetail : ScreenRoutes("dynamic_detail/{dynamicId}") {
-        fun createRoute(dynamicId: String): String {
-            return "dynamic_detail/${android.net.Uri.encode(dynamicId)}"
+    object DynamicDetail : ScreenRoutes("dynamic_detail/{dynamicId}?commentRootRpid={commentRootRpid}&commentTargetRpid={commentTargetRpid}") {
+        fun createRoute(
+            dynamicId: String,
+            commentRootRpid: Long = 0L,
+            commentTargetRpid: Long = 0L
+        ): String {
+            val encodedDynamicId = URLEncoder.encode(dynamicId, StandardCharsets.UTF_8.name())
+            return "dynamic_detail/$encodedDynamicId" +
+                "?commentRootRpid=${commentRootRpid.coerceAtLeast(0L)}" +
+                "&commentTargetRpid=${commentTargetRpid.coerceAtLeast(0L)}"
         }
     }
 

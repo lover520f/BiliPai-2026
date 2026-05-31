@@ -947,7 +947,13 @@ fun AppNavigation(
                     pushNavigation3Key(BiliPaiNavKey.DynamicDetail(action.dynamicId))
                 }
                 is MessageLinkNavigationAction.DynamicComment -> {
-                    pushNavigation3Key(BiliPaiNavKey.DynamicDetail(action.dynamicId))
+                    pushNavigation3Key(
+                        BiliPaiNavKey.DynamicDetail(
+                            dynamicId = action.dynamicId,
+                            commentRootRpid = action.rootReplyId,
+                            commentTargetRpid = action.targetReplyId
+                        )
+                    )
                 }
                 is MessageLinkNavigationAction.Space -> {
                     pushNavigation3Key(BiliPaiNavKey.Space(action.mid))
@@ -2137,6 +2143,8 @@ fun AppNavigation(
                                 val dynamicKey = key as BiliPaiNavKey.DynamicDetail
                                 com.android.purebilibili.feature.dynamic.DynamicDetailScreen(
                                     dynamicId = dynamicKey.dynamicId,
+                                    openCommentRootRpid = dynamicKey.commentRootRpid,
+                                    openCommentTargetRpid = dynamicKey.commentTargetRpid,
                                     onBack = { performSystemBackAction() },
                                     onVideoClick = { bvid -> navigateToVideoInNavigation3(bvid, 0L, "") },
                                     onBangumiClick = { seasonId, epId ->

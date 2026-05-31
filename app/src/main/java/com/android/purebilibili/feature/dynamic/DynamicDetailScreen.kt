@@ -16,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,6 +53,8 @@ private sealed interface DynamicDetailUiState {
 @Composable
 fun DynamicDetailScreen(
     dynamicId: String,
+    openCommentRootRpid: Long = 0L,
+    openCommentTargetRpid: Long = 0L,
     onBack: () -> Unit,
     onVideoClick: (String) -> Unit,
     onBangumiClick: (Long, Long) -> Unit = { _, _ -> },
@@ -83,6 +86,11 @@ fun DynamicDetailScreen(
     val gifImageLoader = context.imageLoader
     val likedDynamics by interactionViewModel.likedDynamics.collectAsState()
     var showRepostDialog by remember { mutableStateOf<String?>(null) }
+    var hasHandledRoutedComment by rememberSaveable(
+        dynamicId,
+        openCommentRootRpid,
+        openCommentTargetRpid
+    ) { mutableStateOf(false) }
 
     AdaptiveScaffold(
         topBar = {
@@ -131,6 +139,21 @@ fun DynamicDetailScreen(
             }
 
             is DynamicDetailUiState.Success -> {
+                LaunchedEffect(
+                    state.item.id_str,
+                    openCommentRootRpid,
+                    openCommentTargetRpid
+                ) {
+                    if (openCommentRootRpid > 0L && !hasHandledRoutedComment) {
+                        interactionViewModel.openCommentSheet(
+                            item = state.item,
+                            rootReplyId = openCommentRootRpid,
+                            targetReplyId = openCommentTargetRpid
+                        )
+                        hasHandledRoutedComment = true
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()

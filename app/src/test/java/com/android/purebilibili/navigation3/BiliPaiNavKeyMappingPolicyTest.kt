@@ -46,6 +46,22 @@ class BiliPaiNavKeyMappingPolicyTest {
     }
 
     @Test
+    fun dynamicDetailRoute_preservesCommentArguments() {
+        val route = ScreenRoutes.DynamicDetail.createRoute(
+            dynamicId = "1073543151725051921",
+            commentRootRpid = 265141324256L,
+            commentTargetRpid = 265141324257L
+        )
+
+        val key = assertIs<BiliPaiNavKey.DynamicDetail>(legacyRouteToBiliPaiNavKey(route))
+
+        assertEquals("1073543151725051921", key.dynamicId)
+        assertEquals(265141324256L, key.commentRootRpid)
+        assertEquals(265141324257L, key.commentTargetRpid)
+        assertEquals(route, key.toLegacyRoute())
+    }
+
+    @Test
     fun navKey_roundTripsToLegacyRouteForCurrentBridge() {
         val key = BiliPaiNavKey.Space(mid = 42L)
 

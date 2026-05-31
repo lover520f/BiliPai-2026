@@ -14,11 +14,17 @@ import com.android.purebilibili.core.util.prependDistinctByKey
 import com.android.purebilibili.data.model.response.DynamicItem
 import com.android.purebilibili.data.model.response.FollowingUser
 import com.android.purebilibili.data.model.response.LiveRoom
+import com.android.purebilibili.data.model.response.ReplyData
+import com.android.purebilibili.data.model.response.ReplyItem
 import com.android.purebilibili.data.repository.ActionRepository
 import com.android.purebilibili.data.repository.CommentRepository
 import com.android.purebilibili.data.repository.DynamicFeedScope
 import com.android.purebilibili.data.repository.DynamicRepository
 import com.android.purebilibili.data.repository.LiveRepository
+import com.android.purebilibili.feature.video.viewmodel.resolveRoutedCommentRootReply
+import com.android.purebilibili.feature.video.viewmodel.resolveSubReplyLoadedTotalCount
+import com.android.purebilibili.feature.video.viewmodel.resolveSubReplyPageEnd
+import com.android.purebilibili.feature.video.viewmodel.resolveSubReplyRemoteTotalCount
 import com.android.purebilibili.feature.video.viewmodel.SubReplyUiState
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -848,9 +854,17 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun openCommentSheet(item: DynamicItem) {
+    fun openCommentSheet(
+        item: DynamicItem,
+        rootReplyId: Long = 0L,
+        targetReplyId: Long = 0L
+    ) {
         _selectedDynamic.value = item
-        loadCommentsForDynamic(item)
+        loadCommentsForDynamic(
+            item = item,
+            routedRootReplyId = rootReplyId,
+            routedTargetReplyId = targetReplyId
+        )
     }
     
     /**
@@ -868,7 +882,11 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
     /**
      *  加载动态评论 (使用正确的 oid 和 type)
      */
-    private fun loadCommentsForDynamic(item: DynamicItem) {
+    private fun loadCommentsForDynamic(
+        item: DynamicItem,
+        routedRootReplyId: Long = 0L,
+        routedTargetReplyId: Long = 0L
+    ) {
         viewModelScope.launch {
             _commentsLoading.value = true
             _selectedCommentTarget.value = null
@@ -934,6 +952,12 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
                     _selectedCommentTarget.value = selected.target
                     _comments.value = selected.replies
                     _commentTotalCount.value = selected.totalCount
+                    if (routedRootReplyId > 0L) {
+                        openSubReplyFromRoute(
+                            rootReplyId = routedRootReplyId,
+                            targetReplyId = routedTargetReplyId
+                        )
+                    }
                 } else {
                     _comments.value = emptyList()
                     _commentTotalCount.value = fallbackCount
@@ -957,11 +981,17 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun openSubReply(rootReply: com.android.purebilibili.data.model.response.ReplyItem) {
+    fun openSubReply(rootReply: ReplyItem, targetReplyId: Long = 0L) {
         val target = _selectedCommentTarget.value ?: return
         _subReplyState.value = SubReplyUiState(
             visible = true,
             rootReply = rootReply,
+            targetReplyId = targetReplyId.takeIf { it != rootReply.rpid } ?: 0L,
+            totalCount = resolveSubReplyLoadedTotalCount(
+                rootReply = rootReply,
+                loadedReplyCount = rootReply.replies.orEmpty().size,
+                remoteReplyCount = 0
+            ),
             isLoading = true,
             page = 1
         )
@@ -970,6 +1000,99 @@ class DynamicViewModel(application: Application) : AndroidViewModel(application)
             type = target.type,
             rootId = rootReply.rpid,
             page = 1
+        )
+    }
+
+    fun openSubReplyFromRoute(rootReplyId: Long, targetReplyId: Long = 0L): Boolean {
+        val target = _selectedCommentTarget.value ?: return false
+        if (rootReplyId <= 0L) return false
+
+        if (openLoadedRoutedSubReply(rootReplyId, targetReplyId)) return true
+
+        markRoutedSubReplyLoading(rootReplyId, targetReplyId)
+        loadRoutedSubReplyFromRemote(target, rootReplyId, targetReplyId)
+        return true
+    }
+
+    private fun openLoadedRoutedSubReply(rootReplyId: Long, targetReplyId: Long): Boolean {
+        resolveRoutedCommentRootReply(
+            loadedReplies = _comments.value,
+            remoteData = null,
+            rootReplyId = rootReplyId
+        )?.let { rootReply ->
+            openSubReply(rootReply, targetReplyId)
+            return true
+        }
+        return false
+    }
+
+    private fun markRoutedSubReplyLoading(rootReplyId: Long, targetReplyId: Long) {
+        _subReplyState.value = _subReplyState.value.copy(
+            visible = false,
+            isLoading = true,
+            error = null,
+            targetReplyId = targetReplyId.takeIf { it != rootReplyId } ?: 0L
+        )
+    }
+
+    private fun loadRoutedSubReplyFromRemote(
+        target: DynamicCommentTarget,
+        rootReplyId: Long,
+        targetReplyId: Long
+    ) {
+        viewModelScope.launch {
+            CommentRepository.getSubCommentsForSubject(
+                oid = target.oid,
+                type = target.type,
+                rootId = rootReplyId,
+                page = 1,
+                ps = 20,
+                preferRestPaging = true
+            ).onSuccess { data ->
+                showRoutedSubReply(data, rootReplyId, targetReplyId)
+            }.onFailure { error ->
+                _subReplyState.value = _subReplyState.value.copy(
+                    isLoading = false,
+                    error = error.message ?: "回复加载失败"
+                )
+            }
+        }
+    }
+
+    private fun showRoutedSubReply(data: ReplyData, rootReplyId: Long, targetReplyId: Long) {
+        val rootReply = resolveRoutedCommentRootReply(
+            loadedReplies = emptyList(),
+            remoteData = data,
+            rootReplyId = rootReplyId
+        )
+        if (rootReply == null) {
+            _subReplyState.value = _subReplyState.value.copy(
+                isLoading = false,
+                error = "回复可能已被删除或不可见"
+            )
+            return
+        }
+
+        val items = data.replies.orEmpty()
+        val remoteTotalCount = resolveSubReplyRemoteTotalCount(data)
+        val isEnd = resolveSubReplyPageEnd(
+            cursorIsEnd = data.cursor.isEnd,
+            fetchedReplyCount = items.size,
+            loadedReplyCount = items.size,
+            remoteReplyCount = remoteTotalCount
+        )
+        _subReplyState.value = SubReplyUiState(
+            visible = true,
+            rootReply = rootReply,
+            items = items,
+            baseItems = items,
+            totalCount = resolveSubReplyLoadedTotalCount(rootReply, items.size, remoteTotalCount),
+            isLoading = false,
+            page = 1,
+            basePage = 1,
+            isEnd = isEnd,
+            baseIsEnd = isEnd,
+            targetReplyId = targetReplyId.takeIf { it != rootReplyId } ?: 0L
         )
     }
 

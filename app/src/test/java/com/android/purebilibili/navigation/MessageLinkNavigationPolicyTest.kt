@@ -48,6 +48,8 @@ class MessageLinkNavigationPolicyTest {
 
         val dynamicAction = assertIs<MessageLinkNavigationAction.DynamicComment>(action)
         assertEquals("1199344045210468386", dynamicAction.dynamicId)
+        assertEquals(265141324256L, dynamicAction.rootReplyId)
+        assertEquals(0L, dynamicAction.targetReplyId)
     }
 
     @Test
@@ -58,6 +60,8 @@ class MessageLinkNavigationPolicyTest {
 
         val dynamicAction = assertIs<MessageLinkNavigationAction.DynamicComment>(action)
         assertEquals("1073543151725051921", dynamicAction.dynamicId)
+        assertEquals(265141324256L, dynamicAction.rootReplyId)
+        assertEquals(0L, dynamicAction.targetReplyId)
     }
 
     @Test

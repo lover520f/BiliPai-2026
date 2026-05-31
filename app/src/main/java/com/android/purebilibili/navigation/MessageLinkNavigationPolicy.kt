@@ -11,7 +11,11 @@ internal sealed interface MessageLinkNavigationAction {
         val targetReplyId: Long = 0L
     ) : MessageLinkNavigationAction
     data class Dynamic(val dynamicId: String) : MessageLinkNavigationAction
-    data class DynamicComment(val dynamicId: String) : MessageLinkNavigationAction
+    data class DynamicComment(
+        val dynamicId: String,
+        val rootReplyId: Long,
+        val targetReplyId: Long = 0L
+    ) : MessageLinkNavigationAction
     data class Space(val mid: Long) : MessageLinkNavigationAction
     data class Live(val roomId: Long) : MessageLinkNavigationAction
     data class BangumiSeason(val seasonId: Long) : MessageLinkNavigationAction
@@ -39,7 +43,11 @@ internal fun resolveMessageLinkNavigationAction(rawLink: String): MessageLinkNav
         }
         is BilibiliNavigationTarget.Dynamic -> {
             if (commentLocation != null) {
-                MessageLinkNavigationAction.DynamicComment(target.dynamicId)
+                MessageLinkNavigationAction.DynamicComment(
+                    dynamicId = target.dynamicId,
+                    rootReplyId = commentLocation.rootReplyId,
+                    targetReplyId = commentLocation.targetReplyId
+                )
             } else {
                 MessageLinkNavigationAction.Dynamic(target.dynamicId)
             }
@@ -102,7 +110,9 @@ private fun resolveMessageCommentNavigationAction(rawLink: String): MessageLinkN
             targetReplyId = queryMap.firstPositiveLong("comment_id", "reply_id", "rpid", "target_id")
         )
         is BilibiliNavigationTarget.Dynamic -> MessageLinkNavigationAction.DynamicComment(
-            dynamicId = target.dynamicId
+            dynamicId = target.dynamicId,
+            rootReplyId = rootReplyId,
+            targetReplyId = queryMap.firstPositiveLong("comment_id", "reply_id", "rpid", "target_id")
         )
         is BilibiliNavigationTarget.Space -> MessageLinkNavigationAction.Space(target.mid)
         is BilibiliNavigationTarget.Live -> MessageLinkNavigationAction.Live(target.roomId)

@@ -302,7 +302,9 @@ internal sealed interface BiliPaiNavKey : NavKey {
 
     @Serializable
     data class DynamicDetail(
-        val dynamicId: String
+        val dynamicId: String,
+        val commentRootRpid: Long = 0L,
+        val commentTargetRpid: Long = 0L
     ) : BiliPaiNavKey {
         override val routeBase: String = "dynamic_detail"
     }
