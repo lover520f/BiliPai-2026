@@ -66,6 +66,13 @@ class CdnRegionPolicyTest {
             ).region
         )
         assertEquals(
+            "成都",
+            selectCdnRegionForLocation(
+                location = IpLocationSnapshot(country = "中国", province = "重庆市", city = "重庆"),
+                catalog = catalog
+            ).region
+        )
+        assertEquals(
             "南京",
             selectCdnRegionForLocation(
                 location = IpLocationSnapshot(country = "中国", province = "江苏", city = "苏州"),
@@ -298,5 +305,24 @@ class CdnRegionPolicyTest {
         assertFalse(candidates.first().allowed)
         assertEquals(500L, candidates.first().cooldownRemainingMs)
         assertTrue(candidates.drop(1).all { it.allowed })
+    }
+
+    @Test
+    fun `host diagnostics expose concrete manual probe latency`() {
+        val diagnostics = buildCdnHostDiagnostics(
+            hosts = listOf("cn-sccd-cm-03-02.bilivideo.com"),
+            healthByHost = mapOf(
+                "cn-sccd-cm-03-02.bilivideo.com" to CdnCandidateHealth(
+                    host = "cn-sccd-cm-03-02.bilivideo.com",
+                    manualProbeLatencyMs = 42L,
+                    readyCount = 1,
+                    lastProbeAtMs = 10_000L,
+                    lastUpdatedAtMs = 10_000L
+                )
+            )
+        )
+
+        assertEquals(42L, diagnostics.single().latencyMs)
+        assertEquals("延迟较低", diagnostics.single().statusLabel)
     }
 }

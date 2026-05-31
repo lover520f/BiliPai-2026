@@ -70,6 +70,7 @@ import java.io.FileOutputStream
 
 private const val TAG = "SponsorBlockPlugin"
 const val SPONSOR_BLOCK_PLUGIN_ID = "sponsor_block"
+private const val SPONSOR_BLOCK_RECENT_COVER_ASPECT_RATIO = 16f / 10f
 private val PLUGIN_EVENT_TIME_FORMATTER: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
@@ -811,7 +812,7 @@ private fun SponsorBlockRecentSection(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (summary.recentRecords.isEmpty()) {
             SponsorBlockEmptyInsight()
@@ -884,7 +885,7 @@ private fun SponsorBlockRecordRow(record: SponsorBlockSkipRecord) {
             onDismiss = { showDetailDialog = false }
         )
     }
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
@@ -894,7 +895,7 @@ private fun SponsorBlockRecordRow(record: SponsorBlockSkipRecord) {
                 onLongClick = { showDetailDialog = true }
             )
             .padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
@@ -904,19 +905,19 @@ private fun SponsorBlockRecordRow(record: SponsorBlockSkipRecord) {
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .width(92.dp)
-                .aspectRatio(16f / 9f)
+                .fillMaxWidth()
+                .aspectRatio(SPONSOR_BLOCK_RECENT_COVER_ASPECT_RATIO)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Text(
                 text = record.videoTitle.ifBlank { "未知视频" },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

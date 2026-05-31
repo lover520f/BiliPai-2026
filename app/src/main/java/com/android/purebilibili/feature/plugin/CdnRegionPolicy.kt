@@ -68,6 +68,15 @@ data class CdnLineDiagnostic(
     val score: Int
 )
 
+data class CdnHostDiagnostic(
+    val host: String,
+    val statusLabel: String,
+    val latencyMs: Long?,
+    val speedKbps: Long?,
+    val errorCount: Int,
+    val lastProbeAtMs: Long
+)
+
 internal fun selectCdnRegionForLocation(
     location: IpLocationSnapshot,
     catalog: Map<String, List<String>>,
@@ -257,6 +266,23 @@ internal fun buildCdnLineDiagnostics(
     }
 }
 
+internal fun buildCdnHostDiagnostics(
+    hosts: List<String>,
+    healthByHost: Map<String, CdnCandidateHealth>
+): List<CdnHostDiagnostic> {
+    return hosts.distinct().map { host ->
+        val health = healthByHost[host]
+        CdnHostDiagnostic(
+            host = host,
+            statusLabel = resolveCdnHealthStatusLabel(health),
+            latencyMs = health?.manualProbeLatencyMs,
+            speedKbps = health?.manualProbeSpeedKbps,
+            errorCount = (health?.playbackErrorCount ?: 0) + (health?.firstFrameTimeoutCount ?: 0),
+            lastProbeAtMs = health?.lastProbeAtMs ?: 0L
+        )
+    }
+}
+
 internal fun resolveCdnHealthStatusLabel(health: CdnCandidateHealth?): String {
     if (health == null || health.lastUpdatedAtMs <= 0L) return "未检测"
     val errors = health.playbackErrorCount + health.firstFrameTimeoutCount
@@ -348,7 +374,7 @@ private val provinceRegionAliases = mapOf(
     "上海" to "上海",
     "北京" to "北京",
     "天津" to "天津",
-    "重庆" to "重庆",
+    "重庆" to "成都",
     "广东" to "广州",
     "四川" to "成都",
     "陕西" to "西安",
@@ -361,6 +387,7 @@ private val provinceRegionAliases = mapOf(
 )
 
 private val cityRegionAliases = mapOf(
+    "重庆" to "成都",
     "广州" to "广州",
     "深圳" to "深圳",
     "成都" to "成都",

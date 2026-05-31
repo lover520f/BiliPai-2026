@@ -58,6 +58,11 @@ private data class CdnProbeMeasure(
     val speedKbps: Long?
 )
 
+private data class CdnSettingsProbeTarget(
+    val region: String,
+    val hosts: List<String>
+)
+
 interface PlaybackCdnPlugin : Plugin {
     fun rewritePlaybackCandidates(
         videoUrls: List<String>,
@@ -208,10 +213,22 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         var snapshot by remember { mutableStateOf(cache) }
+        var catalogSnapshot by remember { mutableStateOf(catalog) }
         var probing by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
+            catalogSnapshot = catalog.ifEmpty {
+                loadCdnRegionCatalog(context).also { catalog = it }
+            }
             snapshot = CdnRegionPluginStore.read(context).also { cache = it }
+        }
+        val probeTarget = resolveSettingsProbeTarget(snapshot, catalogSnapshot)
+        val hostDiagnostics = buildCdnHostDiagnostics(
+            hosts = probeTarget.hosts.take(5),
+            healthByHost = snapshot.healthByHost
+        )
+        val regionText = snapshot.selectedRegion.ifBlank {
+            probeTarget.region.ifBlank { "未命中" }
         }
 
         Column(
@@ -225,26 +242,32 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "运营商：${snapshot.location.isp.ifBlank { "未知" }}，命中区域：${snapshot.selectedRegion.ifBlank { "未命中" }}",
+                text = "运营商：${snapshot.location.isp.ifBlank { "未知" }}，命中区域：$regionText",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
-            snapshot.selectedHosts.take(5).forEachIndexed { index, host ->
-                val health = snapshot.healthByHost[host]
+            hostDiagnostics.forEachIndexed { index, diagnostic ->
                 Text(
-                    text = "${index + 1}. $host · ${resolveCdnHealthStatusLabel(health)}",
+                    text = "${index + 1}. ${diagnostic.host} · ${formatCdnHostDiagnostic(diagnostic)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
+            if (hostDiagnostics.isEmpty()) {
+                Text(
+                    text = "暂无可检测候选 host，请稍后刷新属地或进入播放页检测当前线路。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.height(10.dp))
             Button(
-                enabled = !probing && snapshot.selectedHosts.isNotEmpty(),
+                enabled = !probing && probeTarget.hosts.isNotEmpty(),
                 onClick = {
                     probing = true
                     scope.launch {
-                        snapshot = probeSelectedHosts(context, snapshot)
+                        snapshot = probeSelectedHosts(context, snapshot, probeTarget)
                         probing = false
                     }
                 }
@@ -262,11 +285,12 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
 
     private suspend fun probeSelectedHosts(
         context: Context,
-        current: CdnRegionPluginCache
+        current: CdnRegionPluginCache,
+        target: CdnSettingsProbeTarget
     ): CdnRegionPluginCache {
         var nextHealth = current.healthByHost
         val now = System.currentTimeMillis()
-        current.selectedHosts.take(5).forEach { host ->
+        target.hosts.take(5).forEach { host ->
             val previous = nextHealth[host] ?: CdnCandidateHealth(host = host)
             val elapsed = now - previous.lastProbeAtMs
             if (previous.lastProbeAtMs > 0L && elapsed < CDN_MANUAL_PROBE_COOLDOWN_MS) {
@@ -283,10 +307,64 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
                 )
             )
         }
-        return current.copy(healthByHost = nextHealth).also {
+        val nextRegion = current.selectedRegion.ifBlank { target.region }
+        val nextHosts = current.selectedHosts.ifEmpty { target.hosts }
+        return current.copy(
+            selectedRegion = nextRegion,
+            selectedHosts = nextHosts,
+            fallbackUsed = current.fallbackUsed && nextRegion.isBlank(),
+            healthByHost = nextHealth
+        ).also {
             cache = it
             CdnRegionPluginStore.write(context, it)
         }
+    }
+
+    private fun resolveSettingsProbeTarget(
+        snapshot: CdnRegionPluginCache,
+        catalogSnapshot: Map<String, List<String>>
+    ): CdnSettingsProbeTarget {
+        val selectedHosts = resolveCdnRegionHosts(
+            region = snapshot.selectedRegion,
+            cachedHosts = snapshot.selectedHosts,
+            catalog = catalogSnapshot,
+            isp = snapshot.location.isp
+        )
+        if (selectedHosts.isNotEmpty()) {
+            return CdnSettingsProbeTarget(
+                region = snapshot.selectedRegion,
+                hosts = selectedHosts
+            )
+        }
+
+        val selection = selectCdnRegionForLocation(
+            location = snapshot.location,
+            catalog = catalogSnapshot
+        )
+        return CdnSettingsProbeTarget(
+            region = selection.region,
+            hosts = selection.hosts
+        )
+    }
+
+    private fun formatCdnHostDiagnostic(diagnostic: CdnHostDiagnostic): String {
+        val parts = buildList {
+            if (diagnostic.latencyMs != null) {
+                add("延迟 ${diagnostic.latencyMs}ms")
+            }
+            if (diagnostic.speedKbps != null) {
+                add("速度 ${diagnostic.speedKbps}Kbps")
+            }
+            when {
+                diagnostic.lastProbeAtMs > 0L && diagnostic.latencyMs == null -> add("检测失败")
+                diagnostic.lastProbeAtMs <= 0L -> add("未检测")
+            }
+            add(diagnostic.statusLabel)
+            if (diagnostic.errorCount > 0) {
+                add("失败 ${diagnostic.errorCount} 次")
+            }
+        }
+        return parts.distinct().joinToString(" · ")
     }
 
     private suspend fun probePlaybackUrl(url: String): CdnProbeMeasure {
@@ -299,7 +377,7 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
                     .header("Referer", "https://www.bilibili.com")
                     .build()
                 NetworkModule.playbackOkHttpClient.newCall(request).execute().use { response ->
-                    val bytesRead = response.body?.byteStream()?.use { input ->
+                    val bytesRead = response.body.byteStream().use { input ->
                         val buffer = ByteArray(8 * 1024)
                         var total = 0
                         while (total < CDN_PROBE_SAMPLE_BYTES) {
@@ -308,7 +386,7 @@ class CdnRegionPlugin : PlaybackCdnPlugin {
                             total += read
                         }
                         total
-                    } ?: 0
+                    }
                     val elapsedMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(1L)
                     CdnProbeMeasure(
                         success = response.isSuccessful || response.code == 206,
