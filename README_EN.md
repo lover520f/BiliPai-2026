@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <sub>Last updated: 2026-05-31 · Synced to v8.8.0 (source of truth: <a href="CHANGELOG.md">CHANGELOG</a> + code)</sub>
+  <sub>Last updated: 2026-06-01 · Synced to v9.0.0 (source of truth: <a href="CHANGELOG.md">CHANGELOG</a> + code)</sub>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-8.8.0-fb7299?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Version-9.0.0-fb7299?style=flat-square" alt="Version">
   <img src="https://img.shields.io/github/stars/jay3-yy/BiliPai?style=flat-square&color=yellow" alt="Stars">
   <img src="https://img.shields.io/github/forks/jay3-yy/BiliPai?style=flat-square&color=green" alt="Forks">
   <img src="https://img.shields.io/github/last-commit/jay3-yy/BiliPai?style=flat-square&color=purple" alt="Last Commit">
@@ -436,18 +436,19 @@ A lightweight plugin format requiring **no coding**, just a simple JSON file to 
 
 See full changelog: [CHANGELOG.md](CHANGELOG.md)
 
-### Latest (v8.8.0 · 2026-05-31)
+### Latest (v9.0.0 · 2026-06-01)
 
-- Bumped the app to `8.8.0` with `versionCode` `212`.
-- Polished the iOS26 bottom-bar liquid-glass scroll tint and glow, pinned the settled brightness, fixed leftover tint, and dropped the artificial color coating.
-- Fixed liquid-glass indicator scroll clipping, refraction out-of-bounds, deformation sampling, and capture-layer width issues.
-- Reworked the video-cover shared transition, unifying the home/space/related shared-element key for a stable cover mapping.
-- Cover shadow now tweens in with the shared transition, removing the lagging shadow and the abrupt hard shadow that appeared before the cover settled.
-- Unified the video-return bottom-bar restore and fixed the home bottom-bar "show → hide → show" flicker plus invisible top tabs on return.
-- Replaced the entrance animation with AppEntrance, unifying and reducing motion gating.
-- Fixed the home top chrome Haze render mode not checking runtime shader capability.
-- Fixed the dynamic sidebar avatar layout and LIVE badge size, and the broken release-build bottom-bar search entry.
-- Added haptics on sidebar taps, cached media-decoder probing, and disabled diagnostic logs by default in debug builds.
+- Bumped the app to `9.0.0` with `versionCode` `213`.
+- Completed live interaction and landscape send support.
+- Added comment `@` friend input, automatic dynamic-comment floor expansion, and fixed mini-site comment navigation.
+- Expanded home top layout, collapse, six-tab paging, and top-tab style settings.
+- Polished the top-tab, partition-rail, and bottom-bar indicator reuse path, including liquid-glass refraction, drag, alignment, and return-state fixes.
+- Fixed home video-return top chrome reset, repeated bottom-bar hiding, bottom-bar finishing, and delayed restore issues.
+- Improved offline download and resume stability, and fixed offline player danmaku/progress-bar behavior.
+- Expanded bangumi/movie API coverage and fixed collection entry/detail navigation.
+- Fixed MD3 pull-to-refresh being covered by video cards and made pull-back motion follow the finger.
+- Fixed rectangular click feedback around capsule-shaped top tabs.
+- Happy Children's Day, and early best wishes to students taking the gaokao.
 
 ---
 

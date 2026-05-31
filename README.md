@@ -15,7 +15,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Version-8.8.0-007AFF?style=flat-square&labelColor=ffffff" alt="Version 8.8.0" />
+  <img src="https://img.shields.io/badge/Version-9.0.0-007AFF?style=flat-square&labelColor=ffffff" alt="Version 9.0.0" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-34C759?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
   <img src="https://img.shields.io/badge/Kotlin-100%25-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/License-GPL--3.0-FF3B30?style=flat-square" alt="GPL-3.0" />
@@ -37,7 +37,7 @@
   </a>
 </p>
 
-<sub>README 更新：2026-05-28 · 当前构建版本以 app/build.gradle.kts 为准 · 发布记录以 <a href="CHANGELOG.md">CHANGELOG.md</a> 为准</sub>
+<sub>README 更新：2026-06-01 · 当前构建版本以 app/build.gradle.kts 为准 · 发布记录以 <a href="CHANGELOG.md">CHANGELOG.md</a> 为准</sub>
 
 </div>
 
@@ -182,17 +182,18 @@ cd BiliPai
 
 ## 最近更新
 
-当前仓库版本号已更新到 `8.8.0 / versionCode 212`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v8.8.0`：
+当前仓库版本号已更新到 `9.0.0 / versionCode 213`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v9.0.0`：
 
-- 打磨 iOS26 底栏液态玻璃滚动上色与辉光，固定停稳亮度、修正残留色并移除人工镀膜。
-- 修复液态玻璃指示器滑动裁剪、折射区域越界、形变采样和捕获层宽度问题。
-- 重做视频封面共享转场，统一首页/空间/相关视频的 sharedElement key，封面映射更稳定。
-- 封面阴影随共享转场补间淡入，消除返回时阴影滞后与封面未落位就突兀出现的硬阴影。
-- 统一视频返回底栏跟手恢复，并修复首页底栏返回时“出现→隐藏→出现”抖动与顶部标签页不可见。
-- 将入场动画替换为 AppEntrance，统一并减少动效门控。
-- 修复首页顶部镀铬 Haze 渲染模式未检查运行时着色器能力的问题。
-- 修复动态侧边栏头像布局与 LIVE 徽章字号，并修复正式版底栏搜索入口失效。
-- 为侧边栏点击增加触觉反馈，缓存媒体解码器探测结果，debug 构建默认关闭诊断日志。
+- 补齐直播互动与横屏发送能力，直播观看中的输入、发送和横屏操作更完整。
+- 评论输入支持 `@` 好友，动态评论楼层可自动展开，并修复小站评论跳转。
+- 新增和扩展首页顶部布局、折叠与六标签分页策略，顶部显示更可调。
+- 打磨顶部标签、分区侧栏和底栏指示器复用，修复液态玻璃折射、指示器漂移、拖动和返回状态问题。
+- 修复首页视频返回时顶栏复位、底栏重复隐藏、底栏收尾和延迟恢复问题。
+- 增强离线下载与断点续传稳定性，修复离线播放器弹幕与进度条体验。
+- 完善番剧影视 API 功能，并修复追更合集入口与详情链路。
+- 修复 MD3 下拉刷新被视频卡片遮挡和上提不跟手的问题。
+- 修复顶部胶囊标签点按切换时出现矩形点击态的问题。
+- 六一儿童节快乐，也提前祝高考学子高考顺利。
 
 ## 路线图
 
