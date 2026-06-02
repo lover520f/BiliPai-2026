@@ -621,7 +621,7 @@ internal fun resolveIosTopTabCapsuleContainerColor(
 ): Color {
     val selectedAlpha = selectionFraction.coerceIn(0f, 1f)
     val baseColor = if (isDarkTheme) {
-        Color(0xFFE5E5EA).copy(alpha = 0.20f)
+        Color(0xFFF2F2F7).copy(alpha = 0.92f)
     } else {
         Color(0xFFF2F2F7)
     }

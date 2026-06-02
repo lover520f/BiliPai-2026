@@ -874,6 +874,23 @@ internal fun resolveHomeTopUnifiedTabSurfaceColor(
     }
 }
 
+internal fun resolveHomeTopDetachedTabDockSurfaceColor(
+    isLightMode: Boolean,
+    renderMode: HomeTopChromeRenderMode
+): Color {
+    val alpha = when (renderMode) {
+        HomeTopChromeRenderMode.PLAIN -> if (isLightMode) 0.58f else 0.64f
+        HomeTopChromeRenderMode.BLUR -> if (isLightMode) 0.46f else 0.58f
+        HomeTopChromeRenderMode.LIQUID_GLASS_BACKDROP,
+        HomeTopChromeRenderMode.LIQUID_GLASS_HAZE -> if (isLightMode) 0.34f else 0.42f
+    }
+    return if (isLightMode) {
+        Color.White.copy(alpha = alpha)
+    } else {
+        Color.Black.copy(alpha = alpha)
+    }
+}
+
 internal fun resolveHomeTopUnifiedSearchContainerColor(
     isLightMode: Boolean,
     renderMode: HomeTopChromeRenderMode = HomeTopChromeRenderMode.BLUR
@@ -1998,8 +2015,20 @@ fun iOSHomeHeader(
     } else {
         localTabChromeRenderMode
     }
+    val topTabDockChromeRenderMode = if (
+        useDetachedTopTabDock &&
+        unifiedLocalTabChromeRenderMode == HomeTopChromeRenderMode.PLAIN &&
+        hazeState != null
+    ) {
+        HomeTopChromeRenderMode.BLUR
+    } else {
+        unifiedLocalTabChromeRenderMode
+    }
     val effectiveTabSurfaceColor = if (useDetachedTopTabDock) {
-        tabChromeColors.containerColor.copy(alpha = tabOverlayAlpha)
+        resolveHomeTopDetachedTabDockSurfaceColor(
+            isLightMode = isLightMode,
+            renderMode = topTabDockChromeRenderMode
+        )
     } else if (useUnifiedTopPanel) {
         resolveHomeTopUnifiedTabSurfaceColor(
             tabContainerColor = tabChromeColors.containerColor,
@@ -2028,7 +2057,6 @@ fun iOSHomeHeader(
             drawUnifiedTopPanelChrome &&
             currentSearchHeight > 0.dp &&
             searchRevealFraction > 0f
-    val topTabDockChromeRenderMode = unifiedLocalTabChromeRenderMode
     val useTopTabBottomBarMatchedDock =
         useUnifiedTopPanel &&
             effectiveTabMaterialMode == TopTabMaterialMode.LIQUID_GLASS &&

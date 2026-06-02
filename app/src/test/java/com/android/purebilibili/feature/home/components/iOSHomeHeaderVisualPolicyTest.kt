@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.RectangleShape
 import com.android.purebilibili.core.store.HomeSettings
 import com.android.purebilibili.core.store.HomeTopRightAction
@@ -1581,6 +1582,27 @@ class iOSHomeHeaderVisualPolicyTest {
             ),
             0.0001f
         )
+    }
+
+    @Test
+    fun `detached top tab dock uses inverted surfaces in light and dark mode`() {
+        val lightDock = resolveHomeTopDetachedTabDockSurfaceColor(
+            isLightMode = true,
+            renderMode = HomeTopChromeRenderMode.BLUR
+        )
+        val darkDock = resolveHomeTopDetachedTabDockSurfaceColor(
+            isLightMode = false,
+            renderMode = HomeTopChromeRenderMode.BLUR
+        )
+        val darkSelectedCapsule = resolveIosTopTabCapsuleContainerColor(
+            isDarkTheme = true,
+            selectionFraction = 1f
+        )
+
+        assertTrue(lightDock.luminance() > 0.8f)
+        assertTrue(darkDock.luminance() < 0.1f)
+        assertTrue(darkSelectedCapsule.luminance() > 0.8f)
+        assertTrue(darkSelectedCapsule.alpha > 0.85f)
     }
 
     @Test

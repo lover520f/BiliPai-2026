@@ -32,6 +32,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
 import androidx.compose.material3.DrawerValue
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.luminance  //  状态栏亮度计算
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.android.purebilibili.core.ui.ComfortablePullToRefreshBox
@@ -1324,7 +1329,9 @@ fun HomeScreen(
                         HorizontalPager(
                             state = pagerState,
                             beyondViewportPageCount = 0,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .homeFeedTopVideoFadeMask(listTopPadding + 36.dp),
                             key = { index -> resolveHomeTopTabEntryKey(topTabEntries, index) }
                         ) { page ->
                         when (val entry = resolveHomeTopTabEntryOrNull(topTabEntries, page)) {
@@ -2292,4 +2299,25 @@ internal fun resolveHomeContentInteractionRestoreDelayMs(
     // 视觉返场保护仍由 suppression / 底栏恢复窗口负责；
     // 首页列表手势应在页面重新可见时立即恢复，避免第一下滑动被导航态吞掉。
     return 0L
+}
+
+private fun Modifier.homeFeedTopVideoFadeMask(fadeHeight: Dp): Modifier {
+    return graphicsLayer {
+        compositingStrategy = CompositingStrategy.Offscreen
+    }.drawWithContent {
+        drawContent()
+        val fadeHeightPx = fadeHeight.toPx().coerceAtLeast(1f)
+        drawRect(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Transparent,
+                    0.42f to Color.Black,
+                    1f to Color.Black
+                ),
+                startY = 0f,
+                endY = fadeHeightPx
+            ),
+            blendMode = BlendMode.DstIn
+        )
+    }
 }
