@@ -1,11 +1,8 @@
 package com.android.purebilibili.feature.video.ui.components
 
-import android.os.Build
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,16 +13,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.android.purebilibili.core.ui.adaptive.MotionTier
-import com.android.purebilibili.core.ui.blur.BlurSurfaceType
-import com.android.purebilibili.core.ui.blur.unifiedBlur
-import com.android.purebilibili.core.ui.effect.liquidGlassBackground
 import com.android.purebilibili.core.ui.rememberAppBookmarkIcon
 import com.android.purebilibili.core.ui.rememberAppCoinIcon
 import com.android.purebilibili.core.ui.rememberAppLikeFilledIcon
 import com.android.purebilibili.core.ui.rememberAppLikeIcon
 import com.android.purebilibili.core.ui.rememberAppShareIcon
-import dev.chrisbanes.haze.HazeState
 
 @Composable
 fun BottomInputBar(
@@ -38,50 +30,19 @@ fun BottomInputBar(
     onCoinClick: () -> Unit,
     onShareClick: () -> Unit,
     onCommentClick: () -> Unit,
-    hazeState: HazeState? = null,
-    glassScrollOffsetProvider: () -> Float = { 0f },
 ) {
     val favoriteIcon = rememberAppBookmarkIcon()
     val coinIcon = rememberAppCoinIcon()
     val likeIcon = rememberAppLikeIcon()
     val likeFilledIcon = rememberAppLikeFilledIcon()
     val shareIcon = rememberAppShareIcon()
-    val glassShape: CornerBasedShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    val glassSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
-    val fallbackGlassSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-    val surfaceModifier = if (hazeState != null) {
-        val blurModifier = Modifier.unifiedBlur(
-            hazeState = hazeState,
-            shape = glassShape,
-            surfaceType = BlurSurfaceType.BOTTOM_BAR,
-            motionTier = MotionTier.Normal
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            blurModifier.liquidGlassBackground(
-                refractIntensity = 0.08f,
-                scrollOffsetProvider = glassScrollOffsetProvider,
-                backgroundColor = glassSurfaceColor
-            )
-        } else {
-            blurModifier.background(fallbackGlassSurfaceColor, glassShape)
-        }
-    } else {
-        Modifier
-    }
 
     Surface(
-        color = if (hazeState != null) Color.Transparent else MaterialTheme.colorScheme.surface,
-        shape = if (hazeState != null) glassShape else RoundedCornerShape(0.dp),
-        border = if (hazeState != null) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f))
-        } else {
-            null
-        },
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp,
         shadowElevation = 8.dp,
         modifier = modifier
             .fillMaxWidth()
-            .then(surfaceModifier)
     ) {
         Row(
             modifier = Modifier
@@ -95,7 +56,7 @@ fun BottomInputBar(
                     .weight(1f)
                     .height(36.dp)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
                     .clickable { onCommentClick() }
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.CenterStart

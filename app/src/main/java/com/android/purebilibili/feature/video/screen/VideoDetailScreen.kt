@@ -3726,11 +3726,6 @@ fun VideoDetailScreen(
                                                             onCommentClick = {
                                                                 android.util.Log.d("VideoDetailScreen", "📝 Comment input clicked!")
                                                                 viewModel.openRootCommentComposer()
-                                                            },
-                                                            hazeState = hazeState,
-                                                            glassScrollOffsetProvider = {
-                                                                commentFirstVisibleItemIndex * 1000f +
-                                                                    commentFirstVisibleItemScrollOffset.toFloat()
                                                             }
                                                         )
                                                     }

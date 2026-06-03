@@ -83,7 +83,7 @@ class VideoDetailScreenPolicyTest {
         assertTrue(source.contains("SettingsManager.getHomeSettings(context)"))
         assertTrue(source.contains("val videoDetailLiquidGlassEnabled = homeSettings.isLiquidGlassEnabled"))
         assertTrue(source.contains("isLiquidGlassEnabled = videoDetailLiquidGlassEnabled"))
-        assertTrue(source.contains("hazeState = hazeState"))
+        assertTrue(source.contains("val showFrozenCommentBar = shouldShowVideoDetailBottomInteractionBar("))
     }
 
     @Test
