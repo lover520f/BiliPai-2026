@@ -1325,9 +1325,9 @@ internal fun resolveAndroidNativeIdleIndicatorSurfaceColor(
     darkTheme: Boolean
 ): Color {
     return if (darkTheme) {
-        Color.White.copy(alpha = 0.28f)
+        Color.White.copy(alpha = 0.1f)
     } else {
-        Color.Black.copy(alpha = 0.18f)
+        Color.Black.copy(alpha = 0.1f)
     }
 }
 
@@ -1335,7 +1335,6 @@ internal fun resolveBottomBarIdleIndicatorSurfaceColor(
     preset: BottomBarLiquidGlassPreset,
     darkTheme: Boolean
 ): Color {
-    // 两预设统一对齐 KSU：深色淡白 0.1 / 浅色淡黑 0.1
     return resolveAndroidNativeIdleIndicatorSurfaceColor(darkTheme)
 }
 
