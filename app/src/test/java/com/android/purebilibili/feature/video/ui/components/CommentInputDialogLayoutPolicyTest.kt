@@ -46,6 +46,30 @@ class CommentInputDialogLayoutPolicyTest {
     }
 
     @Test
+    fun restoredDraft_placesCursorAtTextEnd() {
+        val value = commentDraftTextFieldValue("未发送草稿")
+
+        assertEquals("未发送草稿", value.text)
+        assertEquals(value.text.length, value.selection.start)
+        assertEquals(value.text.length, value.selection.end)
+    }
+
+    @Test
+    fun draftUpdates_doNotRestartDialogInitializationEffect() {
+        val source = listOf(
+            java.io.File("app/src/main/java/com/android/purebilibili/feature/video/ui/components/CommentInputDialog.kt"),
+            java.io.File("src/main/java/com/android/purebilibili/feature/video/ui/components/CommentInputDialog.kt")
+        ).first { it.exists() }.readText()
+        val resetSection = source.substring(
+            source.indexOf("// 重置状态"),
+            source.indexOf("// 监听 emoji 面板开关")
+        )
+
+        assertTrue(resetSection.contains("LaunchedEffect(visible)"))
+        assertTrue(resetSection.contains("LaunchedEffect(\n").not())
+    }
+
+    @Test
     fun activeMentionQuery_readsTextAfterLastAtBeforeCursor() {
         val query = resolveActiveCommentMentionQuery("一起 @社会", cursor = 6)
 

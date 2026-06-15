@@ -29,20 +29,31 @@ class BiliPaiNavContentTransformPolicyStructureTest {
     }
 
     @Test
-    fun disabledVideoDirectionalReturnUsesStrongExitTravel() {
+    fun disabledVideoDirectionalReturnSlidesFullyOffscreen() {
         val source = contentTransformPolicySource()
         val returnFunctionStart = source.indexOf("private fun disabledVideoDirectionReturnTransform")
         val returnFunctionEnd = source.length
         val returnFunction = source.substring(returnFunctionStart, returnFunctionEnd)
 
-        assertTrue(returnFunction.contains("targetOffsetX = { width -> directionSign * width / 2 }"))
+        assertTrue(returnFunction.contains("targetOffsetX = { width -> directionSign * width }"))
     }
 
     @Test
-    fun disabledVideoDirectionalReturnUsesLongerMotionWindowForVisibleScreenshots() {
+    fun disabledVideoDirectionalReturnUsesResponsiveMotionWindow() {
         val source = contentTransformPolicySource()
 
-        assertTrue(source.contains("NAV3_DISABLED_VIDEO_RETURN_MILLIS = 320"))
+        assertTrue(source.contains("NAV3_DISABLED_VIDEO_RETURN_MILLIS = 220"))
+    }
+
+    @Test
+    fun disabledVideoDirectionalReturnAvoidsExtraFadeWork() {
+        val source = contentTransformPolicySource()
+        val returnFunctionStart = source.indexOf("private fun disabledVideoDirectionReturnTransform")
+        val returnFunctionEnd = source.length
+        val returnFunction = source.substring(returnFunctionStart, returnFunctionEnd)
+
+        assertTrue(returnFunction.contains("AppMotionEasing.EmphasizedExit"))
+        assertTrue(returnFunction.contains("fadeOut(").not())
     }
 
     @Test

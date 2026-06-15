@@ -114,6 +114,13 @@ internal fun resolveCommentProgressInsertText(positionMs: Long): String {
     return " ${FormatUtils.formatDuration(positionMs.coerceAtLeast(0L))} "
 }
 
+internal fun commentDraftTextFieldValue(text: String): TextFieldValue {
+    return TextFieldValue(
+        text = text,
+        selection = TextRange(text.length)
+    )
+}
+
 /**
  * 评论输入对话框
  * 
@@ -149,7 +156,7 @@ fun CommentInputDialog(
     }
 
     // 状态
-    var textFieldValue by remember { mutableStateOf(TextFieldValue(initialText)) }
+    var textFieldValue by remember { mutableStateOf(commentDraftTextFieldValue(initialText)) }
     var isForwardToDynamic by remember { mutableStateOf(initialSyncToDynamic) } // 转发到动态
     var showEmojiPanel by remember { mutableStateOf(false) }    // 表情面板
     var showMentionPanel by remember { mutableStateOf(false) }
@@ -213,15 +220,10 @@ fun CommentInputDialog(
     }
     
     // 重置状态
-    LaunchedEffect(
-        visible,
-        canInputComment,
-        initialText,
-        initialImageUris,
-        initialSyncToDynamic
-    ) {
+    LaunchedEffect(visible) {
         if (visible) {
-            textFieldValue = TextFieldValue(initialText)
+            // 草稿更新会随每次输入回流，不能作为 effect key，否则会持续覆盖 IME 选区。
+            textFieldValue = commentDraftTextFieldValue(initialText)
             isForwardToDynamic = initialSyncToDynamic
             showEmojiPanel = false
             showMentionPanel = false
