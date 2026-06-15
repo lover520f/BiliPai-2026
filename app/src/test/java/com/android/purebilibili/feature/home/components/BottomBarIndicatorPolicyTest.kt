@@ -658,6 +658,7 @@ class BottomBarIndicatorPolicyTest {
         assertTrue(rendererSource.contains("glassEnabled = indicatorEffectsEnabled"))
         assertTrue(rendererSource.contains("val glassLayersAlwaysOn = indicatorEffectsEnabled"))
         assertTrue(rendererSource.contains("indicatorEffectsEnabled = indicatorEffectsEnabled"))
+        assertTrue(rendererSource.contains("blurEnabled = shellBlurEnabled"))
     }
 
     @Test

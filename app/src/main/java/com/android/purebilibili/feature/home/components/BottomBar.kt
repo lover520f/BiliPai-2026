@@ -922,6 +922,23 @@ internal fun shouldUseBottomBarCaptureLens(
     liquidGlassEnabled: Boolean
 ): Boolean = liquidGlassEnabled
 
+internal fun resolveKernelSuBottomBarShellColor(
+    containerColor: Color,
+    liquidGlassEnabled: Boolean,
+    blurEnabled: Boolean,
+    darkTheme: Boolean
+): Color {
+    return when {
+        liquidGlassEnabled -> resolveKernelSuBottomBarContainerColor(darkTheme = darkTheme)
+        blurEnabled -> containerColor.copy(alpha = 1f)
+        else -> containerColor
+    }
+}
+
+internal fun shouldBlurKernelSuBottomBarShell(
+    liquidGlassEnabled: Boolean
+): Boolean = liquidGlassEnabled
+
 internal fun shouldUseAndroidNativeFloatingHazeBlur(
     blurEnabled: Boolean,
     glassEnabled: Boolean,
@@ -2921,11 +2938,15 @@ private fun KernelSuAlignedBottomBar(
     val shellShape = resolveSharedBottomBarCapsuleShape()
     val tabsBackdrop = rememberMiuixLayerBackdrop()
     val isDarkTheme = resolveBottomBarDarkTheme(MiuixTheme.colorScheme.background)
-    val ksuContainerColor = if (glassEnabled) {
-        resolveKernelSuBottomBarContainerColor(darkTheme = isDarkTheme)
-    } else {
-        containerColor
-    }
+    val ksuContainerColor = resolveKernelSuBottomBarShellColor(
+        containerColor = containerColor,
+        liquidGlassEnabled = glassEnabled,
+        blurEnabled = blurEnabled,
+        darkTheme = isDarkTheme
+    )
+    val shellBlurEnabled = shouldBlurKernelSuBottomBarShell(
+        liquidGlassEnabled = glassEnabled
+    )
     val indicatorEffectsEnabled = resolveBottomBarIndicatorEffectsEnabled(
         liquidGlassEnabled = glassEnabled,
         blurEnabled = blurEnabled
@@ -3383,7 +3404,7 @@ private fun KernelSuAlignedBottomBar(
                     shellShape = shellShape,
                     miuixBackdrop = miuixBackdrop,
                     containerColor = ksuContainerColor,
-                    blurEnabled = blurEnabled,
+                    blurEnabled = shellBlurEnabled,
                     glassEnabled = glassEnabled,
                     blurRadius = tuning.shellBlurRadiusDp.dp,
                     hazeState = hazeState,
