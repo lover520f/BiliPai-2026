@@ -655,14 +655,14 @@ class BottomBarIndicatorPolicyTest {
             .substringAfter("private fun KernelSuAlignedBottomBar(")
             .substringBefore("@Composable\nprivate fun KernelSuBottomBarShell(")
 
-        assertTrue(rendererSource.contains("glassEnabled = indicatorEffectsEnabled"))
-        assertTrue(rendererSource.contains("val glassLayersAlwaysOn = indicatorEffectsEnabled"))
+        assertTrue(rendererSource.contains("glassEnabled = glassEnabled"))
+        assertTrue(rendererSource.contains("val glassLayersAlwaysOn = glassEnabled"))
         assertTrue(rendererSource.contains("indicatorEffectsEnabled = indicatorEffectsEnabled"))
         assertTrue(rendererSource.contains("blurEnabled = shellBlurEnabled"))
     }
 
     @Test
-    fun `blur only keeps capture surface neutral while indicator retains effects`() {
+    fun `blur only keeps indicator surface neutral while retaining motion effects`() {
         assertFalse(shouldUseBottomBarCaptureLens(liquidGlassEnabled = false))
         assertTrue(shouldUseBottomBarCaptureLens(liquidGlassEnabled = true))
         assertTrue(

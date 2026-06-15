@@ -189,7 +189,7 @@ class BottomBarMiuixStructureTest {
         assertTrue(kernelSuRendererSource.contains("if (shouldRenderIndicatorContentCapture && miuixBackdrop != null)"))
         assertTrue(kernelSuRendererSource.contains(".miuixLayerBackdrop(tabsBackdrop)"))
         assertTrue(kernelSuRendererSource.contains("val shouldRenderIndicatorBackdropRaw = shouldRenderBottomBarIndicatorBackdrop("))
-        assertTrue(kernelSuRendererSource.contains("val glassLayersAlwaysOn = indicatorEffectsEnabled && miuixBackdrop != null"))
+        assertTrue(kernelSuRendererSource.contains("val glassLayersAlwaysOn = glassEnabled && miuixBackdrop != null"))
         assertTrue(kernelSuRendererSource.contains("glassLayersAlwaysOn || shouldRenderRefractionCaptureRaw"))
         assertTrue(kernelSuRendererSource.contains("glassLayersAlwaysOn || shouldRenderIndicatorBackdropRaw"))
         assertTrue(kernelSuRendererSource.contains("isBottomBarInteractionActive = isBottomBarInteractionActive"))

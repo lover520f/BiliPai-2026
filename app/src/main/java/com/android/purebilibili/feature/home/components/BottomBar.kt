@@ -3262,7 +3262,7 @@ private fun KernelSuAlignedBottomBar(
                 dampedDragState.isRunning ||
                 dampedDragState.pressProgress > BottomBarTransientAlphaThreshold
             val shouldRenderRefractionCaptureRaw = shouldRenderBottomBarRefractionCapture(
-                glassEnabled = indicatorEffectsEnabled,
+                glassEnabled = glassEnabled,
                 hasBackdrop = miuixBackdrop != null,
                 captureProgress = effectiveCaptureProgress,
                 isTransitionRunning = isTransitionRunning,
@@ -3270,7 +3270,7 @@ private fun KernelSuAlignedBottomBar(
                 isBottomBarInteractionActive = isBottomBarInteractionActive
             )
             val shouldRenderIndicatorBackdropRaw = shouldRenderBottomBarIndicatorBackdrop(
-                glassEnabled = indicatorEffectsEnabled,
+                glassEnabled = glassEnabled,
                 hasContentBackdrop = miuixBackdrop != null,
                 indicatorProgress = effectiveIndicatorEffectProgress,
                 isTransitionRunning = isTransitionRunning,
@@ -3284,7 +3284,7 @@ private fun KernelSuAlignedBottomBar(
             // 交互状态增删这些层,切换瞬间 tabsBackdrop 为空,指示器会直接采样到
             // 原始内容(首页视频画面)。常驻后 tabsBackdrop 始终有录制内容,
             // 由 progress 连续驱动 effects/surface,彻底消除该瞬态。
-            val glassLayersAlwaysOn = indicatorEffectsEnabled && miuixBackdrop != null
+            val glassLayersAlwaysOn = glassEnabled && miuixBackdrop != null
             val shouldRenderRefractionCapture =
                 glassLayersAlwaysOn || shouldRenderRefractionCaptureRaw
             val shouldRenderIndicatorBackdrop =
@@ -3891,23 +3891,27 @@ private fun BoxScope.KernelSuMiuixBottomBarIndicatorLayer(
         rawIndicatorLayerTransform
     }
     val pillHighlight = rememberGravityRotatedHighlight(iosIndicatorSpecular, extraDegrees = 90f)
+    val indicatorBackdrop = if (shouldUseBottomBarCombinedIndicatorBackdrop(liquidGlassPreset)) {
+        contentBackdrop
+    } else {
+        backdrop
+    }
     Box(
         modifier = Modifier
             .alpha(dockContentAlpha)
             .graphicsLayer {
                 translationX = indicatorTranslationXPx + indicatorPanelOffsetPx
                 translationY = indicatorTranslationYPx + indicatorPanelOffsetYPx
+                if (indicatorBackdrop == null && indicatorEffectsEnabled) {
+                    scaleX = indicatorLayerTransform.scaleX
+                    scaleY = indicatorLayerTransform.scaleY
+                }
             }
             .width(indicatorWidth)
             .height(indicatorHeight)
             .align(indicatorAlignment)
             .zIndex(2f)
             .run {
-                val indicatorBackdrop = if (shouldUseBottomBarCombinedIndicatorBackdrop(liquidGlassPreset)) {
-                    contentBackdrop
-                } else {
-                    backdrop
-                }
                 if (indicatorBackdrop != null) {
                     miuixDrawBackdrop(
                         backdrop = indicatorBackdrop,
@@ -4015,6 +4019,11 @@ internal fun BoxScope.KernelSuBottomBarIndicatorLayer(
     } else {
         rawIndicatorLayerTransform
     }
+    val indicatorBackdrop = if (shouldUseBottomBarCombinedIndicatorBackdrop(liquidGlassPreset)) {
+        contentBackdrop
+    } else {
+        backdrop
+    }
     Box(
         modifier = Modifier
             .alpha(dockContentAlpha)
@@ -4023,16 +4032,15 @@ internal fun BoxScope.KernelSuBottomBarIndicatorLayer(
                 translationY = indicatorTranslationYPx + indicatorPanelOffsetYPx
                 scaleX = indicatorSettleReboundTransform.scaleX
                 scaleY = indicatorSettleReboundTransform.scaleY
+                if (indicatorBackdrop == null && indicatorEffectsEnabled) {
+                    scaleX *= indicatorLayerTransform.scaleX
+                    scaleY *= indicatorLayerTransform.scaleY
+                }
             }
             .width(indicatorWidth)
             .height(indicatorHeight)
             .align(indicatorAlignment)
             .run {
-                val indicatorBackdrop = if (shouldUseBottomBarCombinedIndicatorBackdrop(liquidGlassPreset)) {
-                    contentBackdrop
-                } else {
-                    backdrop
-                }
                 if (indicatorBackdrop != null) {
                     drawBackdrop(
                         backdrop = indicatorBackdrop,
