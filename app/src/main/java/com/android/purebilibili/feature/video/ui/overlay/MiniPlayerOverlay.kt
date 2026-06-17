@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -200,6 +201,12 @@ fun MiniPlayerOverlay(
     var contentDragIntent by remember { mutableStateOf(MiniPlayerContentDragIntent.UNDECIDED) }
     var contentDragTotalX by remember { mutableFloatStateOf(0f) }
     var contentDragTotalY by remember { mutableFloatStateOf(0f) }
+    val chrome = resolveMiniPlayerOverlayChrome(
+        showControls = showControls,
+        isDraggingProgress = isDraggingProgress,
+        isDraggingPosition = isDraggingPosition,
+        isResizing = isResizing
+    )
     
     // 播放器状态
     //  [修复] 在退出动画期间保持旧 Player 引用，防止画面跳变
@@ -518,14 +525,6 @@ fun MiniPlayerOverlay(
                         .fillMaxWidth()
                         .height(headerHeight)
                         .align(Alignment.TopCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.6f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = {
@@ -547,67 +546,116 @@ fun MiniPlayerOverlay(
                             )
                         }
                 ) {
-                    // 标题
-                    Text(
-                        text = miniPlayerManager.currentTitle,
-                        color = Color.White,
-                        fontSize = layoutPolicy.titleFontSp.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(
-                                start = layoutPolicy.titleStartPaddingDp.dp,
-                                end = layoutPolicy.titleEndPaddingDp.dp
-                            )
-                    )
-                    
-                    //  右上角按钮组
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = layoutPolicy.headerButtonRowEndPaddingDp.dp),
-                        horizontalArrangement = Arrangement.spacedBy(layoutPolicy.headerButtonSpacingDp.dp)
-                    ) {
-                        // [新增] 贴边隐藏按钮
-                        Surface(
-                            onClick = {
-                                // 计算最近的边
-                                val centerX = offsetX + miniPlayerWidthPx / 2
-                                stashSide = if (centerX < screenWidthPx / 2) {
-                                    com.android.purebilibili.core.util.CardPositionManager.CardHorizontalPosition.LEFT
-                                } else {
-                                    com.android.purebilibili.core.util.CardPositionManager.CardHorizontalPosition.RIGHT
-                                }
-                                stashedOffsetY = offsetY
-                                isStashed = true
-                            },
-                            modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.5f)
-                        ) {
-                            Icon(
-                                imageVector = CupertinoIcons.Default.Minus, // 使用 Minus 图标作为隐藏/最小化
-                                contentDescription = "隐藏",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
-                                    .size(layoutPolicy.headerButtonIconSizeDp.dp)
-                            )
-                        }
+                    if (chrome.showHeaderChrome) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.6f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
 
-                        // 展开按钮
-                        if (onPictureInPictureClick != null) {
+                        // 标题
+                        Text(
+                            text = miniPlayerManager.currentTitle,
+                            color = Color.White,
+                            fontSize = layoutPolicy.titleFontSp.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(
+                                    start = layoutPolicy.titleStartPaddingDp.dp,
+                                    end = layoutPolicy.titleEndPaddingDp.dp
+                                )
+                        )
+
+                        //  右上角按钮组
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = layoutPolicy.headerButtonRowEndPaddingDp.dp),
+                            horizontalArrangement = Arrangement.spacedBy(layoutPolicy.headerButtonSpacingDp.dp)
+                        ) {
+                            // [新增] 贴边隐藏按钮
                             Surface(
-                                onClick = onPictureInPictureClick,
+                                onClick = {
+                                    // 计算最近的边
+                                    val centerX = offsetX + miniPlayerWidthPx / 2
+                                    stashSide = if (centerX < screenWidthPx / 2) {
+                                        com.android.purebilibili.core.util.CardPositionManager.CardHorizontalPosition.LEFT
+                                    } else {
+                                        com.android.purebilibili.core.util.CardPositionManager.CardHorizontalPosition.RIGHT
+                                    }
+                                    stashedOffsetY = offsetY
+                                    isStashed = true
+                                },
                                 modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
                                 shape = CircleShape,
                                 color = Color.Black.copy(alpha = 0.5f)
                             ) {
                                 Icon(
-                                    imageVector = CupertinoIcons.Outlined.PipEnter,
-                                    contentDescription = "切换到画中画",
+                                    imageVector = CupertinoIcons.Default.Minus, // 使用 Minus 图标作为隐藏/最小化
+                                    contentDescription = "隐藏",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
+                                        .size(layoutPolicy.headerButtonIconSizeDp.dp)
+                                )
+                            }
+
+                            // 展开按钮
+                            if (onPictureInPictureClick != null) {
+                                Surface(
+                                    onClick = onPictureInPictureClick,
+                                    modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
+                                    shape = CircleShape,
+                                    color = Color.Black.copy(alpha = 0.5f)
+                                ) {
+                                    Icon(
+                                        imageVector = CupertinoIcons.Outlined.PipEnter,
+                                        contentDescription = "切换到画中画",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
+                                            .size(layoutPolicy.headerButtonIconSizeDp.dp)
+                                    )
+                                }
+                            }
+
+                            // 展开按钮
+                            Surface(
+                                onClick = { onExpandClick() },
+                                modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.5f)
+                            ) {
+                                Icon(
+                                    imageVector = CupertinoIcons.Default.ArrowUpLeftAndArrowDownRight,
+                                    contentDescription = "展开",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
+                                        .size(layoutPolicy.headerButtonIconSizeDp.dp)
+                                )
+                            }
+
+                            // 关闭按钮
+                            Surface(
+                                onClick = { miniPlayerManager.dismiss() },
+                                modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
+                                shape = CircleShape,
+                                color = com.android.purebilibili.core.theme.iOSRed.copy(alpha = 0.7f)
+                            ) {
+                                Icon(
+                                    imageVector = clearIcon,
+                                    contentDescription = "关闭",
                                     tint = Color.White,
                                     modifier = Modifier
                                         .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
@@ -615,45 +663,11 @@ fun MiniPlayerOverlay(
                                 )
                             }
                         }
-
-                        // 展开按钮
-                        Surface(
-                            onClick = { onExpandClick() },
-                            modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.5f)
-                        ) {
-                            Icon(
-                                imageVector = CupertinoIcons.Default.ArrowUpLeftAndArrowDownRight,
-                                contentDescription = "展开",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
-                                    .size(layoutPolicy.headerButtonIconSizeDp.dp)
-                            )
-                        }
-                        
-                        // 关闭按钮
-                        Surface(
-                            onClick = { miniPlayerManager.dismiss() },
-                            modifier = Modifier.size(layoutPolicy.headerButtonSizeDp.dp),
-                            shape = CircleShape,
-                            color = com.android.purebilibili.core.theme.iOSRed.copy(alpha = 0.7f)
-                        ) {
-                            Icon(
-                                imageVector = clearIcon,
-                                contentDescription = "关闭",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(layoutPolicy.headerButtonIconPaddingDp.dp)
-                                    .size(layoutPolicy.headerButtonIconSizeDp.dp)
-                            )
-                        }
                     }
                 }
 
                 // 控制层 - 播放按钮等（位于中间和底部）
-                if (showControls || isDraggingProgress) {
+                if (chrome.showCenterControls) {
                     // 底部渐变
                     Box(
                         modifier = Modifier
@@ -688,7 +702,7 @@ fun MiniPlayerOverlay(
                     }
                     
                     // 底部提示
-                    if (isDraggingProgress) {
+                    if (chrome.showSeekHint) {
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -708,7 +722,7 @@ fun MiniPlayerOverlay(
                                 )
                             )
                         }
-                    } else if (!isDraggingPosition) {
+                    } else if (chrome.showDragHint) {
                         Text(
                             text = if (miniPlayerManager.isLiveMode) "拖动小窗移动 | 双击展开" else "拖动小窗移动 | 左右滑动调进度",
                             color = Color.White.copy(alpha = 0.7f),
@@ -749,13 +763,14 @@ fun MiniPlayerOverlay(
                 }
 
                 // 进度条 - 仅视频模式显示（直播没有进度）
-                if (!miniPlayerManager.isLiveMode) {
+                if (!miniPlayerManager.isLiveMode && chrome.showProgressBar) {
                 LinearProgressIndicator(
                     progress = { currentProgress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(layoutPolicy.progressBarHeightDp.dp)
                         .align(Alignment.BottomCenter)
+                        .alpha(chrome.progressBarAlpha)
                         .clip(
                             RoundedCornerShape(
                                 bottomStart = layoutPolicy.cardCornerRadiusDp.dp,
@@ -767,52 +782,54 @@ fun MiniPlayerOverlay(
                 )
                 }
 
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(48.dp)
-                        .pointerInput(resizeBounds, miniPlayerAspectRatio) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    isResizing = true
-                                    showControls = true
-                                    lastInteractionTime = System.currentTimeMillis()
-                                },
-                                onDragEnd = {
-                                    isResizing = false
-                                    clampCurrentOffset()
-                                },
-                                onDragCancel = {
-                                    isResizing = false
-                                    clampCurrentOffset()
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    val currentWidthPx = with(density) { miniPlayerWidthDp.dp.toPx() }
-                                    val resizedWidthPx = resolveResizedMiniPlayerWidth(
-                                        currentWidthPx = currentWidthPx,
-                                        dragDeltaX = dragAmount.x,
-                                        dragDeltaY = dragAmount.y,
-                                        aspectRatio = miniPlayerAspectRatio,
-                                        minWidthPx = with(density) { resizeBounds.minWidthDp.dp.toPx() },
-                                        maxWidthPx = with(density) { resizeBounds.maxWidthDp.dp.toPx() }
-                                    )
-                                    miniPlayerWidthDp = with(density) { resizedWidthPx.toDp().value }
-                                }
-                            )
-                        },
-                    shape = RoundedCornerShape(
-                        topStart = 16.dp,
-                        bottomEnd = layoutPolicy.cardCornerRadiusDp.dp
-                    ),
-                    color = Color.Black.copy(alpha = 0.35f)
-                ) {
-                    Icon(
-                        imageVector = CupertinoIcons.Default.ArrowUpLeftAndArrowDownRight,
-                        contentDescription = "拖动调整小窗大小",
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.padding(15.dp)
-                    )
+                if (chrome.showResizeHandle) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(48.dp)
+                            .pointerInput(resizeBounds, miniPlayerAspectRatio) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        isResizing = true
+                                        showControls = true
+                                        lastInteractionTime = System.currentTimeMillis()
+                                    },
+                                    onDragEnd = {
+                                        isResizing = false
+                                        clampCurrentOffset()
+                                    },
+                                    onDragCancel = {
+                                        isResizing = false
+                                        clampCurrentOffset()
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val currentWidthPx = with(density) { miniPlayerWidthDp.dp.toPx() }
+                                        val resizedWidthPx = resolveResizedMiniPlayerWidth(
+                                            currentWidthPx = currentWidthPx,
+                                            dragDeltaX = dragAmount.x,
+                                            dragDeltaY = dragAmount.y,
+                                            aspectRatio = miniPlayerAspectRatio,
+                                            minWidthPx = with(density) { resizeBounds.minWidthDp.dp.toPx() },
+                                            maxWidthPx = with(density) { resizeBounds.maxWidthDp.dp.toPx() }
+                                        )
+                                        miniPlayerWidthDp = with(density) { resizedWidthPx.toDp().value }
+                                    }
+                                )
+                            },
+                        shape = RoundedCornerShape(
+                            topStart = 16.dp,
+                            bottomEnd = layoutPolicy.cardCornerRadiusDp.dp
+                        ),
+                        color = Color.Black.copy(alpha = 0.35f)
+                    ) {
+                        Icon(
+                            imageVector = CupertinoIcons.Default.ArrowUpLeftAndArrowDownRight,
+                            contentDescription = "拖动调整小窗大小",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.padding(15.dp)
+                        )
+                    }
                 }
             }
         }
