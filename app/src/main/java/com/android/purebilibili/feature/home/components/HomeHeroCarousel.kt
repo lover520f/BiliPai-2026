@@ -61,6 +61,8 @@ import com.android.purebilibili.feature.home.HomeHeroCarouselCardTransform
 import com.android.purebilibili.feature.home.HOME_HERO_CAROUSEL_SIDE_PEEK_DP
 import com.android.purebilibili.feature.home.resolveHomeHeroCarouselAspectRatio
 import com.android.purebilibili.feature.home.resolveHomeHeroCarouselCardTransform
+import com.android.purebilibili.feature.home.resolveHomeHeroCarouselItemKey
+import com.android.purebilibili.feature.home.resolveHomeHeroCarouselItemOrNull
 import com.android.purebilibili.feature.home.resolveHomeHeroCarouselPreviewAlpha
 import com.android.purebilibili.feature.home.resolveHomeHeroCarouselWidthDp
 import kotlin.math.absoluteValue
@@ -88,7 +90,9 @@ internal fun HomeHeroCarousel(
         val aspectRatio = resolveHomeHeroCarouselAspectRatio(carouselWidth.value)
         HorizontalPager(
             state = pagerState,
-            key = { page -> videos[page].bvid.ifBlank { "hero_$page" } },
+            key = { page ->
+                resolveHomeHeroCarouselItemKey(videos, page, VideoItem::bvid)
+            },
             pageSize = PageSize.Fixed(pageWidth),
             pageSpacing = 0.dp,
             contentPadding = PaddingValues(horizontal = sidePeek),
@@ -96,6 +100,8 @@ internal fun HomeHeroCarousel(
                 .width(carouselWidth)
                 .align(Alignment.Center)
         ) { page ->
+            val video = resolveHomeHeroCarouselItemOrNull(videos, page)
+                ?: return@HorizontalPager
             val pageOffset = (
                 (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                 ).coerceIn(-1f, 1f)
@@ -104,11 +110,11 @@ internal fun HomeHeroCarousel(
                 pagerState.currentPage == page &&
                 pageOffset.absoluteValue < 0.12f
             HomeHeroCarouselCard(
-                video = videos[page],
+                video = video,
                 transform = transform,
                 activeForPlayback = activeForPlayback,
                 aspectRatio = aspectRatio,
-                onVideoClick = { onVideoClick(videos[page]) },
+                onVideoClick = { onVideoClick(video) },
                 onGetPreviewUrl = onGetPreviewUrl
             )
         }

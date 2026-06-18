@@ -34,6 +34,20 @@ internal fun resolveHomeFeedTopPaddingDp(
     return (reservedTopPaddingDp - reductionDp).coerceAtLeast(0f)
 }
 
+internal fun <T> resolveHomeHeroCarouselItemOrNull(
+    items: List<T>,
+    page: Int
+): T? = items.getOrNull(page)
+
+internal fun <T> resolveHomeHeroCarouselItemKey(
+    items: List<T>,
+    page: Int,
+    keySelector: (T) -> String
+): String {
+    val itemKey = items.getOrNull(page)?.let(keySelector).orEmpty()
+    return itemKey.ifBlank { "hero_$page" }
+}
+
 internal fun <T> selectHomeHeroCarouselItems(
     items: List<T>,
     maxItems: Int = HOME_HERO_CAROUSEL_MAX_ITEMS

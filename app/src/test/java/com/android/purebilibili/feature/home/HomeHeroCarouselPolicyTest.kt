@@ -9,6 +9,25 @@ import kotlin.math.abs
 class HomeHeroCarouselPolicyTest {
 
     @Test
+    fun `carousel safely ignores stale pager index after feed shrinks`() {
+        val items = listOf("a", "b", "c", "d", "e", "f")
+
+        assertEquals(null, resolveHomeHeroCarouselItemOrNull(items, page = 6))
+        assertEquals(
+            "hero_6",
+            resolveHomeHeroCarouselItemKey(items, page = 6) { it }
+        )
+    }
+
+    @Test
+    fun `carousel key uses item identity when pager index is valid`() {
+        assertEquals(
+            "BV1stable",
+            resolveHomeHeroCarouselItemKey(listOf("BV1stable"), page = 0) { it }
+        )
+    }
+
+    @Test
     fun `visible hero carousel reduces the reserved top gap without affecting other feeds`() {
         assertEquals(
             157f,
