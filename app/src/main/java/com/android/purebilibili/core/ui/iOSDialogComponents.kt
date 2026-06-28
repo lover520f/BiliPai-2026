@@ -13,12 +13,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.android.purebilibili.core.theme.AndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalAndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.theme.UiPreset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.android.purebilibili.core.theme.iOSBlue
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 
 internal data class IOSDialogActionLayoutPolicy(
     val expandToContainer: Boolean
@@ -48,6 +50,71 @@ fun IOSAlertDialog(
 ) {
     val uiPreset = LocalUiPreset.current
     val androidNativeVariant = LocalAndroidNativeVariant.current
+    if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) {
+        OverlayDialog(
+            show = true,
+            onDismissRequest = onDismissRequest,
+            backgroundColor = AppSurfaceTokens.cardContainer(),
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (title != null) {
+                        Box(
+                            modifier = Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ProvideTextStyle(
+                                value = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            ) {
+                                title()
+                            }
+                        }
+                    }
+                    if (text != null) {
+                        Box(
+                            modifier = Modifier.padding(
+                                top = if (title != null) 8.dp else 12.dp,
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 12.dp
+                            ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ProvideTextStyle(
+                                value = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            ) {
+                                text()
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        if (dismissButton != null) {
+                            Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                                dismissButton()
+                            }
+                        }
+                        if (confirmButton != null) {
+                            Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                                confirmButton()
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        return
+    }
     if (uiPreset == UiPreset.MD3) {
         AlertDialog(
             onDismissRequest = onDismissRequest,
@@ -56,16 +123,8 @@ fun IOSAlertDialog(
             confirmButton = { confirmButton?.invoke() ?: Spacer(modifier = Modifier) },
             dismissButton = dismissButton,
             properties = properties,
-            shape = if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
-                RoundedCornerShape(26.dp)
-            } else {
-                MaterialTheme.shapes.extraLarge
-            },
-            containerColor = if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
-                MaterialTheme.colorScheme.surfaceContainerLow
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surface
         )
         return
     }

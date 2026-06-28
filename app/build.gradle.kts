@@ -262,7 +262,7 @@ tasks.matching { task ->
 // }
 
 dependencies {
-    val miuixVersion = "0.9.1"
+    val miuixVersion = "0.9.2"
     val material3Version = "1.5.0-alpha18"
     val media3Version = "1.10.0"
     val lifecycleVersion = "2.10.0"

@@ -9,6 +9,7 @@ import com.android.purebilibili.core.theme.AndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalAndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.theme.UiPreset
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Preset-aware surface tokens. Replace direct reads of `MaterialTheme.colorScheme.surface`
@@ -79,4 +80,40 @@ object AppSurfaceTokens {
         uiPreset = LocalUiPreset.current,
         androidNativeVariant = LocalAndroidNativeVariant.current
     )
+
+    @Composable
+    @ReadOnlyComposable
+    fun onSurfaceVariantSummary(): Color {
+        val uiPreset = LocalUiPreset.current
+        val androidNativeVariant = LocalAndroidNativeVariant.current
+        return if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
+            MiuixTheme.colorScheme.onSurfaceVariantSummary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    }
+
+    @Composable
+    @ReadOnlyComposable
+    fun onSurfaceVariantActions(): Color {
+        val uiPreset = LocalUiPreset.current
+        val androidNativeVariant = LocalAndroidNativeVariant.current
+        return if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
+            MiuixTheme.colorScheme.onSurfaceVariantActions
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    }
+
+    @Composable
+    @ReadOnlyComposable
+    fun secondaryContainer(): Color {
+        val uiPreset = LocalUiPreset.current
+        val androidNativeVariant = LocalAndroidNativeVariant.current
+        return if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
+            MiuixTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
+    }
 }

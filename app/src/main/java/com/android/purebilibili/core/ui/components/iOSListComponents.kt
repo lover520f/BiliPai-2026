@@ -67,10 +67,12 @@ import io.github.alexzhirkevich.cupertino.CupertinoSwitchDefaults
 import io.github.alexzhirkevich.cupertino.icons.CupertinoIcons
 import io.github.alexzhirkevich.cupertino.icons.filled.*
 import io.github.alexzhirkevich.cupertino.icons.outlined.*
+import com.android.purebilibili.core.ui.AppSurfaceTokens
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Switch as MiuixSwitch
 import top.yukonga.miuix.kmp.preference.ArrowPreference as MiuixArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference as MiuixSwitchPreference
@@ -547,31 +549,35 @@ fun IOSSectionTitle(title: String) {
             androidNativeVariant = androidNativeVariant
         )
     }
+    if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) {
+        SmallTitle(
+            text = title,
+            textColor = AppSurfaceTokens.onSurfaceVariantSummary(),
+            insideMargin = PaddingValues(
+                start = visualSpec.sectionStartPaddingDp.dp,
+                top = 24.dp,
+                bottom = 8.dp
+            )
+        )
+        return
+    }
     Text(
         text = if (uiPreset == UiPreset.MD3) title else title.uppercase(),
-        style = if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) {
-            MaterialTheme.typography.labelLarge
-        } else if (uiPreset == UiPreset.MD3) {
+        style = if (uiPreset == UiPreset.MD3) {
             MaterialTheme.typography.titleSmall
         } else {
             MaterialTheme.typography.labelMedium
         },
-        color = if (uiPreset == UiPreset.MD3) {
-            MiuixTheme.colorScheme.onSurfaceVariantSummary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        letterSpacing = if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) {
-            0.15.sp
-        } else if (uiPreset == UiPreset.MD3) {
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        letterSpacing = if (uiPreset == UiPreset.MD3) {
             0.sp
         } else {
             0.5.sp
         },
         modifier = Modifier.padding(
-            start = if (uiPreset == UiPreset.MD3) visualSpec.sectionStartPaddingDp.dp else visualSpec.sectionStartPaddingDp.dp,
-            top = if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) 24.dp else if (uiPreset == UiPreset.MD3) 28.dp else 24.dp,
-            bottom = if (uiPreset == UiPreset.MD3 && androidNativeVariant == AndroidNativeVariant.MIUIX) 8.dp else if (uiPreset == UiPreset.MD3) 10.dp else 8.dp
+            start = visualSpec.sectionStartPaddingDp.dp,
+            top = if (uiPreset == UiPreset.MD3) 28.dp else 24.dp,
+            bottom = if (uiPreset == UiPreset.MD3) 10.dp else 8.dp
         )
     )
 }
