@@ -58,6 +58,16 @@ window.BiliPaiPlugin = {
           title: "图标代理模板",
           type: "text",
           defaultValue: ""
+        },
+        {
+          name: "useGeneratedLogoFallback",
+          title: "按频道名猜测台标",
+          type: "enum",
+          defaultValue: "false",
+          options: [
+            { title: "否", value: "false" },
+            { title: "是", value: "true" }
+          ]
         }
       ]
     }
@@ -82,13 +92,14 @@ async function loadChannels(params) {
   var iconLibraryUrl = stringParam(params, "iconLibraryUrl", "").trim();
   var iconLibrary = loadIconLibrary(iconLibraryUrl);
   var iconProxyTemplate = stringParam(params, "iconProxyTemplate", "").trim();
+  var useGeneratedLogoFallback = stringParam(params, "useGeneratedLogoFallback", "false") === "true";
   var format = detectFormat(content);
   var items;
 
   if (format === "m3u") {
-    items = parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate);
+    items = parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate, useGeneratedLogoFallback);
   } else if (format === "txt") {
-    items = parseTxtSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate);
+    items = parseTxtSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate, useGeneratedLogoFallback);
   } else if (format === "json") {
     items = parseJsonSource(content, iconLibrary, iconProxyTemplate);
   } else {
@@ -104,7 +115,7 @@ async function loadChannels(params) {
   return items;
 }
 
-function parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate) {
+function parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate, useGeneratedLogoFallback) {
   var lines = String(content).split(/\r?\n/);
   var channels = {};
   var currentName = "";
@@ -120,7 +131,16 @@ function parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate) {
       return;
     }
     if (!line || line.indexOf("#") === 0) return;
-    addChannel(channels, currentName || "频道", line, currentLogo, logoBaseUrl, iconLibrary, iconProxyTemplate);
+    addChannel(
+      channels,
+      currentName || "频道",
+      line,
+      currentLogo,
+      logoBaseUrl,
+      iconLibrary,
+      iconProxyTemplate,
+      useGeneratedLogoFallback
+    );
     currentName = "";
     currentLogo = "";
   });
@@ -128,7 +148,7 @@ function parseM3uSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate) {
   return channelMapToItems(channels);
 }
 
-function parseTxtSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate) {
+function parseTxtSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate, useGeneratedLogoFallback) {
   var channels = {};
   String(content).split(/\r?\n/).forEach(function(rawLine) {
     var line = rawLine.trim();
@@ -138,7 +158,16 @@ function parseTxtSource(content, logoBaseUrl, iconLibrary, iconProxyTemplate) {
     var name = splitIndex > 0 ? line.substring(0, splitIndex).trim() : "频道";
     var url = splitIndex > 0 ? line.substring(splitIndex + 1).trim() : line;
     if (/^https?:\/\//i.test(url) || /^rtmps?:\/\//i.test(url) || /^rtsp:\/\//i.test(url)) {
-      addChannel(channels, cleanLeadingDash(name), url, "", logoBaseUrl, iconLibrary, iconProxyTemplate);
+      addChannel(
+        channels,
+        cleanLeadingDash(name),
+        url,
+        "",
+        logoBaseUrl,
+        iconLibrary,
+        iconProxyTemplate,
+        useGeneratedLogoFallback
+      );
     }
   });
   return channelMapToItems(channels);
@@ -177,15 +206,25 @@ function parseJsonSource(content, iconLibrary, iconProxyTemplate) {
   return items;
 }
 
-function addChannel(channels, name, url, logoUrl, logoBaseUrl, iconLibrary, iconProxyTemplate) {
+function addChannel(
+  channels,
+  name,
+  url,
+  logoUrl,
+  logoBaseUrl,
+  iconLibrary,
+  iconProxyTemplate,
+  useGeneratedLogoFallback
+) {
   var title = cleanLeadingDash(name || "频道");
   if (!channels[title]) {
     var cleanName = cleanChannelNameForLogo(title);
     var matchedIcon = logoUrl || resolveIconUrl(iconLibrary, title) || resolveIconUrl(iconLibrary, cleanName);
+    var generatedIcon = useGeneratedLogoFallback && cleanName ? logoBaseUrl + cleanName + ".png" : "";
     channels[title] = {
       title: cleanName || title,
       description: title,
-      logoUrl: matchedIcon || (cleanName ? logoBaseUrl + cleanName + ".png" : ""),
+      logoUrl: matchedIcon || generatedIcon,
       iconProxyTemplate: iconProxyTemplate,
       category: guessCategory(title),
       urls: []

@@ -281,15 +281,21 @@ private fun BiliPaiJsMediaItemRow(
                     modifier = Modifier.size(width = 96.dp, height = 56.dp)
                 )
             } else {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(width = 96.dp, height = 56.dp)
-                        .clip(RoundedCornerShape(6.dp)),
-                    contentScale = ContentScale.Crop,
-                    onError = { imageLoadFailed = true }
-                )
+                Box(modifier = Modifier.size(width = 96.dp, height = 56.dp)) {
+                    PluginMediaImagePlaceholder(
+                        title = item.title,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(6.dp)),
+                        contentScale = ContentScale.Crop,
+                        onError = { imageLoadFailed = true }
+                    )
+                }
             }
             Spacer(modifier = Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {

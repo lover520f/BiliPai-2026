@@ -18,6 +18,7 @@ class BiliPaiJsNativeExampleTest {
         assertContains(script, "EXTERNAL_MEDIA_PLAYBACK")
         assertContains(script, "iconLibraryUrl")
         assertContains(script, "iconProxyTemplate")
+        assertContains(script, "useGeneratedLogoFallback")
         assertContains(script, "parseIconLibrary")
         assertContains(script, "parsed.icons")
         assertContains(script, "{url}")
