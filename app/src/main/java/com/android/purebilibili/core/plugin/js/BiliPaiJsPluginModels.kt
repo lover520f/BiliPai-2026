@@ -47,6 +47,10 @@ data class BiliPaiJsMediaItem(
     val coverUrls: List<String> = emptyList(),
     val backdropUrl: String? = null,
     val backdropUrls: List<String> = emptyList(),
+    val backdropPath: String? = null,
+    val backdropPaths: List<String> = emptyList(),
+    val posterPath: String? = null,
+    val posterPaths: List<String> = emptyList(),
     val type: String = "video",
     val videoUrl: String? = null,
     val streams: List<BiliPaiJsMediaStream> = emptyList(),
@@ -72,10 +76,14 @@ val BiliPaiJsMediaItem.hasNoImageCandidate: Boolean
 
 fun resolveBiliPaiJsMediaImageCandidates(item: BiliPaiJsMediaItem): List<String> {
     return buildList {
-        item.coverUrl?.takeIf { it.isNotBlank() }?.let(::add)
-        addAll(item.coverUrls.filter { it.isNotBlank() })
         item.backdropUrl?.takeIf { it.isNotBlank() }?.let(::add)
         addAll(item.backdropUrls.filter { it.isNotBlank() })
+        item.backdropPath?.takeIf { it.isNotBlank() }?.let(::add)
+        addAll(item.backdropPaths.filter { it.isNotBlank() })
+        item.coverUrl?.takeIf { it.isNotBlank() }?.let(::add)
+        addAll(item.coverUrls.filter { it.isNotBlank() })
+        item.posterPath?.takeIf { it.isNotBlank() }?.let(::add)
+        addAll(item.posterPaths.filter { it.isNotBlank() })
     }.distinct()
 }
 

@@ -105,18 +105,44 @@ class BiliPaiJsPluginPolicyTest {
             id = "logo",
             title = "台标",
             coverUrl = "https://example.com/a.png",
-            backdropUrl = "https://example.com/b.png",
-            coverUrls = listOf("https://example.com/a.png", "https://example.com/c.png")
+            coverUrls = listOf("https://example.com/a.png", "https://example.com/c.png"),
+            backdropPath = "https://example.com/b.png",
+            posterPath = "https://example.com/p.png"
         )
 
         assertEquals(
             listOf(
+                "https://example.com/b.png",
                 "https://example.com/a.png",
                 "https://example.com/c.png",
-                "https://example.com/b.png"
+                "https://example.com/p.png"
             ),
             resolveBiliPaiJsMediaImageCandidates(item)
         )
         assertTrue(BiliPaiJsMediaItem(id = "no-logo", title = "无台标").hasNoImageCandidate)
+    }
+
+    @Test
+    fun mediaItemImageCandidatesFollowForwardBackdropCoverPosterFallbackOrder() {
+        val item = BiliPaiJsMediaItem(
+            id = "forward",
+            title = "Forward 模块",
+            coverUrl = "https://example.com/cover.png",
+            backdropPath = "https://example.com/backdrop.png",
+            backdropPaths = listOf("https://example.com/backdrop.png", "https://example.com/backdrop-backup.png"),
+            posterPath = "https://example.com/poster.png",
+            posterPaths = listOf("https://example.com/poster-backup.png")
+        )
+
+        assertEquals(
+            listOf(
+                "https://example.com/backdrop.png",
+                "https://example.com/backdrop-backup.png",
+                "https://example.com/cover.png",
+                "https://example.com/poster.png",
+                "https://example.com/poster-backup.png"
+            ),
+            resolveBiliPaiJsMediaImageCandidates(item)
+        )
     }
 }
