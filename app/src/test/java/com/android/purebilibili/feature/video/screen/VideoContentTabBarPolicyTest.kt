@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 class VideoContentTabBarPolicyTest {
 
     @Test
-    fun `liquid glass reuse upgrades video tab bar to bottom dock sizing`() {
+    fun `liquid glass reuse uses compact video tab dock sizing`() {
         val compactLayout = resolveVideoContentTabBarLayoutSpec(widthDp = 412)
         val liquidSpec = resolveVideoContentTabBarLiquidChromeSpec(
             androidNativeLiquidGlassEnabled = true,
@@ -19,10 +19,17 @@ class VideoContentTabBarPolicyTest {
         )
 
         assertTrue(liquidSpec.reusesLiquidGlassDock)
-        assertEquals(58, liquidSpec.segmentedControlHeightDp)
-        assertEquals(54, liquidSpec.segmentedControlIndicatorHeightDp)
+        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_HEIGHT_DP, liquidSpec.segmentedControlHeightDp)
+        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_INDICATOR_HEIGHT_DP, liquidSpec.segmentedControlIndicatorHeightDp)
+        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_LABEL_FONT_SIZE_SP, liquidSpec.labelFontSizeSp)
         assertTrue(liquidSpec.liquidGlassEffectsEnabled)
         assertTrue(liquidSpec.useTransparentTabRowBackground)
+        assertTrue(
+            hasVideoContentTabBarIndicatorScaleClearance(
+                containerHeightDp = liquidSpec.segmentedControlHeightDp,
+                indicatorHeightDp = liquidSpec.segmentedControlIndicatorHeightDp
+            )
+        )
     }
 
     @Test

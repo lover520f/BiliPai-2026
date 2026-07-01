@@ -71,7 +71,6 @@ import com.android.purebilibili.data.model.response.VideoTag
 import com.android.purebilibili.data.model.response.ViewInfo
 import com.android.purebilibili.data.model.response.BgmInfo
 import com.android.purebilibili.feature.common.resolveIndexedVideoLazyKey
-import com.android.purebilibili.feature.home.components.BOTTOM_BAR_LIQUID_SEGMENTED_CONTROL_HEIGHT_DP
 import com.android.purebilibili.feature.home.components.BottomBarLiquidSegmentedControl
 import com.android.purebilibili.feature.home.components.resolveTopTabPagerPosition
 import com.android.purebilibili.feature.video.ui.section.VideoTitleWithDesc
@@ -136,12 +135,15 @@ internal fun hasVideoContentTabBarIndicatorScaleClearance(
     return containerHeightDp >= indicatorHeightDp * bottomBarScale + 2f
 }
 
-internal const val VIDEO_CONTENT_LIQUID_DOCK_INDICATOR_HEIGHT_DP = 54
+internal const val VIDEO_CONTENT_LIQUID_DOCK_HEIGHT_DP = 44
+internal const val VIDEO_CONTENT_LIQUID_DOCK_INDICATOR_HEIGHT_DP = 30
+internal const val VIDEO_CONTENT_LIQUID_DOCK_LABEL_FONT_SIZE_SP = 15
 
 internal data class VideoContentTabBarLiquidChromeSpec(
     val reusesLiquidGlassDock: Boolean,
     val segmentedControlHeightDp: Int,
     val segmentedControlIndicatorHeightDp: Int,
+    val labelFontSizeSp: Int,
     val liquidGlassEffectsEnabled: Boolean,
     val useTransparentTabRowBackground: Boolean,
 )
@@ -163,8 +165,9 @@ internal fun resolveVideoContentTabBarLiquidChromeSpec(
     return if (reusesLiquidGlassDock) {
         VideoContentTabBarLiquidChromeSpec(
             reusesLiquidGlassDock = true,
-            segmentedControlHeightDp = BOTTOM_BAR_LIQUID_SEGMENTED_CONTROL_HEIGHT_DP,
+            segmentedControlHeightDp = VIDEO_CONTENT_LIQUID_DOCK_HEIGHT_DP,
             segmentedControlIndicatorHeightDp = VIDEO_CONTENT_LIQUID_DOCK_INDICATOR_HEIGHT_DP,
+            labelFontSizeSp = VIDEO_CONTENT_LIQUID_DOCK_LABEL_FONT_SIZE_SP,
             liquidGlassEffectsEnabled = true,
             useTransparentTabRowBackground = true,
         )
@@ -173,6 +176,7 @@ internal fun resolveVideoContentTabBarLiquidChromeSpec(
             reusesLiquidGlassDock = false,
             segmentedControlHeightDp = layoutSpec.segmentedControlHeightDp,
             segmentedControlIndicatorHeightDp = layoutSpec.segmentedControlIndicatorHeightDp,
+            labelFontSizeSp = layoutSpec.unselectedTabFontSizeSp,
             liquidGlassEffectsEnabled = hasBackdrop,
             useTransparentTabRowBackground = false,
         )
@@ -1482,7 +1486,7 @@ private fun VideoContentTabBar(
                     ),
                 height = liquidChromeSpec.segmentedControlHeightDp.dp,
                 indicatorHeight = liquidChromeSpec.segmentedControlIndicatorHeightDp.dp,
-                labelFontSize = layoutSpec.unselectedTabFontSizeSp.sp,
+                labelFontSize = liquidChromeSpec.labelFontSizeSp.sp,
                 backdrop = backdrop,
                 forceLiquidChrome = homeSettings.androidNativeLiquidGlassEnabled,
                 liquidGlassEffectsEnabled = liquidChromeSpec.liquidGlassEffectsEnabled,
