@@ -47,4 +47,30 @@ class VideoDetailLoadingTransitionPolicyTest {
         assertTrue(idle.showLoadingContent)
         assertTrue(collapsing.showLoadingContent)
     }
+
+    @Test
+    fun expandingSharedCardTransitionDelaysSuccessContentUntilContainerNearlyFullscreen() {
+        val early = resolveVideoDetailContainerTransformContentAlpha(
+            session = VideoCardTransitionSession(
+                phase = VideoCardTransitionPhase.EXPANDING,
+                progress = 0.8f
+            )
+        )
+        val late = resolveVideoDetailContainerTransformContentAlpha(
+            session = VideoCardTransitionSession(
+                phase = VideoCardTransitionPhase.EXPANDING,
+                progress = 0.94f
+            )
+        )
+        val expanded = resolveVideoDetailContainerTransformContentAlpha(
+            session = VideoCardTransitionSession(
+                phase = VideoCardTransitionPhase.EXPANDED,
+                progress = 1f
+            )
+        )
+
+        assertEquals(0f, early)
+        assertEquals(1f, late)
+        assertEquals(1f, expanded)
+    }
 }

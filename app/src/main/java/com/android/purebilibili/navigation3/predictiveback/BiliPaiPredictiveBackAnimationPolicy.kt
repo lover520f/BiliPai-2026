@@ -9,7 +9,7 @@ internal fun resolveBiliPaiPredictiveBackAnimationHandler(
     exitDirection: BiliPaiPredictiveBackExitDirection = BiliPaiPredictiveBackExitDirection.ALWAYS_RIGHT,
 ): BiliPaiPredictiveBackAnimationHandler {
     if (routeTransition == BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT) {
-        return BiliPaiSharedElementPredictiveBackAnimation(exitDirection)
+        return BiliPaiSharedElementPredictiveBackAnimation()
     }
 
     if (!predictiveBackEnabled) {

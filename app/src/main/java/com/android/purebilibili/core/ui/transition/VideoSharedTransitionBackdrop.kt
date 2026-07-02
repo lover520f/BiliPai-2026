@@ -112,7 +112,7 @@ internal fun VideoSharedTransitionBackdropHost(
             resolveVideoCardTransitionBackdropFrame(
                 session = session,
                 direction = direction,
-                skipBackdropEffects = false,
+                skipBackdropEffects = session.skipBackdropEffects,
                 motionTier = motionTier,
                 maxBlurRadiusDp = maxBlurRadiusDp
             )
