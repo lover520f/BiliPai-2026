@@ -42,11 +42,12 @@ class VideoCardTransitionBackgroundPolicyTest {
         assertTrue(start.blurRadiusPx > middle.blurRadiusPx)
         assertTrue(middle.blurRadiusPx > end.blurRadiusPx)
         assertEquals(28f, middle.blurRadiusPx)
-        assertEquals(0f, start.scrimAlpha)
-        assertEquals(0f, middle.scrimAlpha)
+        assertTrue(start.scrimAlpha > middle.scrimAlpha)
+        assertTrue(middle.scrimAlpha > end.scrimAlpha)
         assertEquals(1f, start.contentScale)
         assertEquals(1f, middle.contentScale)
         assertEquals(0f, end.blurRadiusPx)
+        assertEquals(0f, end.scrimAlpha)
     }
 
     @Test
@@ -91,7 +92,7 @@ class VideoCardTransitionBackgroundPolicyTest {
         assertEquals(0f, opening.blurRadiusPx)
         assertTrue(opening.scrimAlpha > 0f)
         assertEquals(0f, returning.blurRadiusPx)
-        assertEquals(0f, returning.scrimAlpha)
+        assertTrue(returning.scrimAlpha > 0f)
     }
 
     @Test
@@ -103,7 +104,7 @@ class VideoCardTransitionBackgroundPolicyTest {
         )
 
         assertEquals(16f, frame.blurRadiusPx)
-        assertEquals(0f, frame.scrimAlpha)
+        assertTrue(frame.scrimAlpha > 0f)
         assertEquals(1f, frame.contentScale)
     }
 

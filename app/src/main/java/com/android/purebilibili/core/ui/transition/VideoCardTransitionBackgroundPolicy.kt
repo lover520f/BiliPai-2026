@@ -15,6 +15,7 @@ import kotlin.math.roundToInt
 private const val VIDEO_CARD_TRANSITION_MAX_BLUR_RADIUS_PX = 36f
 private const val VIDEO_CARD_TRANSITION_BLUR_QUANTUM_PX = 2f
 private const val VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA = 0.22f
+private const val VIDEO_CARD_TRANSITION_RETURN_SCRIM_ALPHA = 0.10f
 private const val VIDEO_CARD_TRANSITION_MAX_CONTENT_SCALE_REDUCTION = 0.045f
 
 internal const val VIDEO_CARD_TRANSITION_BACKGROUND_FORWARD_DURATION_MS = 160
@@ -66,9 +67,10 @@ internal fun resolveVideoCardTransitionBackgroundFrame(
         scrimAlpha = when (phase) {
             VideoCardTransitionBackgroundPhase.OPENING ->
                 VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA * clamped
+            VideoCardTransitionBackgroundPhase.RETURNING ->
+                VIDEO_CARD_TRANSITION_RETURN_SCRIM_ALPHA * blurStrength
             VideoCardTransitionBackgroundPhase.IDLE,
-            VideoCardTransitionBackgroundPhase.HELD,
-            VideoCardTransitionBackgroundPhase.RETURNING -> 0f
+            VideoCardTransitionBackgroundPhase.HELD -> 0f
         },
         contentScale = when (phase) {
             VideoCardTransitionBackgroundPhase.OPENING ->

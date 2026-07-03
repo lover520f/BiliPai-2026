@@ -25,11 +25,12 @@ class BiliPaiPredictiveBackAnimationPolicyTest {
     }
 
     @Test
-    fun sharedElementPredictivePop_slidesBothScenesInsteadOfFadingDetail() {
+    fun sharedElementPredictivePop_keepsRouteLayerStillForCardReturn() {
         val function = sharedElementPredictivePopFunction()
 
-        assertTrue(function.contains("slideOutHorizontally"))
-        assertTrue(function.contains("slideInHorizontally"))
+        assertFalse(function.contains("slideOutHorizontally"))
+        assertFalse(function.contains("slideInHorizontally"))
+        assertTrue(function.contains("noOpSharedElementContentTransform()"))
         assertFalse(function.contains("initialContentExit = fadeOut("))
     }
 
