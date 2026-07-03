@@ -10,29 +10,6 @@ import kotlin.test.assertTrue
 class VideoContentTabBarPolicyTest {
 
     @Test
-    fun `liquid glass reuse uses compact video tab dock sizing`() {
-        val compactLayout = resolveVideoContentTabBarLayoutSpec(widthDp = 412)
-        val liquidSpec = resolveVideoContentTabBarLiquidChromeSpec(
-            androidNativeLiquidGlassEnabled = true,
-            hasBackdrop = true,
-            layoutSpec = compactLayout,
-        )
-
-        assertTrue(liquidSpec.reusesLiquidGlassDock)
-        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_HEIGHT_DP, liquidSpec.segmentedControlHeightDp)
-        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_INDICATOR_HEIGHT_DP, liquidSpec.segmentedControlIndicatorHeightDp)
-        assertEquals(VIDEO_CONTENT_LIQUID_DOCK_LABEL_FONT_SIZE_SP, liquidSpec.labelFontSizeSp)
-        assertTrue(liquidSpec.liquidGlassEffectsEnabled)
-        assertTrue(liquidSpec.useTransparentTabRowBackground)
-        assertTrue(
-            hasVideoContentTabBarIndicatorScaleClearance(
-                containerHeightDp = liquidSpec.segmentedControlHeightDp,
-                indicatorHeightDp = liquidSpec.segmentedControlIndicatorHeightDp
-            )
-        )
-    }
-
-    @Test
     fun `tab bar layout reserves trailing danmaku action area`() {
         val spec = resolveVideoContentTabBarLayoutSpec(widthDp = 412)
 
@@ -103,18 +80,6 @@ class VideoContentTabBarPolicyTest {
     }
 
     @Test
-    fun `info comment tab bar keeps tab row drag enabled for indicator swipe switching`() {
-        val source = loadSource(
-            "app/src/main/java/com/android/purebilibili/feature/video/screen/VideoContentSection.kt"
-        )
-        val tabBarBlock = source
-            .substringAfter("fun VideoContentTabBar(")
-            .substringBefore("// [新增] 恢复画面按钮")
-
-        assertFalse(tabBarBlock.contains("dragSelectionEnabled = false"))
-    }
-
-    @Test
     fun `info comment tab bar disables tap press refraction`() {
         val source = loadSource(
             "app/src/main/java/com/android/purebilibili/feature/video/screen/VideoContentSection.kt"
@@ -154,18 +119,7 @@ class VideoContentTabBarPolicyTest {
             "Pager must not capture backdrop; segmented controls inside would self-sample and overflow RenderThread stack on MIUI"
         )
         assertTrue(source.contains("forceLiquidChrome = homeSettings.androidNativeLiquidGlassEnabled"))
-        assertTrue(source.contains("liquidChromeSpec.liquidGlassEffectsEnabled"))
-        assertTrue(source.contains("collectIsDraggedAsState()"))
-        assertTrue(source.contains("pagerTabInteractionActive"))
-        assertTrue(source.contains("resolveTopTabPagerPosition("))
-        assertTrue(source.contains("pagerIndicatorPosition = pagerTabIndicatorPosition"))
-        assertTrue(source.contains("pagerIsScrolling = pagerTabInteractionActive"))
-        val tabBarBlock = source
-            .substringAfter("fun VideoContentTabBar(")
-            .substringBefore("// [新增] 恢复画面按钮")
-        assertTrue(tabBarBlock.contains("pagerIndicatorPosition = pagerIndicatorPosition"))
-        assertTrue(tabBarBlock.contains("pagerIsScrolling = pagerIsScrolling"))
-        assertTrue(source.contains("resolveVideoContentTabBarLiquidChromeSpec("))
+        assertTrue(source.contains("liquidGlassEffectsEnabled = liquidChromeSpec.liquidGlassEffectsEnabled"))
     }
 
     @Test

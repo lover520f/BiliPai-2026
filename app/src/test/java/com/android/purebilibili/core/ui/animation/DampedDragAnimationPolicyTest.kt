@@ -50,7 +50,6 @@ class DampedDragAnimationPolicyTest {
         // 偏移累计保留（KSU 风格）
         assertTrue(dragSource.contains("offsetAnimation.snapTo(offsetAnimation.value + dragAmountPx)"))
         // 9.0.0 速度飞掷投影
-        assertTrue(releaseSource.contains("animateSettle: Boolean = true"))
         assertTrue(releaseSource.contains("resolveDampedDragReleaseTargetIndex("))
         assertTrue(releaseSource.contains("velocityPxPerSecond = velocityX"))
         assertTrue(releaseSource.contains("offsetAnimation.animateTo(0f"))
@@ -73,13 +72,6 @@ class DampedDragAnimationPolicyTest {
         assertTrue(source.contains("Offset(value, 0f)"))
         assertTrue(source.contains("velocityAnimation.animateTo(targetVelocity, velocityAnimationSpec)"))
         assertTrue(dragSource.contains("updateDeformationVelocity(clampedValue)"))
-        assertTrue(source.contains("fun followValue(targetValue: Float)"))
-        assertTrue(source.contains("updateDeformationVelocity(clampedValue)"))
-        assertFalse(
-            source.substringAfter("fun followValue(").substringBefore("fun animateToValue(")
-                .contains("startNewMotion()"),
-            "Continuous pager follow must not restart motion generation every frame"
-        )
         assertTrue(source.contains("velocityTracker.addPosition("))
         assertTrue(source.contains("velocityTracker.calculateVelocity()"))
         // velocityAnimation 仍通过 animateToValue 中的 animateTo(0f) 做释放衰减

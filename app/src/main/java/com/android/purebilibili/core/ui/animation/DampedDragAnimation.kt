@@ -196,23 +196,6 @@ internal class DampedDragAnimationState(
         }
     }
 
-    /**
-     * 外部连续跟手（如 Pager 偏移）时复用拖拽同款 snap + 形变速度估算，
-     * 避免每帧 startNewMotion/snapTo 清零速度导致指示器抽搐。
-     */
-    fun followValue(targetValue: Float) {
-        if (itemCount <= 0) return
-        val clampedValue = targetValue.fastCoerceIn(0f, (itemCount - 1).toFloat())
-        desiredValue = clampedValue
-        targetIndex = clampedValue.roundToInt().coerceIn(0, itemCount - 1)
-        valueJob?.cancel()
-        valueJob = scope.launch {
-            valueAnimation.stop()
-            valueAnimation.snapTo(clampedValue)
-            updateDeformationVelocity(clampedValue)
-        }
-    }
-
     fun animateToValue(value: Float, onSettled: (() -> Unit)? = null) {
         scope.launch {
             mutatorMutex.mutate {
@@ -299,8 +282,7 @@ internal class DampedDragAnimationState(
         velocityX: Float,
         itemWidthPx: Float,
         settleIndex: Int? = null,
-        notifyIndexChanged: Boolean = true,
-        animateSettle: Boolean = true,
+        notifyIndexChanged: Boolean = true
     ) {
         if (itemWidthPx <= 0f || itemCount <= 0) return
         isDragging = false
@@ -316,30 +298,14 @@ internal class DampedDragAnimationState(
                 itemCount = itemCount,
                 motionSpec = motionSpec
             )
-        val releaseTargetValue = releaseTargetIndex.toFloat()
         targetIndex = releaseTargetIndex
-        desiredValue = releaseTargetValue
+        desiredValue = releaseTargetIndex.toFloat()
         if (notifyIndexChanged && notifyIndexChangedOnReleaseStart) {
             onIndexChanged(releaseTargetIndex)
         }
-        if (animateSettle) {
-            animateToValue(releaseTargetValue) {
-                if (generation == motionGeneration) {
-                    velocityPxPerSecond = 0f
-                    settledReleaseCount += 1
-                    if (notifyIndexChanged && !notifyIndexChangedOnReleaseStart) {
-                        onIndexChanged(releaseTargetIndex)
-                    }
-                }
-            }
-        } else {
-            valueJob?.cancel()
-            scope.launch {
-                if (generation != motionGeneration) return@launch
-                valueAnimation.stop()
-                valueAnimation.snapTo(releaseTargetValue)
-                velocityAnimation.snapTo(0f)
-                release()
+        animateToValue(releaseTargetIndex.toFloat()) {
+            if (generation == motionGeneration) {
+                velocityPxPerSecond = 0f
                 settledReleaseCount += 1
                 if (notifyIndexChanged && !notifyIndexChangedOnReleaseStart) {
                     onIndexChanged(releaseTargetIndex)
