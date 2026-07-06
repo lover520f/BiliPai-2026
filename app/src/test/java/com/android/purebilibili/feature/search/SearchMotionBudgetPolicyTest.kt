@@ -162,6 +162,47 @@ class SearchMotionBudgetPolicyTest {
     }
 
     @Test
+    fun searchCardTransition_disabledWhenGloballyDisabled() {
+        assertFalse(
+            resolveEffectiveSearchCardTransitionEnabled(
+                cardTransitionEnabled = false,
+                motionBudget = SearchMotionBudget.FULL,
+                isReturningFromVideoDetail = true
+            )
+        )
+    }
+
+    @Test
+    fun searchCardTransition_followsBudgetWhenNotReturning() {
+        assertTrue(
+            resolveEffectiveSearchCardTransitionEnabled(
+                cardTransitionEnabled = true,
+                motionBudget = SearchMotionBudget.FULL,
+                isReturningFromVideoDetail = false
+            )
+        )
+        assertFalse(
+            resolveEffectiveSearchCardTransitionEnabled(
+                cardTransitionEnabled = true,
+                motionBudget = SearchMotionBudget.REDUCED,
+                isReturningFromVideoDetail = false
+            )
+        )
+    }
+
+    @Test
+    fun searchCardTransition_forcedOnDuringReturnEvenWhenBudgetReduced() {
+        // 返回视频详情期间强制保持共享元素，避免列表 settle 把 budget 降为 REDUCED 后来源卡片卸载 sharedBounds。
+        assertTrue(
+            resolveEffectiveSearchCardTransitionEnabled(
+                cardTransitionEnabled = true,
+                motionBudget = SearchMotionBudget.REDUCED,
+                isReturningFromVideoDetail = true
+            )
+        )
+    }
+
+    @Test
     fun newSearchSession_resetsResultScroll() {
         assertTrue(
             shouldResetSearchResultScroll(
