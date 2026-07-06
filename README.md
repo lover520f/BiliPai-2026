@@ -15,7 +15,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Version-9.6.0-007AFF?style=flat-square&labelColor=ffffff" alt="Version 9.6.0" />
+  <img src="https://img.shields.io/badge/Version-9.8.8-007AFF?style=flat-square&labelColor=ffffff" alt="Version 9.8.8" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-34C759?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
   <img src="https://img.shields.io/badge/Kotlin-100%25-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/License-Non--Commercial-FF3B30?style=flat-square" alt="Non-Commercial License" />
@@ -23,8 +23,8 @@
   <a href="https://github.com/jay3-yy/BiliPai/releases">
     <img src="https://img.shields.io/github/downloads/jay3-yy/BiliPai/total?style=flat-square&color=34C759&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F&labelColor=ffffff" alt="总下载量" />
   </a>
-  <a href="https://github.com/jay3-yy/BiliPai/releases/tag/v9.6.0">
-    <img src="https://img.shields.io/github/downloads/jay3-yy/BiliPai/v9.6.0/total?style=flat-square&color=5AC8FA&label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD%E9%87%8F&labelColor=ffffff" alt="最新版本下载量" />
+  <a href="https://github.com/jay3-yy/BiliPai/releases/tag/v9.8.8">
+    <img src="https://img.shields.io/github/downloads/jay3-yy/BiliPai/v9.8.8/total?style=flat-square&color=5AC8FA&label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC%E4%B8%8B%E8%BD%BD%E9%87%8F&labelColor=ffffff" alt="最新版本下载量" />
   </a>
 </p>
 
@@ -188,11 +188,11 @@ cd BiliPai
 
 ## 最近更新
 
-当前仓库版本号已更新到 `9.6.0 / versionCode 241`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v9.6.0`：
+当前仓库版本号已更新到 `9.8.8 / versionCode 247`。公开发布说明请以 [CHANGELOG.md](CHANGELOG.md) 为准；最新完整记录为 `v9.8.8`：
 
-- 竖屏视频可直连 Story、滑动中预取 playurl 并提前绑流，显著缩短切换等待。
-- 楼中楼分页与竖屏评论交互全面修复，拖拽关闭评论不再引起视频回弹。
-- 长按 2x 进度条冻结、弹幕 seek/倍速同步、横屏内联发弹幕等问题已修复。
+- 液态玻璃滑动性能优化：切断底栏无效重组、缓存 RenderEffect、顶部 chrome 折射延迟读取。
+- 视频卡片过渡统一为 Compose + backdrop 模糊链路，修复返回落位、共享边界与背景模糊稳定性。
+- 视频详情 Tab 指示器与 Pager 实时同步，分段控件增加物理 settle 回弹。
 
 ## 路线图
 
