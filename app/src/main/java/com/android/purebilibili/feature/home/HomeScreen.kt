@@ -1850,8 +1850,11 @@ fun HomeScreen(
         } else {
             false
         }
+        // [Optimization] Stable lambda: defers the state read to draw and keeps
+        // iOSHomeHeader skippable (a fresh lambda each frame would defeat skipping).
+        val headerOffsetProvider = remember { { headerOffsetHeightPx } }
         iOSHomeHeader(
-            headerOffsetProvider = { headerOffsetHeightPx }, // [Optimization] Pass lambda to defer state read
+            headerOffsetProvider = headerOffsetProvider,
             isHeaderCollapseEnabled = collapseSearchOnScroll,
             isTopTabsAutoCollapseEnabled = collapseTabsOnScroll,
             isTopTabsManualCollapseEnabled = false,
