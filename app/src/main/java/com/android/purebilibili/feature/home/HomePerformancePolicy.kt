@@ -1,12 +1,13 @@
 package com.android.purebilibili.feature.home
 
-import com.android.purebilibili.core.store.resolveEffectiveLiquidGlassEnabled
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
 import com.android.purebilibili.core.theme.UiPreset
 
 internal data class HomePerformanceConfig(
     val headerBlurEnabled: Boolean,
     val bottomBarBlurEnabled: Boolean,
     val topBarLiquidGlassEnabled: Boolean,
+    val homeSearchLiquidGlassEnabled: Boolean,
     val bottomBarLiquidGlassEnabled: Boolean,
     val cardAnimationEnabled: Boolean,
     val cardTransitionEnabled: Boolean,
@@ -14,7 +15,9 @@ internal data class HomePerformanceConfig(
     val preloadAheadCount: Int
 ) {
     val isAnyLiquidGlassEnabled: Boolean
-        get() = bottomBarLiquidGlassEnabled
+        get() = topBarLiquidGlassEnabled ||
+            homeSearchLiquidGlassEnabled ||
+            bottomBarLiquidGlassEnabled
 }
 
 internal fun resolveHomePreloadAheadCount(
@@ -52,6 +55,7 @@ internal fun resolveHomePerformanceConfig(
     headerBlurEnabled: Boolean,
     bottomBarBlurEnabled: Boolean,
     topBarLiquidGlassEnabled: Boolean,
+    homeSearchLiquidGlassEnabled: Boolean = false,
     bottomBarLiquidGlassEnabled: Boolean,
     androidNativeLiquidGlassEnabled: Boolean = false,
     cardAnimationEnabled: Boolean,
@@ -63,8 +67,18 @@ internal fun resolveHomePerformanceConfig(
     // Feature retired: keep parameter for compatibility, but never apply runtime smoothness downgrade.
     val shouldPrioritizeSmoothness = false
     val effectiveDataSaver = isDataSaverActive
-    val effectiveBottomBarLiquidGlass = resolveEffectiveLiquidGlassEnabled(
-        requestedEnabled = bottomBarLiquidGlassEnabled,
+    val effectiveTopBarLiquidGlass = resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = topBarLiquidGlassEnabled,
+        uiPreset = uiPreset,
+        androidNativeLiquidGlassEnabled = androidNativeLiquidGlassEnabled
+    ) && !shouldPrioritizeSmoothness
+    val effectiveHomeSearchLiquidGlass = resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = homeSearchLiquidGlassEnabled,
+        uiPreset = uiPreset,
+        androidNativeLiquidGlassEnabled = androidNativeLiquidGlassEnabled
+    ) && !shouldPrioritizeSmoothness
+    val effectiveBottomBarLiquidGlass = resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = bottomBarLiquidGlassEnabled,
         uiPreset = uiPreset,
         androidNativeLiquidGlassEnabled = androidNativeLiquidGlassEnabled
     ) && !shouldPrioritizeSmoothness
@@ -79,7 +93,8 @@ internal fun resolveHomePerformanceConfig(
     return HomePerformanceConfig(
         headerBlurEnabled = headerBlurEnabled,
         bottomBarBlurEnabled = bottomBarBlurEnabled,
-        topBarLiquidGlassEnabled = topBarLiquidGlassEnabled,
+        topBarLiquidGlassEnabled = effectiveTopBarLiquidGlass,
+        homeSearchLiquidGlassEnabled = effectiveHomeSearchLiquidGlass,
         bottomBarLiquidGlassEnabled = effectiveBottomBarLiquidGlass,
         cardAnimationEnabled = cardAnimationEnabled,
         cardTransitionEnabled = cardTransitionEnabled,

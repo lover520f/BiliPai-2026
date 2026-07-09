@@ -28,7 +28,7 @@ class HomePerformancePolicyTest {
         assertFalse(config.bottomBarBlurEnabled)
         assertTrue(config.topBarLiquidGlassEnabled)
         assertFalse(config.bottomBarLiquidGlassEnabled)
-        assertFalse(config.isAnyLiquidGlassEnabled)
+        assertTrue(config.isAnyLiquidGlassEnabled)
         assertFalse(config.cardAnimationEnabled)
         assertTrue(config.cardTransitionEnabled)
         assertFalse(config.isDataSaverActive)
@@ -133,12 +133,13 @@ class HomePerformancePolicyTest {
     }
 
     @Test
-    fun md3Preset_requiresAndroidNativeGlobalOptInOnlyForBottomLiquidGlass() {
+    fun md3Preset_requiresAndroidNativeGlobalOptInForSharedLiquidGlass() {
         val config = resolveHomePerformanceConfig(
             uiPreset = UiPreset.MD3,
             headerBlurEnabled = true,
             bottomBarBlurEnabled = true,
             topBarLiquidGlassEnabled = true,
+            homeSearchLiquidGlassEnabled = true,
             bottomBarLiquidGlassEnabled = true,
             androidNativeLiquidGlassEnabled = false,
             cardAnimationEnabled = true,
@@ -148,18 +149,21 @@ class HomePerformancePolicyTest {
             normalPreloadAheadCount = 5
         )
 
-        assertTrue(config.topBarLiquidGlassEnabled)
+        assertFalse(config.topBarLiquidGlassEnabled)
+        assertFalse(config.homeSearchLiquidGlassEnabled)
         assertFalse(config.bottomBarLiquidGlassEnabled)
+        assertFalse(config.isAnyLiquidGlassEnabled)
     }
 
     @Test
-    fun md3Preset_allowsIndependentTopDockAndBottomLiquidGlassWhenAndroidNativeOptInIsEnabled() {
+    fun md3Preset_globalLiquidGlassReuseEnablesAllSharedChrome() {
         val config = resolveHomePerformanceConfig(
             uiPreset = UiPreset.MD3,
             headerBlurEnabled = true,
             bottomBarBlurEnabled = true,
-            topBarLiquidGlassEnabled = true,
-            bottomBarLiquidGlassEnabled = true,
+            topBarLiquidGlassEnabled = false,
+            homeSearchLiquidGlassEnabled = false,
+            bottomBarLiquidGlassEnabled = false,
             androidNativeLiquidGlassEnabled = true,
             cardAnimationEnabled = true,
             cardTransitionEnabled = true,
@@ -169,6 +173,8 @@ class HomePerformancePolicyTest {
         )
 
         assertTrue(config.topBarLiquidGlassEnabled)
+        assertTrue(config.homeSearchLiquidGlassEnabled)
         assertTrue(config.bottomBarLiquidGlassEnabled)
+        assertTrue(config.isAnyLiquidGlassEnabled)
     }
 }

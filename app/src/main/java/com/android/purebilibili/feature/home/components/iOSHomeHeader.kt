@@ -58,7 +58,6 @@ import com.android.purebilibili.core.ui.blur.BlurStyles
 import com.android.purebilibili.core.ui.blur.BlurIntensity
 import com.android.purebilibili.core.ui.blur.currentUnifiedBlurIntensity
 import com.android.purebilibili.core.ui.blur.BlurSurfaceType
-import com.android.purebilibili.core.ui.effect.liquidGlassBackground
 import com.android.purebilibili.core.ui.adaptive.MotionTier
 import com.android.purebilibili.core.ui.AppShapes
 import com.android.purebilibili.core.ui.AppSurfaceTokens
@@ -70,6 +69,8 @@ import com.android.purebilibili.core.store.HomeHeaderBlurMode
 import com.android.purebilibili.core.store.HomeSettings
 import com.android.purebilibili.core.store.HomeTopLayoutOrder
 import com.android.purebilibili.core.store.HomeTopRightAction
+import com.android.purebilibili.core.store.BottomBarLiquidGlassPreset
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
 import com.android.purebilibili.feature.home.resolveHomeTopCategories
 import com.android.purebilibili.feature.home.resolveHomeTopCollapsedHandleHeight
 import com.android.purebilibili.feature.home.resolveHomeTopTabPresentationHeight
@@ -83,14 +84,7 @@ import com.android.purebilibili.core.theme.AndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalAndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.theme.UiPreset
-import com.android.purebilibili.feature.home.LocalHomeScrollOffset
 import com.android.purebilibili.navigation.resolveAppNavigationAppearance
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
-import com.android.purebilibili.core.ui.blur.shouldAllowRuntimeShaderBackedHazeEffect
 import java.io.File
 
 private const val HOME_HEADER_LIQUID_GLASS_ALPHA = 0.10f
@@ -172,7 +166,10 @@ internal fun resolveHomeTopLinkedBottomBarAppearance(
     return HomeTopLinkedBottomBarAppearance(
         isFloating = navigationAppearance.bottomBarFloating,
         blurEnabled = navigationAppearance.bottomBarBlurEnabled,
-        liquidGlassEnabled = resolvedHomeSettings.isTopBarLiquidGlassEnabled
+        liquidGlassEnabled = resolveHomeTopChromeLiquidGlassEnabled(
+            homeSettings = resolvedHomeSettings,
+            uiPreset = uiPreset
+        )
     )
 }
 
@@ -225,18 +222,19 @@ internal fun resolveHomeTopChromeLiquidGlassEnabled(
     uiPreset: UiPreset
 ): Boolean {
     val resolvedHomeSettings = homeSettings ?: HomeSettings()
-    return resolvedHomeSettings.isTopBarLiquidGlassEnabled
+    return resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = resolvedHomeSettings.isTopBarLiquidGlassEnabled,
+        uiPreset = uiPreset,
+        androidNativeLiquidGlassEnabled = resolvedHomeSettings.androidNativeLiquidGlassEnabled
+    )
 }
 
 internal fun resolveHomeTopTabIndicatorLiquidGlassEnabled(
     homeSettings: HomeSettings?,
     uiPreset: UiPreset
 ): Boolean {
-    val resolvedHomeSettings = homeSettings ?: HomeSettings()
-    if (resolveHomeTopChromeLiquidGlassEnabled(resolvedHomeSettings, uiPreset)) {
-        return true
-    }
-    return uiPreset == UiPreset.MD3 && resolvedHomeSettings.androidNativeLiquidGlassEnabled
+    // Indicator glass follows the same shared chrome contract as the top dock shell.
+    return resolveHomeTopChromeLiquidGlassEnabled(homeSettings, uiPreset)
 }
 
 internal fun resolveHomeTopSearchLiquidGlassEnabled(
@@ -244,7 +242,11 @@ internal fun resolveHomeTopSearchLiquidGlassEnabled(
     uiPreset: UiPreset
 ): Boolean {
     val resolvedHomeSettings = homeSettings ?: HomeSettings()
-    return resolvedHomeSettings.isHomeSearchLiquidGlassEnabled
+    return resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = resolvedHomeSettings.isHomeSearchLiquidGlassEnabled,
+        uiPreset = uiPreset,
+        androidNativeLiquidGlassEnabled = resolvedHomeSettings.androidNativeLiquidGlassEnabled
+    )
 }
 
 internal fun resolveHomeTopChromeMaterialMode(
@@ -1338,6 +1340,7 @@ internal fun Modifier.homeTopChromeSurface(
     backdrop: LayerBackdrop?,
     liquidStyle: LiquidGlassStyle,
     liquidGlassTuning: LiquidGlassTuning? = null,
+    liquidGlassPreset: BottomBarLiquidGlassPreset = BottomBarLiquidGlassPreset.BILIPAI_TUNED,
     motionTier: MotionTier,
     isScrolling: Boolean,
     isTransitionRunning: Boolean,
@@ -1347,191 +1350,29 @@ internal fun Modifier.homeTopChromeSurface(
 ): Modifier = composed {
     val isLiquidGlassMode = renderMode == HomeTopChromeRenderMode.LIQUID_GLASS_BACKDROP ||
         renderMode == HomeTopChromeRenderMode.LIQUID_GLASS_HAZE
-    val scrollState = LocalHomeScrollOffset.current
-    val resolvedTuning = remember(liquidStyle, liquidGlassTuning) {
-        liquidGlassTuning ?: resolveLiquidGlassTuning(liquidStyle)
-    }
-    val style = HomeTopChromeSurfaceStyle(
-        blurSurfaceType = resolveHomeTopBlurSurfaceType(renderMode),
-        preferFlatGlass = preferFlatGlass,
-        depthEffect = liquidGlassTuning?.depthEffectEnabled != false,
-        refractionAmountScrollMultiplier = if (isLiquidGlassMode) 0.016f else 0f,
-        refractionAmountScrollCap = if (isLiquidGlassMode) 12f else 0f,
-        surfaceAlphaScrollMultiplier = if (isLiquidGlassMode) 0.00012f else 0f,
-        surfaceAlphaScrollCap = if (isLiquidGlassMode) 0.03f else 0f,
-        darkThemeWhiteOverlayMultiplier = if (isLiquidGlassMode) {
-            darkThemeWhiteOverlayMultiplier
-        } else {
-            1f
-        },
-        useTuningSurfaceAlpha = isLiquidGlassMode,
-        hazeBackgroundAlphaMultiplier = 1f
-    )
-    val lensShape = resolveHomeTopChromeLensShape(shape)
-    val surfaceTreatment = resolveHomeTopChromeSurfaceTreatment(
-        renderMode = renderMode,
-        preferFlatGlass = style.preferFlatGlass
-    )
-    val isDarkTheme = isSystemInDarkTheme()
-    // [Optimization] 将滚动读取延迟到 draw 阶段:在 drawBackdrop 的 effects/onDrawSurface 与
-    // liquidGlassBackground 的 graphicsLayer 内读取 LocalHomeScrollOffset,折射保持实时联动却不
-    // 触发逐帧重组,同时避免"冻结滚动耦合"会在滑动停止瞬间产生的折射突跳(停止闪烁)。
-    val scrollCoupledOffsetProvider: () -> Float = {
-        scrollState.floatValue * resolvedTuning.scrollCoupledRefractionAmount
-    }
-    // 滚动无关的基线(scrollOffset = 0);滚动耦合增量在 draw 阶段按需叠加。
-    val baseBackdropSpec = resolveHomeTopChromeBackdropSpec(
-        tuning = resolvedTuning,
-        scrollOffset = 0f,
-        isDarkTheme = isDarkTheme,
-        style = style
-    )
-    val baseSurfaceColor = resolveHomeTopChromeSurfaceColor(surfaceColor, baseBackdropSpec, style)
-    // 匹配 KSU drawBackdrop 路径的模糊半径，确保 LIQUID_GLASS_HAZE 视觉强度一致
-    val hazeLiquidBlurRadius = if (isLiquidGlassMode) {
-        resolvedTuning.backdropBlurRadius * (0.08f + resolvedTuning.progress * 0.92f)
-    } else {
-        0f
-    }
-    // 匹配 KSU lens(refractionAmount=24) 的折射强度
-    // AGSL RuntimeShader 天然比 KSU lens() 效果弱，将 refractIntensity 按比例增强
-    val hazeRefractIntensity = if (renderMode == HomeTopChromeRenderMode.LIQUID_GLASS_HAZE) {
-        (resolvedTuning.refractIntensity * 4f).coerceAtMost(1f)
-    } else {
-        resolvedTuning.refractIntensity
+    // Liquid chrome always reuses the bottom-bar KSU material so every reusable surface
+    // (top dock / search / continuous slab / segmented dock) stays visually identical.
+    if (isLiquidGlassMode) {
+        return@composed this.homeTopBottomBarMatchedSurface(
+            renderMode = renderMode,
+            shape = shape,
+            hazeState = hazeState,
+            backdrop = backdrop,
+            liquidGlassStyle = liquidStyle,
+            liquidGlassTuning = liquidGlassTuning,
+            liquidGlassPreset = liquidGlassPreset,
+            motionTier = motionTier,
+            isTransitionRunning = isTransitionRunning,
+            forceLowBlurBudget = forceLowBlurBudget,
+            drawShellLens = true,
+            isScrolling = isScrolling
+        )
     }
 
     when (renderMode) {
-        HomeTopChromeRenderMode.LIQUID_GLASS_BACKDROP -> {
-            if (surfaceTreatment == HomeTopChromeSurfaceTreatment.FLAT_GLASS && backdrop != null) {
-                this.drawBackdrop(
-                    backdrop = backdrop,
-                    shape = { lensShape ?: shape },
-                    effects = {
-                        blur(
-                            resolvedTuning.backdropBlurRadius *
-                                (0.08f + resolvedTuning.progress * 0.92f)
-                        )
-                    },
-                    onDrawSurface = {
-                        val drawSpec = resolveHomeTopChromeBackdropSpec(
-                            tuning = resolvedTuning,
-                            scrollOffset = scrollCoupledOffsetProvider(),
-                            isDarkTheme = isDarkTheme,
-                            style = style
-                        )
-                        drawRect(resolveHomeTopChromeSurfaceColor(surfaceColor, drawSpec, style))
-                        drawRect(Color.White.copy(alpha = drawSpec.whiteOverlayAlpha))
-                    }
-                )
-            } else if (backdrop != null && lensShape != null) {
-                this.drawBackdrop(
-                    backdrop = backdrop,
-                    shape = { lensShape },
-                    effects = {
-                        blur(
-                            resolvedTuning.backdropBlurRadius *
-                                (0.08f + resolvedTuning.progress * 0.92f)
-                        )
-                        val lensSpec = resolveHomeTopChromeBackdropSpec(
-                            tuning = resolvedTuning,
-                            scrollOffset = scrollCoupledOffsetProvider(),
-                            isDarkTheme = isDarkTheme,
-                            style = style
-                        )
-                        if (lensSpec.refractionAmount > 0.5f) {
-                            lens(
-                                refractionHeight = resolvedTuning.refractionHeight,
-                                refractionAmount = lensSpec.refractionAmount,
-                                depthEffect = style.depthEffect && resolvedTuning.depthEffectEnabled,
-                                chromaticAberration = resolvedTuning.chromaticAberrationAmount > 0.01f
-                            )
-                        }
-                    },
-                    onDrawSurface = {
-                        val drawSpec = resolveHomeTopChromeBackdropSpec(
-                            tuning = resolvedTuning,
-                            scrollOffset = scrollCoupledOffsetProvider(),
-                            isDarkTheme = isDarkTheme,
-                            style = style
-                        )
-                        drawRect(resolveHomeTopChromeSurfaceColor(surfaceColor, drawSpec, style))
-                        drawRect(Color.White.copy(alpha = drawSpec.whiteOverlayAlpha))
-                    }
-                )
-            } else if (backdrop != null) {
-                this.drawBackdrop(
-                    backdrop = backdrop,
-                    shape = { shape },
-                    effects = {
-                        blur(
-                            resolvedTuning.backdropBlurRadius *
-                                (0.08f + resolvedTuning.progress * 0.92f)
-                        )
-                    },
-                    onDrawSurface = {
-                        val drawSpec = resolveHomeTopChromeBackdropSpec(
-                            tuning = resolvedTuning,
-                            scrollOffset = scrollCoupledOffsetProvider(),
-                            isDarkTheme = isDarkTheme,
-                            style = style
-                        )
-                        drawRect(resolveHomeTopChromeSurfaceColor(surfaceColor, drawSpec, style))
-                        drawRect(Color.White.copy(alpha = drawSpec.whiteOverlayAlpha))
-                    }
-                )
-            } else {
-                this.background(surfaceColor, shape)
-            }
-        }
-
+        HomeTopChromeRenderMode.LIQUID_GLASS_BACKDROP,
         HomeTopChromeRenderMode.LIQUID_GLASS_HAZE -> {
-            if (hazeState != null && shouldAllowRuntimeShaderBackedHazeEffect(Build.VERSION.SDK_INT)) {
-                if (surfaceTreatment == HomeTopChromeSurfaceTreatment.FLAT_GLASS) {
-                    this
-                        .hazeEffect(
-                            state = hazeState,
-                            style = HazeStyle(
-                                tint = null,
-                                blurRadius = hazeLiquidBlurRadius.dp,
-                                noiseFactor = 0f
-                            )
-                        ) {
-                            blurredEdgeTreatment = resolveUnifiedBlurredEdgeTreatment(shape)
-                        }
-                        .background(baseSurfaceColor, shape)
-                } else {
-                    this
-                        .hazeEffect(
-                            state = hazeState,
-                            style = HazeStyle(
-                                tint = null,
-                                blurRadius = hazeLiquidBlurRadius.dp,
-                                noiseFactor = 0f
-                            )
-                        ) {
-                            blurredEdgeTreatment = resolveUnifiedBlurredEdgeTreatment(shape)
-                        }
-                        .liquidGlassBackground(
-                            refractIntensity = hazeRefractIntensity,
-                            scrollOffsetProvider = scrollCoupledOffsetProvider,
-                            backgroundColor = if (isLiquidGlassMode && baseBackdropSpec.whiteOverlayAlpha > 0f) {
-                                val wa = baseBackdropSpec.whiteOverlayAlpha
-                                // 合成白色叠加层，匹配 drawBackdrop 的 drawRect(resolvedSurfaceColor) + drawRect(Color.White(wa))
-                                Color(
-                                    alpha = baseSurfaceColor.alpha + wa * (1f - baseSurfaceColor.alpha),
-                                    red = wa + (1f - wa) * baseSurfaceColor.red,
-                                    green = wa + (1f - wa) * baseSurfaceColor.green,
-                                    blue = wa + (1f - wa) * baseSurfaceColor.blue
-                                )
-                            } else {
-                                baseSurfaceColor
-                            }
-                        )
-                }
-            } else {
-                this.background(surfaceColor, shape)
-            }
+            this.background(surfaceColor, shape)
         }
 
         HomeTopChromeRenderMode.BLUR -> {
@@ -1541,7 +1382,7 @@ internal fun Modifier.homeTopChromeSurface(
                         Modifier.unifiedBlur(
                             hazeState = hazeState,
                             shape = shape,
-                            surfaceType = style.blurSurfaceType,
+                            surfaceType = resolveHomeTopBlurSurfaceType(renderMode),
                             motionTier = motionTier,
                             isScrolling = isScrolling,
                             isTransitionRunning = isTransitionRunning,
@@ -2288,6 +2129,7 @@ fun iOSHomeHeader(
                         backdrop = backdrop,
                         liquidStyle = liquidStyle,
                         liquidGlassTuning = liquidGlassTuning,
+                        liquidGlassPreset = bottomBarLiquidGlassPreset,
                         motionTier = motionTier,
                         isScrolling = topChromeMotionPolicy.isScrolling,
                         isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,
@@ -2335,6 +2177,7 @@ fun iOSHomeHeader(
                                             backdrop = backdrop,
                                             liquidStyle = liquidStyle,
                                             liquidGlassTuning = liquidGlassTuning,
+                                            liquidGlassPreset = bottomBarLiquidGlassPreset,
                                             motionTier = motionTier,
                                             isScrolling = topChromeMotionPolicy.isScrolling,
                                             isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,
@@ -2492,6 +2335,7 @@ fun iOSHomeHeader(
                                                             backdrop = backdrop,
                                                             liquidStyle = liquidStyle,
                                                             liquidGlassTuning = liquidGlassTuning,
+                                                            liquidGlassPreset = bottomBarLiquidGlassPreset,
                                                             motionTier = motionTier,
                                                             isScrolling = topChromeMotionPolicy.isScrolling,
                                                             isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,
@@ -2514,6 +2358,7 @@ fun iOSHomeHeader(
                                                         backdrop = backdrop,
                                                         liquidStyle = liquidStyle,
                                                         liquidGlassTuning = liquidGlassTuning,
+                                                        liquidGlassPreset = bottomBarLiquidGlassPreset,
                                                         motionTier = motionTier,
                                                         isScrolling = topChromeMotionPolicy.isScrolling,
                                                         isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,
@@ -2611,6 +2456,7 @@ fun iOSHomeHeader(
                                                     backdrop = backdrop,
                                                     liquidStyle = liquidStyle,
                                                     liquidGlassTuning = liquidGlassTuning,
+                                                    liquidGlassPreset = bottomBarLiquidGlassPreset,
                                                     motionTier = motionTier,
                                                     isScrolling = topChromeMotionPolicy.isScrolling,
                                                     isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,
@@ -2742,6 +2588,7 @@ fun iOSHomeHeader(
                                                         backdrop = backdrop,
                                                         liquidStyle = liquidStyle,
                                                         liquidGlassTuning = liquidGlassTuning,
+                                                        liquidGlassPreset = bottomBarLiquidGlassPreset,
                                                         motionTier = motionTier,
                                                         isScrolling = topChromeMotionPolicy.isScrolling,
                                                         isTransitionRunning = topChromeMotionPolicy.isTransitionRunning,

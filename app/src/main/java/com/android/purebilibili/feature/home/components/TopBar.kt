@@ -638,15 +638,20 @@ internal fun Modifier.homeTopBottomBarMatchedSurface(
         renderMode == HomeTopChromeRenderMode.LIQUID_GLASS_HAZE
     val isBlurEnabled = renderMode != HomeTopChromeRenderMode.PLAIN
     val blurIntensity = currentUnifiedBlurIntensity()
-    val containerColor = if (isGlassEnabled) {
-        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f)
-    } else {
-        resolveBottomBarSurfaceColor(
-            surfaceColor = MaterialTheme.colorScheme.surfaceContainer,
-            blurEnabled = isBlurEnabled,
-            blurIntensity = blurIntensity
-        )
-    }
+    val isDarkTheme = resolveBottomBarDarkTheme(AppSurfaceTokens.chromeBackground())
+    val tuning = resolveAndroidNativeBottomBarTuning(
+        blurEnabled = isBlurEnabled || isGlassEnabled,
+        darkTheme = isDarkTheme
+    )
+    // Match floating bottom-bar shell tint exactly (same preset + glass material policy).
+    val containerColor = resolveAndroidNativeFloatingBottomBarContainerColor(
+        surfaceColor = MaterialTheme.colorScheme.surfaceContainer,
+        tuning = tuning,
+        glassEnabled = isGlassEnabled,
+        blurEnabled = isBlurEnabled,
+        blurIntensity = blurIntensity,
+        liquidGlassPreset = liquidGlassPreset
+    )
     this.kernelSuFloatingDockSurface(
         shape = shape,
         backdrop = backdrop,
@@ -654,7 +659,7 @@ internal fun Modifier.homeTopBottomBarMatchedSurface(
         blurEnabled = isBlurEnabled,
         glassEnabled = isGlassEnabled,
         drawShellLens = drawShellLens,
-        blurRadius = 12.dp,
+        blurRadius = tuning.shellBlurRadiusDp.dp,
         hazeState = hazeState,
         motionTier = motionTier,
         isTransitionRunning = isTransitionRunning,

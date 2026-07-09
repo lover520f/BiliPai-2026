@@ -411,7 +411,7 @@ fun AnimationSettingsContent(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = "底栏使用独立液态玻璃材质配方；顶部栏保留毛玻璃模糊。",
+                                            text = "开启「安卓原生液态玻璃」后，顶部 Dock、搜索框、分段控件与底栏统一使用同一套底栏液态玻璃材质。",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

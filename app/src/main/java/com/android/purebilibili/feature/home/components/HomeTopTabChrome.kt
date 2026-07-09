@@ -164,6 +164,7 @@ internal fun HomeTopTabChrome(
                                 backdrop = backdrop,
                                 liquidStyle = liquidStyle,
                                 liquidGlassTuning = liquidGlassTuning,
+                                liquidGlassPreset = liquidGlassPreset,
                                 motionTier = motionTier,
                                 isScrolling = isScrolling,
                                 isTransitionRunning = isTransitionRunning,

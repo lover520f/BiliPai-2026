@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.purebilibili.core.store.SettingsManager
 import com.android.purebilibili.core.store.HomeSettings
-import com.android.purebilibili.core.store.resolveEffectiveLiquidGlassEnabled
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.theme.UiPreset
 import com.android.purebilibili.core.ui.AppShapes
@@ -88,11 +88,10 @@ internal fun resolveSegmentedControlLiquidGlassEnabled(
     androidNativeLiquidGlassEnabled: Boolean
 ): Boolean {
     if (!liquidGlassEffectsEnabled) return false
-    // Global android-native reuse turns on shared segmented liquid glass without
-    // requiring the legacy bottom-bar-only toggle.
-    if (androidNativeLiquidGlassEnabled) return true
-    return resolveEffectiveLiquidGlassEnabled(
-        requestedEnabled = storedLiquidGlassEnabled,
+    // Same shared contract as top dock / search / bottom bar: global master ORs
+    // with the per-surface toggle and always reuses bottom-bar liquid material.
+    return resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = storedLiquidGlassEnabled,
         uiPreset = uiPreset,
         androidNativeLiquidGlassEnabled = androidNativeLiquidGlassEnabled
     )

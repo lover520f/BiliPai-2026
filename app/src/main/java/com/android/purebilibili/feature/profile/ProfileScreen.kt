@@ -109,7 +109,10 @@ import com.android.purebilibili.core.ui.components.IOSSwitchItem
 import com.android.purebilibili.core.ui.components.IOSSectionTitle
 import com.android.purebilibili.core.ui.components.IOSGridItem
 import com.android.purebilibili.core.store.StoredAccountSession
+import com.android.purebilibili.core.store.HomeSettings
 import com.android.purebilibili.core.store.SettingsManager
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
+import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.data.model.response.FavFolder
 import com.android.purebilibili.data.model.response.FollowBangumiItem
 import com.android.purebilibili.data.model.response.SpaceAggregateArchiveItem
@@ -1390,14 +1393,19 @@ private fun ProfileSpaceTabs(
     val rowContainerShape = remember(chromeSpec.rowCornerRadiusDp) {
         RoundedCornerShape(chromeSpec.rowCornerRadiusDp.dp)
     }
-    val bottomBarLiquidGlassEnabled by SettingsManager
-        .getBottomBarLiquidGlassEnabled(context)
-        .collectAsStateWithLifecycle(initialValue = true)
+    val homeSettings by SettingsManager
+        .getHomeSettings(context)
+        .collectAsStateWithLifecycle(initialValue = HomeSettings())
+    val sharedLiquidGlassEnabled = resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+        uiPreset = LocalUiPreset.current,
+        androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
+    )
     val selectedIndex = tabs.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
     val tabModifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = chromeSpec.rowHorizontalInsetDp.dp)
-    val useUnderlineTabs = embeddedInPanel || !bottomBarLiquidGlassEnabled
+    val useUnderlineTabs = embeddedInPanel || !sharedLiquidGlassEnabled
     if (!useUnderlineTabs) {
         BottomBarLiquidSegmentedControl(
             items = tabs.map { it.title },
@@ -1410,7 +1418,7 @@ private fun ProfileSpaceTabs(
             height = 46.dp,
             indicatorHeight = 40.dp,
             labelFontSize = 16.sp,
-            forceLiquidChrome = false,
+            forceLiquidChrome = homeSettings.androidNativeLiquidGlassEnabled,
             containerColorOverride = contentChrome.surfaceColor,
             selectedTextColorOverride = contentChrome.onSurfaceColor,
             unselectedTextColorOverride = contentChrome.onSurfaceVariantColor,

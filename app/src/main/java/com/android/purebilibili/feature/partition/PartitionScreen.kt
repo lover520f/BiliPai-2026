@@ -70,7 +70,7 @@ import com.android.purebilibili.core.util.FormatUtils
 import com.android.purebilibili.core.store.HomeSettings
 import com.android.purebilibili.core.store.BottomBarLiquidGlassPreset
 import com.android.purebilibili.core.store.SettingsManager
-import com.android.purebilibili.core.store.resolveEffectiveLiquidGlassEnabled
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.ui.transition.LocalVideoCardSharedElementSourceRoute
 import com.android.purebilibili.core.ui.transition.LocalVideoSharedTransitionSpeedSettings
@@ -351,8 +351,8 @@ fun PartitionContent(
         homeSettings.androidNativeLiquidGlassEnabled,
         uiPreset
     ) {
-        resolveEffectiveLiquidGlassEnabled(
-            requestedEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+        resolveSharedLiquidGlassChromeEnabled(
+            individualEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
             uiPreset = uiPreset,
             androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
         )

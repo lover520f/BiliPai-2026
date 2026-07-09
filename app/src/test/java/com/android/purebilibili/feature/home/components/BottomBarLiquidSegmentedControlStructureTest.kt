@@ -263,7 +263,7 @@ class BottomBarLiquidSegmentedControlStructureTest {
         assertTrue(source.contains("KernelSuBottomBarIndicatorLayer("))
         assertTrue(source.contains("chromaticAberration = true"))
         assertTrue(source.contains("getHomeSettings("))
-        assertTrue(source.contains("resolveEffectiveLiquidGlassEnabled("))
+        assertTrue(source.contains("resolveSharedLiquidGlassChromeEnabled("))
         assertTrue(source.contains("resolveSegmentedControlChromeStyle("))
         assertTrue(source.contains("AndroidNativeUnderlinedSegmentedControl("))
         assertTrue(source.contains("SegmentedControlChromeStyle.ANDROID_NATIVE_UNDERLINE"))

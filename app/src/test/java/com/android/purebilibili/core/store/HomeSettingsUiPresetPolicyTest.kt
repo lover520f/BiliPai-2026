@@ -61,4 +61,51 @@ class HomeSettingsUiPresetPolicyTest {
             )
         )
     }
+
+    @Test
+    fun sharedLiquidGlass_globalMasterEnablesAllReusableChrome() {
+        assertTrue(
+            resolveSharedLiquidGlassChromeEnabled(
+                individualEnabled = false,
+                uiPreset = UiPreset.MD3,
+                androidNativeLiquidGlassEnabled = true
+            )
+        )
+        assertTrue(
+            resolveSharedLiquidGlassChromeEnabled(
+                individualEnabled = false,
+                uiPreset = UiPreset.IOS,
+                androidNativeLiquidGlassEnabled = true
+            )
+        )
+    }
+
+    @Test
+    fun sharedLiquidGlass_md3WithoutGlobalKeepsIndividualOff() {
+        assertFalse(
+            resolveSharedLiquidGlassChromeEnabled(
+                individualEnabled = true,
+                uiPreset = UiPreset.MD3,
+                androidNativeLiquidGlassEnabled = false
+            )
+        )
+    }
+
+    @Test
+    fun sharedLiquidGlass_iosAllowsIndividualWithoutGlobal() {
+        assertTrue(
+            resolveSharedLiquidGlassChromeEnabled(
+                individualEnabled = true,
+                uiPreset = UiPreset.IOS,
+                androidNativeLiquidGlassEnabled = false
+            )
+        )
+        assertFalse(
+            resolveSharedLiquidGlassChromeEnabled(
+                individualEnabled = false,
+                uiPreset = UiPreset.IOS,
+                androidNativeLiquidGlassEnabled = false
+            )
+        )
+    }
 }

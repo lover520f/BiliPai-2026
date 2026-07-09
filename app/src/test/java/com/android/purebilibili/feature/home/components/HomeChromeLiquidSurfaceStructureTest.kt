@@ -38,8 +38,10 @@ class HomeChromeLiquidSurfaceStructureTest {
         val topHeaderSource = topHeader.readText()
         val topBarSource = topBar.readText()
         assertTrue(
-            "top header should own the chrome surface renderer after removing the extra file",
-            topHeaderSource.contains("private data class HomeTopChromeSurfaceStyle(") &&
+            "top header liquid chrome should route through the bottom-bar matched KSU surface",
+            topHeaderSource.contains("return@composed this.homeTopBottomBarMatchedSurface(") &&
+                topHeaderSource.contains("liquidGlassPreset: BottomBarLiquidGlassPreset") &&
+                topHeaderSource.contains("private data class HomeTopChromeSurfaceStyle(") &&
                 topHeaderSource.contains("private fun resolveHomeTopChromeBackdropSpec(")
         )
         assertFalse(
@@ -58,8 +60,8 @@ class HomeChromeLiquidSurfaceStructureTest {
             topHeaderMatchedSurfaceCalls > 0
         )
         assertTrue(
-            "edge controls should still be able to disable the full-shell lens while search and top tab dock may use the bottom-bar shell lens",
-            topHeaderDisabledShellLensCalls >= topHeaderMatchedSurfaceCalls - 1
+            "edge controls should still be able to disable the full-shell lens while liquid chrome routes through the matched surface",
+            topHeaderDisabledShellLensCalls >= 1 && topHeaderMatchedSurfaceCalls >= 1
         )
         assertTrue(
             "top tab row should only treat chrome as external when the outer surface is actually drawn",

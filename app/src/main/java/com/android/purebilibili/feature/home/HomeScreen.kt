@@ -64,7 +64,7 @@ import com.android.purebilibili.feature.settings.GITHUB_URL
 import com.android.purebilibili.core.store.SettingsManager //  引入 SettingsManager
 import com.android.purebilibili.core.store.AppNavigationSettings
 import com.android.purebilibili.core.store.resolveEffectiveHomeSettings
-import com.android.purebilibili.core.store.resolveEffectiveLiquidGlassEnabled
+
 import com.android.purebilibili.core.store.resolveHomeHeaderBlurEnabled
 import com.android.purebilibili.core.plugin.skin.rememberUiSkinState
 //  从 components 包导入拆分后的组件
@@ -714,35 +714,28 @@ fun HomeScreen(
     val crashTrackingConsentShown = homeSettings.crashTrackingConsentShown
     val baseCardAnimationEnabled = homeSettings.cardAnimationEnabled      //  卡片进场动画开关
     val baseCardTransitionEnabled = homeSettings.cardTransitionEnabled
-    val baseBottomBarLiquidGlassEnabled = remember(
-        homeSettings.isBottomBarLiquidGlassEnabled,
-        homeSettings.androidNativeLiquidGlassEnabled,
-        uiPreset
-    ) {
-        resolveEffectiveLiquidGlassEnabled(
-            requestedEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
-            uiPreset = uiPreset,
-            androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
-        )
-    }
     val baseIsDataSaverActive = remember(context) {
         com.android.purebilibili.core.store.SettingsManager.isDataSaverActive(context)
     }
     val homePerformanceConfig = remember(
         baseIsHeaderBlurEnabled,
         baseIsBottomBarBlurEnabled,
-        baseBottomBarLiquidGlassEnabled,
+        homeSettings.isTopBarLiquidGlassEnabled,
+        homeSettings.isHomeSearchLiquidGlassEnabled,
+        homeSettings.isBottomBarLiquidGlassEnabled,
         baseCardAnimationEnabled,
         baseCardTransitionEnabled,
         baseIsDataSaverActive,
-        homeSettings.androidNativeLiquidGlassEnabled
+        homeSettings.androidNativeLiquidGlassEnabled,
+        uiPreset
     ) {
         resolveHomePerformanceConfig(
             uiPreset = uiPreset,
             headerBlurEnabled = baseIsHeaderBlurEnabled,
             bottomBarBlurEnabled = baseIsBottomBarBlurEnabled,
             topBarLiquidGlassEnabled = homeSettings.isTopBarLiquidGlassEnabled,
-            bottomBarLiquidGlassEnabled = baseBottomBarLiquidGlassEnabled,
+            homeSearchLiquidGlassEnabled = homeSettings.isHomeSearchLiquidGlassEnabled,
+            bottomBarLiquidGlassEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
             androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled,
             cardAnimationEnabled = baseCardAnimationEnabled,
             cardTransitionEnabled = baseCardTransitionEnabled,

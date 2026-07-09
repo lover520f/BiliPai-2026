@@ -898,7 +898,7 @@ class iOSHomeHeaderVisualPolicyTest {
     }
 
     @Test
-    fun `home top respects independent disabled top dock liquid glass`() {
+    fun `home top global liquid glass enables top dock chrome`() {
         val appearance = resolveHomeTopLinkedBottomBarAppearance(
             homeSettings = HomeSettings(
                 isTopBarLiquidGlassEnabled = false,
@@ -911,7 +911,7 @@ class iOSHomeHeaderVisualPolicyTest {
 
         assertTrue(appearance.isFloating)
         assertTrue(appearance.blurEnabled)
-        assertFalse(appearance.liquidGlassEnabled)
+        assertTrue(appearance.liquidGlassEnabled)
     }
 
     @Test
@@ -934,7 +934,9 @@ class iOSHomeHeaderVisualPolicyTest {
                 uiPreset = UiPreset.MD3
             )
         )
-        assertTrue(
+        // MD3 without global master keeps liquid glass off even if the individual
+        // top-dock toggle is on; iOS still allows individual enablement.
+        assertFalse(
             resolveHomeTopTabIndicatorLiquidGlassEnabled(
                 homeSettings = HomeSettings(
                     isTopBarLiquidGlassEnabled = true,
@@ -943,11 +945,20 @@ class iOSHomeHeaderVisualPolicyTest {
                 uiPreset = UiPreset.MD3
             )
         )
+        assertTrue(
+            resolveHomeTopTabIndicatorLiquidGlassEnabled(
+                homeSettings = HomeSettings(
+                    isTopBarLiquidGlassEnabled = true,
+                    androidNativeLiquidGlassEnabled = false
+                ),
+                uiPreset = UiPreset.IOS
+            )
+        )
     }
 
     @Test
-    fun `top chrome follows independent top dock liquid glass setting`() {
-        assertTrue(
+    fun `top chrome follows shared liquid glass reuse contract`() {
+        assertFalse(
             resolveHomeTopChromeLiquidGlassEnabled(
                 homeSettings = HomeSettings(
                     isTopBarLiquidGlassEnabled = true,
@@ -957,11 +968,11 @@ class iOSHomeHeaderVisualPolicyTest {
                 uiPreset = UiPreset.MD3
             )
         )
-        assertFalse(
+        assertTrue(
             resolveHomeTopChromeLiquidGlassEnabled(
                 homeSettings = HomeSettings(
                     isTopBarLiquidGlassEnabled = false,
-                    isBottomBarLiquidGlassEnabled = true,
+                    isBottomBarLiquidGlassEnabled = false,
                     androidNativeLiquidGlassEnabled = true
                 ),
                 uiPreset = UiPreset.MD3
@@ -980,12 +991,23 @@ class iOSHomeHeaderVisualPolicyTest {
     }
 
     @Test
-    fun `home search follows independent liquid glass setting`() {
+    fun `home search follows shared liquid glass reuse contract`() {
         assertFalse(
             resolveHomeTopSearchLiquidGlassEnabled(
                 homeSettings = HomeSettings(
                     isTopBarLiquidGlassEnabled = true,
-                    isHomeSearchLiquidGlassEnabled = false
+                    isHomeSearchLiquidGlassEnabled = false,
+                    androidNativeLiquidGlassEnabled = false
+                ),
+                uiPreset = UiPreset.MD3
+            )
+        )
+        assertFalse(
+            resolveHomeTopSearchLiquidGlassEnabled(
+                homeSettings = HomeSettings(
+                    isTopBarLiquidGlassEnabled = false,
+                    isHomeSearchLiquidGlassEnabled = true,
+                    androidNativeLiquidGlassEnabled = false
                 ),
                 uiPreset = UiPreset.MD3
             )
@@ -994,9 +1016,20 @@ class iOSHomeHeaderVisualPolicyTest {
             resolveHomeTopSearchLiquidGlassEnabled(
                 homeSettings = HomeSettings(
                     isTopBarLiquidGlassEnabled = false,
-                    isHomeSearchLiquidGlassEnabled = true
+                    isHomeSearchLiquidGlassEnabled = false,
+                    androidNativeLiquidGlassEnabled = true
                 ),
                 uiPreset = UiPreset.MD3
+            )
+        )
+        assertTrue(
+            resolveHomeTopSearchLiquidGlassEnabled(
+                homeSettings = HomeSettings(
+                    isTopBarLiquidGlassEnabled = false,
+                    isHomeSearchLiquidGlassEnabled = true,
+                    androidNativeLiquidGlassEnabled = false
+                ),
+                uiPreset = UiPreset.IOS
             )
         )
     }
@@ -1508,7 +1541,8 @@ class iOSHomeHeaderVisualPolicyTest {
             blurIntensity = BlurIntensity.THICK
         ).alpha
 
-        assertEquals(bottomBarAlpha, alpha, 0.0001f)
+        // Color packing can quantize alpha slightly; keep the policy values aligned.
+        assertEquals(bottomBarAlpha, alpha, 0.01f)
     }
 
     @Test

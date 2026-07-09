@@ -164,6 +164,7 @@ import com.android.purebilibili.core.store.BottomBarSearchAutoExpandMode
 import com.android.purebilibili.core.store.BottomBarSearchLayoutMode
 import com.android.purebilibili.core.store.LiquidGlassStyle // [New] Top-level enum
 import com.android.purebilibili.core.store.LiquidGlassMode
+import com.android.purebilibili.core.store.resolveSharedLiquidGlassChromeEnabled
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.FastOutSlowInEasing
 import kotlin.math.sign
@@ -2328,8 +2329,14 @@ fun FrostedBottomBar(
     val windowSizeClass = com.android.purebilibili.core.util.LocalWindowSizeClass.current
     val isTablet = windowSizeClass.isTablet
     val globalWallpaperVisible = LocalGlobalWallpaperBackdropVisible.current
+    val uiPreset = LocalUiPreset.current
+    val sharedLiquidGlassEnabled = resolveSharedLiquidGlassChromeEnabled(
+        individualEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+        uiPreset = uiPreset,
+        androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
+    )
     if (isFloating) {
-        val glassEnabled = homeSettings.isBottomBarLiquidGlassEnabled
+        val glassEnabled = sharedLiquidGlassEnabled
         val tuning = resolveAndroidNativeBottomBarTuning(
             blurEnabled = glassEnabled || hazeState != null,
             darkTheme = resolveBottomBarDarkTheme(AppSurfaceTokens.chromeBackground())
@@ -2445,7 +2452,11 @@ private fun MaterialBottomBar(
         )
     }
     val glassEnabled = resolveAndroidNativeBottomBarGlassEnabled(
-        liquidGlassEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+        liquidGlassEnabled = resolveSharedLiquidGlassChromeEnabled(
+            individualEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+            uiPreset = LocalUiPreset.current,
+            androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
+        ),
         blurEnabled = blurEnabled
     )
     val androidNativeTuning = resolveAndroidNativeBottomBarTuning(
@@ -2697,7 +2708,11 @@ private fun MiuixBottomBar(
     }
     val displayMode = resolveMd3BottomBarDisplayMode(labelMode).toMiuixNavigationDisplayMode()
     val glassEnabled = resolveAndroidNativeBottomBarGlassEnabled(
-        liquidGlassEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+        liquidGlassEnabled = resolveSharedLiquidGlassChromeEnabled(
+            individualEnabled = homeSettings.isBottomBarLiquidGlassEnabled,
+            uiPreset = LocalUiPreset.current,
+            androidNativeLiquidGlassEnabled = homeSettings.androidNativeLiquidGlassEnabled
+        ),
         blurEnabled = blurEnabled
     )
     val tuning = resolveAndroidNativeBottomBarTuning(
