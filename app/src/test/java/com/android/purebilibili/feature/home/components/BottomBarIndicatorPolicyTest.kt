@@ -957,6 +957,48 @@ class BottomBarIndicatorPolicyTest {
     }
 
     @Test
+    fun `shared liquid indicator lens keeps drag floor and full capture while swiping`() {
+        assertEquals(
+            0.6f,
+            resolveSharedLiquidIndicatorLensProgress(
+                pressProgress = 0f,
+                motionProgress = 0.1f,
+                isDragging = true
+            ),
+            0.001f
+        )
+        assertEquals(
+            0.85f,
+            resolveSharedLiquidIndicatorLensProgress(
+                pressProgress = 0.85f,
+                motionProgress = 0.2f,
+                isDragging = false
+            ),
+            0.001f
+        )
+        assertEquals(
+            1f,
+            resolveSharedLiquidIndicatorCaptureLensProgress(
+                lensProgress = 0.2f,
+                isDragging = true
+            ),
+            0.001f
+        )
+        assertTrue(
+            resolveSharedLiquidIndicatorUseGlassColorPath(
+                liquidGlassEnabled = true,
+                lensProgress = 0.5f
+            )
+        )
+        assertFalse(
+            resolveSharedLiquidIndicatorUseGlassColorPath(
+                liquidGlassEnabled = true,
+                lensProgress = 0f
+            )
+        )
+    }
+
+    @Test
     fun `idle refraction profile disables offset and keeps full visible emphasis`() {
         val profile = resolveBottomBarRefractionMotionProfile(
             position = 2f,

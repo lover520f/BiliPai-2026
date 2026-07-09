@@ -1470,7 +1470,8 @@ private fun VideoContentTabBar(
                 backdrop = backdrop,
                 forceLiquidChrome = homeSettings.androidNativeLiquidGlassEnabled,
                 liquidGlassEffectsEnabled = liquidChromeSpec.liquidGlassEffectsEnabled,
-                tapPressRefractionEnabled = false,
+                // Keep press/swipe refraction aligned with home bottom bar indicator.
+                tapPressRefractionEnabled = true,
             )
 
             // [新增] 恢复画面按钮 (仅在播放器折叠时显示)
