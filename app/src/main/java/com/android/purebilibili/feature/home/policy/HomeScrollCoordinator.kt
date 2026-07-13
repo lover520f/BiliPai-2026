@@ -50,24 +50,11 @@ internal fun resolveHomeHeaderSettleTransition(
 }
 
 internal fun resolveHomeHeaderReleaseTarget(
-    currentHeaderOffsetPx: Float,
     maxHeaderCollapsePx: Float,
-    lastScrollDeltaY: Float,
-    canRevealHeader: Boolean,
-    revealThresholdFraction: Float = 0.35f
+    canRevealHeader: Boolean
 ): Float {
     if (maxHeaderCollapsePx <= 0f || canRevealHeader) return 0f
-
-    val clampedOffset = currentHeaderOffsetPx.coerceIn(-maxHeaderCollapsePx, 0f)
-    val revealedFraction = 1f - (-clampedOffset / maxHeaderCollapsePx)
-    return if (
-        lastScrollDeltaY > 0f &&
-        revealedFraction >= revealThresholdFraction.coerceIn(0f, 1f)
-    ) {
-        0f
-    } else {
-        -maxHeaderCollapsePx
-    }
+    return -maxHeaderCollapsePx
 }
 
 internal fun resolveHomeHeaderTransitionRunning(
@@ -118,8 +105,8 @@ internal fun reduceHomePreScroll(
 ): HomeScrollUpdate {
     val nextHeaderOffset = when {
         !isHeaderCollapseEnabled -> 0f
-        // 列表未在顶部时，只有继续下滑才立刻收满；上滑应逐步露出顶栏/标签。
-        deltaY < 0f && !canRevealHeader -> minHeaderOffsetPx
+        // 搜索框和标签页只在列表回到顶部时展开。
+        !canRevealHeader -> minHeaderOffsetPx
         else -> (currentHeaderOffsetPx + deltaY).coerceIn(minHeaderOffsetPx, 0f)
     }
 

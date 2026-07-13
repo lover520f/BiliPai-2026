@@ -87,35 +87,18 @@ class HomeScrollCoordinatorTest {
     }
 
     @Test
-    fun downwardRelease_snapsPartiallyRevealedHeaderOpen() {
-        assertEquals(
-            0f,
-            resolveHomeHeaderReleaseTarget(
-                currentHeaderOffsetPx = -72f,
-                maxHeaderCollapsePx = 120f,
-                lastScrollDeltaY = 18f,
-                canRevealHeader = false
-            )
-        )
-    }
-
-    @Test
-    fun upwardRelease_snapsHeaderClosedUnlessAlreadyAtTop() {
+    fun release_keepsHeaderCollapsedUnlessFeedIsAtTop() {
         assertEquals(
             -120f,
             resolveHomeHeaderReleaseTarget(
-                currentHeaderOffsetPx = -72f,
                 maxHeaderCollapsePx = 120f,
-                lastScrollDeltaY = -18f,
                 canRevealHeader = false
             )
         )
         assertEquals(
             0f,
             resolveHomeHeaderReleaseTarget(
-                currentHeaderOffsetPx = -120f,
                 maxHeaderCollapsePx = 120f,
-                lastScrollDeltaY = -18f,
                 canRevealHeader = true
             )
         )
@@ -271,7 +254,7 @@ class HomeScrollCoordinatorTest {
     }
 
     @Test
-    fun upwardScrollAwayFromTop_revealsHeaderProgressively() {
+    fun upwardScrollAwayFromTop_keepsHeaderCollapsed() {
         val result = reduceHomePreScroll(
             currentHeaderOffsetPx = -120f,
             deltaY = 36f,
@@ -284,7 +267,7 @@ class HomeScrollCoordinatorTest {
             currentGlobalScrollOffset = 40f
         )
 
-        assertEquals(-84f, result.headerOffsetPx)
+        assertEquals(-120f, result.headerOffsetPx)
     }
 
     @Test

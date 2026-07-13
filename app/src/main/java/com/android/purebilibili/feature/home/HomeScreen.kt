@@ -274,7 +274,6 @@ fun HomeScreen(
     val globalFeedScrollInProgress = LocalHomeFeedScrollInProgress.current
     // [Header] 首页重选/双击回顶时需要强制恢复顶部，避免自动收缩后残留空白区域
     var headerOffsetHeightPx by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    var lastHeaderScrollDeltaY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var headerSettleAnimationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var delayTopTabsUntilCardSettled by remember { mutableStateOf(false) }
     var hideTopTabsForForwardDetailNav by remember { mutableStateOf(false) }
@@ -1278,7 +1277,6 @@ fun HomeScreen(
                 if (!shouldHandleHomeVerticalPreScroll(deltaX = available.x, deltaY = available.y)) {
                     return Offset.Zero
                 }
-                lastHeaderScrollDeltaY = available.y
                 headerSettleAnimationJob?.cancel()
                 headerSettleAnimationJob = null
                 val scrollUpdate = reduceHomePreScroll(
@@ -1309,19 +1307,11 @@ fun HomeScreen(
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 if (!isAnyHeaderCollapseEnabled) return Velocity.Zero
 
-                val releaseDirection = if (kotlin.math.abs(available.y) > 0.5f) {
-                    available.y
-                } else {
-                    lastHeaderScrollDeltaY
-                }
                 val targetOffset = resolveHomeHeaderReleaseTarget(
-                    currentHeaderOffsetPx = headerOffsetHeightPx,
                     maxHeaderCollapsePx = headerAutoCollapseDistancePx,
-                    lastScrollDeltaY = releaseDirection,
                     canRevealHeader = canRevealHeader
                 )
                 animateHeaderOffsetTo(targetOffset)
-                lastHeaderScrollDeltaY = 0f
                 return Velocity.Zero
             }
         }
