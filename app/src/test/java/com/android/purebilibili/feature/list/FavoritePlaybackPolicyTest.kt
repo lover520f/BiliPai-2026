@@ -4,9 +4,18 @@ import com.android.purebilibili.data.model.response.Owner
 import com.android.purebilibili.data.model.response.VideoItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FavoritePlaybackPolicyTest {
+
+    @Test
+    fun playbackPageContinuesOnlyWhenApiHasMoreAndReturnedItems() {
+        assertTrue(shouldLoadNextFavoritePlaybackPage(hasMore = true, pageItemCount = 20))
+        assertFalse(shouldLoadNextFavoritePlaybackPage(hasMore = false, pageItemCount = 20))
+        assertFalse(shouldLoadNextFavoritePlaybackPage(hasMore = true, pageItemCount = 0))
+    }
 
     private fun item(
         bvid: String,

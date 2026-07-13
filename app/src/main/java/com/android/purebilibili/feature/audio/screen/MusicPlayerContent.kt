@@ -655,7 +655,7 @@ private fun MusicPlayModeDock(
     onPlayModeChange: (PlayMode) -> Unit
 ) {
     BottomBarLiquidSegmentedControl(
-        items = listOf("顺序播放", "随机播放", "单曲循环"),
+        items = listOf("顺序播放", "随机播放", "单曲循环", "列表循环"),
         selectedIndex = resolveMusicPlayModeIndex(mode),
         onSelected = { onPlayModeChange(resolveMusicPlayMode(it)) },
         modifier = Modifier

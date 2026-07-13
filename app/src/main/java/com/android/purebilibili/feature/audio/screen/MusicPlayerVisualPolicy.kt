@@ -22,11 +22,13 @@ internal fun resolveMusicPlayModeIndex(mode: PlayMode): Int = when (mode) {
     PlayMode.SEQUENTIAL -> 0
     PlayMode.SHUFFLE -> 1
     PlayMode.REPEAT_ONE -> 2
+    PlayMode.REPEAT_ALL -> 3
 }
 
 internal fun resolveMusicPlayMode(index: Int): PlayMode = when (index) {
     1 -> PlayMode.SHUFFLE
     2 -> PlayMode.REPEAT_ONE
+    3 -> PlayMode.REPEAT_ALL
     else -> PlayMode.SEQUENTIAL
 }
 

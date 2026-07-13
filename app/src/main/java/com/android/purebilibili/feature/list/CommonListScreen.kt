@@ -719,10 +719,11 @@ fun CommonListScreen(
             .background(headerBackgroundColor)
     }
 
-    val playFavoriteVideo: (List<VideoItem>, String, Long, String) -> Unit =
-        { items, bvid, cid, coverUrl ->
+    val playFavoriteVideo: (List<VideoItem>, String, Long, String, Int?, Boolean) -> Unit =
+        { items, bvid, cid, coverUrl, folderIndex, playAllAudio ->
+            fun startPlayback(playlistItems: List<VideoItem>) {
             val externalPlaylist = buildExternalPlaylistFromFavorite(
-                items = items,
+                items = playlistItems,
                 clickedBvid = bvid
             )
             if (externalPlaylist != null) {
@@ -733,8 +734,19 @@ fun CommonListScreen(
                 )
                 PlaylistManager.setPlayMode(PlayMode.SEQUENTIAL)
             }
-            val isVertical = items.firstOrNull { it.bvid == bvid }?.isVertical ?: false
-            onVideoClick(bvid, cid, coverUrl, isVertical)
+            val isVertical = playlistItems.firstOrNull { it.bvid == bvid }?.isVertical ?: false
+            if (playAllAudio) {
+                onPlayAllAudioClick?.invoke(bvid, cid)
+                    ?: onVideoClick(bvid, cid, coverUrl, isVertical)
+            } else {
+                onVideoClick(bvid, cid, coverUrl, isVertical)
+            }
+            }
+            if (favoriteViewModel != null && folderIndex != null) {
+                favoriteViewModel.loadAllForPlayback(folderIndex, ::startPlayback)
+            } else {
+                startPlayback(items)
+            }
         }
 
     AdaptiveScaffold(
@@ -844,7 +856,7 @@ fun CommonListScreen(
                                 showOnlineCount = showOnlineCount,
                                 videoCardAppearance = videoCardAppearance,
                                 onVideoClick = { bvid, cid, coverUrl, isVertical ->
-                                    playFavoriteVideo(folderUiState.items, bvid, cid, coverUrl)
+                                    playFavoriteVideo(folderUiState.items, bvid, cid, coverUrl, page, false)
                                 },
                                 onCollectionClick = onCollectionClick,
                                 onRetry = { favoriteVm.retryFolder(page) },
@@ -882,7 +894,7 @@ fun CommonListScreen(
                             showOnlineCount = showOnlineCount,
                             videoCardAppearance = videoCardAppearance,
                             onVideoClick = { bvid, cid, coverUrl, _ ->
-                                playFavoriteVideo(folderUiState.items, bvid, cid, coverUrl)
+                                playFavoriteVideo(folderUiState.items, bvid, cid, coverUrl, 0, false)
                             },
                             onCollectionClick = onCollectionClick,
                             onRetry = { favoriteVm.retryFolder(0) },
@@ -912,7 +924,7 @@ fun CommonListScreen(
                         videoCardAppearance = videoCardAppearance,
                         onVideoClick = { bvid, cid, coverUrl, isVertical ->
                             if (shouldUseFavoritePlaybackQueue) {
-                                playFavoriteVideo(state.items, bvid, cid, coverUrl)
+                                playFavoriteVideo(state.items, bvid, cid, coverUrl, null, false)
                             } else {
                                 onVideoClick(bvid, cid, coverUrl, isVertical)
                             }
@@ -1019,28 +1031,18 @@ fun CommonListScreen(
                                 IconButton(
                                     enabled = activeFavoriteItems.isNotEmpty() && !isSubscribedBrowse,
                                     onClick = {
-                                        val externalPlaylist = buildExternalPlaylistFromFavorite(
-                                            items = activeFavoriteItems,
-                                            clickedBvid = activeFavoriteItems.firstOrNull()?.bvid
-                                        ) ?: return@IconButton
-
-                                        PlaylistManager.setExternalPlaylist(
-                                            externalPlaylist.playlistItems,
-                                            externalPlaylist.startIndex,
-                                            source = ExternalPlaylistSource.FAVORITE
+                                        playFavoriteVideo(
+                                            activeFavoriteItems,
+                                            activeFavoriteItems.firstOrNull()?.bvid.orEmpty(),
+                                            activeFavoriteItems.firstOrNull()?.cid ?: 0L,
+                                            activeFavoriteItems.firstOrNull()?.pic.orEmpty(),
+                                            if (!isSubscribedBrowse) {
+                                                selectedFolderIndex
+                                            } else {
+                                                null
+                                            },
+                                            true
                                         )
-                                        PlaylistManager.setPlayMode(PlayMode.SEQUENTIAL)
-
-                                        val startItem = activeFavoriteItems
-                                            .getOrNull(externalPlaylist.startIndex)
-                                            ?: return@IconButton
-                                        onPlayAllAudioClick?.invoke(startItem.bvid, startItem.cid)
-                                            ?: onVideoClick(
-                                                startItem.bvid,
-                                                startItem.cid,
-                                                startItem.pic,
-                                                startItem.isVertical
-                                            )
                                     }
                                 ) {
                                     Icon(

@@ -53,6 +53,7 @@ internal fun resolveAudioPlayModeLabel(mode: PlayMode): String = when (mode) {
     PlayMode.SEQUENTIAL -> "顺序播放"
     PlayMode.SHUFFLE -> "随机播放"
     PlayMode.REPEAT_ONE -> "单曲循环"
+    PlayMode.REPEAT_ALL -> "列表循环"
 }
 
 internal fun shouldUseAudioModeLiquidPlayModeControl(

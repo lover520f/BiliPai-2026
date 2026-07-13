@@ -150,6 +150,18 @@ class PlaylistManagerShufflePolicyTest {
         assertEquals(1, PlaylistManager.currentIndex.value)
     }
 
+    @Test
+    fun `repeat all mode should return to first item at queue end`() {
+        PlaylistManager.setPlaylist(
+            items = listOf(playlistItem("BV1"), playlistItem("BV2")),
+            startIndex = 1
+        )
+        PlaylistManager.setPlayMode(PlayMode.REPEAT_ALL)
+
+        assertEquals("BV1", PlaylistManager.playNext()?.bvid)
+        assertEquals(0, PlaylistManager.currentIndex.value)
+    }
+
     private fun playlistItem(bvid: String) = PlaylistItem(
         bvid = bvid,
         title = bvid,

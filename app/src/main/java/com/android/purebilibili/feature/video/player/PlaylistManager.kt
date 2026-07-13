@@ -39,7 +39,8 @@ data class PlaylistItem(
 enum class PlayMode {
     SEQUENTIAL,   // 顺序播放
     SHUFFLE,      // 随机播放  
-    REPEAT_ONE    // 单曲循环
+    REPEAT_ONE,   // 单曲循环
+    REPEAT_ALL    // 列表循环
 }
 
 @Serializable
@@ -386,7 +387,8 @@ object PlaylistManager {
         val newMode = when (_playMode.value) {
             PlayMode.SEQUENTIAL -> PlayMode.SHUFFLE
             PlayMode.SHUFFLE -> PlayMode.REPEAT_ONE
-            PlayMode.REPEAT_ONE -> PlayMode.SEQUENTIAL
+            PlayMode.REPEAT_ONE -> PlayMode.REPEAT_ALL
+            PlayMode.REPEAT_ALL -> PlayMode.SEQUENTIAL
         }
         _playMode.value = newMode
         if (newMode == PlayMode.SHUFFLE) {
@@ -435,6 +437,9 @@ object PlaylistManager {
                 // 单曲循环：保持当前
                 currentIdx
             }
+            PlayMode.REPEAT_ALL -> {
+                if (currentIdx < list.lastIndex) currentIdx + 1 else 0
+            }
         }
         
         return if (nextIndex != null && nextIndex in list.indices) {
@@ -463,6 +468,7 @@ object PlaylistManager {
                 // 顺序/单曲循环：上一个
                 if (currentIdx > 0) currentIdx - 1 else null
             }
+            PlayMode.REPEAT_ALL -> if (currentIdx > 0) currentIdx - 1 else list.lastIndex
             PlayMode.SHUFFLE -> {
                 // 随机播放：从历史记录返回
                 if (shuffleHistoryIndex > 0) {
@@ -526,6 +532,7 @@ object PlaylistManager {
             PlayMode.SEQUENTIAL -> currentIdx < list.lastIndex
             PlayMode.SHUFFLE -> list.size > 1
             PlayMode.REPEAT_ONE -> true
+            PlayMode.REPEAT_ALL -> list.isNotEmpty()
         }
     }
     
@@ -534,10 +541,12 @@ object PlaylistManager {
      */
     fun hasPrevious(): Boolean {
         val currentIdx = _currentIndex.value
+        val list = _playlist.value
         
         return when (_playMode.value) {
             PlayMode.SEQUENTIAL, PlayMode.REPEAT_ONE -> currentIdx > 0
             PlayMode.SHUFFLE -> shuffleHistoryIndex > 0
+            PlayMode.REPEAT_ALL -> list.isNotEmpty()
         }
     }
     
@@ -549,6 +558,7 @@ object PlaylistManager {
             PlayMode.SEQUENTIAL -> "顺序播放"
             PlayMode.SHUFFLE -> "随机播放"
             PlayMode.REPEAT_ONE -> "单曲循环"
+            PlayMode.REPEAT_ALL -> "列表循环"
         }
     }
     
@@ -560,6 +570,7 @@ object PlaylistManager {
             PlayMode.SEQUENTIAL -> "🔂"
             PlayMode.SHUFFLE -> "🔀"
             PlayMode.REPEAT_ONE -> ""
+            PlayMode.REPEAT_ALL -> ""
         }
     }
 

@@ -14,6 +14,7 @@ class AudioModePlayModePolicyTest {
         assertEquals("顺序播放", resolveAudioPlayModeLabel(PlayMode.SEQUENTIAL))
         assertEquals("随机播放", resolveAudioPlayModeLabel(PlayMode.SHUFFLE))
         assertEquals("单曲循环", resolveAudioPlayModeLabel(PlayMode.REPEAT_ONE))
+        assertEquals("列表循环", resolveAudioPlayModeLabel(PlayMode.REPEAT_ALL))
     }
 
     @Test

@@ -905,6 +905,58 @@ class FavoriteViewModel(application: Application) : BaseListViewModel(applicatio
         }
     }
 
+    fun loadAllForPlayback(index: Int, onLoaded: (List<VideoItem>) -> Unit) {
+        if (index < 0 || index >= allFolderIds.size) return
+
+        viewModelScope.launch {
+            val mediaId = allFolderIds[index]
+            val requestedOrder = _favoriteOrderState.value.apiValue
+            val requestGeneration = folderRequestGenerations[index] ?: 0L
+            val items = mutableListOf<VideoItem>()
+            var page = 1
+            var hasMore = true
+
+            try {
+                folderContentSemaphore.withPermit {
+                    while (hasMore) {
+                        val data = requestFavoriteFolderWithRetry {
+                            com.android.purebilibili.data.repository.FavoriteRepository.getFavoriteList(
+                                mediaId = mediaId,
+                                pn = page,
+                                ps = resolveFavoriteFolderContentPageSize(),
+                                order = requestedOrder
+                            )
+                        }.getOrThrow()
+                        items += data.medias.orEmpty().map { it.toVideoItem() }
+                        hasMore = shouldLoadNextFavoritePlaybackPage(
+                            hasMore = data.has_more,
+                            pageItemCount = data.medias.orEmpty().size
+                        )
+                        page += 1
+                    }
+                }
+                if (isCurrentFolderRequest(index, requestGeneration, mediaId, requestedOrder)) {
+                    folderPaginationStates[index] = PaginationState(
+                        currentPage = page - 1,
+                        hasMore = false
+                    )
+                    val uniqueItems = items.distinctBy { it.id }
+                    val stateFlow = _folderStates[index] ?: return@launch
+                    stateFlow.value = stateFlow.value.copy(items = uniqueItems, error = null)
+                    onLoaded(uniqueItems)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _folderStates[index]?.let { stateFlow ->
+                    stateFlow.value = stateFlow.value.copy(
+                        error = e.message?.takeIf(String::isNotBlank) ?: "加载收藏夹失败"
+                    )
+                }
+            }
+        }
+    }
+
     private fun appendFavoriteFolderItems(index: Int, newItems: List<VideoItem>) {
         val stateFlow = _folderStates[index] ?: return
         val currentItems = stateFlow.value.items
