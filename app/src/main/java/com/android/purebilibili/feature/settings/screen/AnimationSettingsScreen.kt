@@ -231,7 +231,7 @@ fun AnimationSettingsContent(
                         IOSDivider()
                         IOSSwitchItem(
                             icon = rememberSettingsSemanticIcon(SettingsIconRole.CARD_TRANSITION_ANIMATION),
-                            title = "视频详情跟手返回",
+                            title = "返回预测",
                             subtitle = "从视频详情返回原列表时，卡片随边缘手势收拢",
                             checked = appNavigationSettings.predictiveBackEnabled,
                             onCheckedChange = { enabled ->
