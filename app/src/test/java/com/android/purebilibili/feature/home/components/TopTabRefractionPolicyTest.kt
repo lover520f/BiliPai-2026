@@ -17,7 +17,8 @@ class TopTabRefractionPolicyTest {
         assertTrue(source.contains("shouldUseMovingIosCapsule"))
         assertTrue(source.contains("shouldUseLiquidGlassIndicator"))
         assertFalse(source.contains("shouldForceDragLiquidGlassIndicator"))
-        assertTrue(source.contains("KernelSuBottomBarIndicatorLayer("))
+        assertTrue(source.contains("KernelSuMiuixBottomBarIndicatorLayer("))
+        assertFalse(source.contains("KernelSuBottomBarIndicatorLayer("))
         assertFalse(source.contains("BottomBarLiquidIndicatorSurface("))
         assertTrue(source.contains("resolveBottomBarRefractionMotionProfile("))
         assertTrue(source.contains("resolveBottomBarBackdropPresetIndicatorLens("))
@@ -26,12 +27,13 @@ class TopTabRefractionPolicyTest {
         assertTrue(source.contains("val topTabContentBackdrop = rememberLayerBackdrop()"))
         assertTrue(source.contains("val effectiveTopTabIndicatorContentBackdrop: Backdrop?"))
         assertTrue(source.contains("rememberCombinedBackdrop(backdrop, topTabContentBackdrop)"))
-        assertTrue(source.contains("contentBackdrop = effectiveTopTabIndicatorContentBackdrop"))
-        assertTrue(source.contains("backdrop = backdrop"))
+        assertTrue(source.contains("contentBackdrop = topTabContentBackdrop"))
+        assertTrue(source.contains("backdrop = effectiveTopTabIndicatorContentBackdrop ?: backdrop"))
         assertTrue(source.contains("val glassLayersAlwaysOn = shouldUseLiquidGlassIndicator"))
         assertTrue(source.contains("resolveTopTabIndicatorBackdropPolicy("))
-        assertTrue(source.contains("indicatorLayerScaleTransform = if (topTabDragActive)"))
+        assertTrue(source.contains("indicatorLayerScaleTransform = null") || source.contains("indicatorLayerScaleTransform = if (topTabDragActive)"))
         assertFalse(source.contains("indicatorHeight = 4.dp"))
+        assertFalse(source.contains("com.kyant.backdrop"))
     }
 
     @Test
@@ -361,7 +363,8 @@ class TopTabRefractionPolicyTest {
         assertTrue(source.contains("resolveTopTabIndicatorRenderPosition("))
         assertTrue(source.contains("pagerCurrentPageOffsetFraction = pagerState?.currentPageOffsetFraction"))
         assertTrue(source.contains("resolveTopTabClickAction(index, selectedIndex)"))
-        assertTrue(source.contains("KernelSuBottomBarIndicatorLayer("))
+        assertTrue(source.contains("KernelSuMiuixBottomBarIndicatorLayer("))
+        assertFalse(source.contains("KernelSuBottomBarIndicatorLayer("))
         assertFalse(source.contains("BottomBarLiquidIndicatorSurface("))
         assertFalse(source.contains("LiquidIndicator("))
         assertFalse(source.contains("SimpleLiquidIndicator("))
@@ -372,6 +375,7 @@ class TopTabRefractionPolicyTest {
         assertTrue(source.contains("rememberCombinedBackdrop(backdrop, topTabContentBackdrop)"))
         assertTrue(source.contains("if (shouldPrimeTopTabLiquidGlassCapture)"))
         assertTrue(source.contains("layerBackdrop(topTabContentBackdrop)"))
+        assertFalse(source.contains("com.kyant.backdrop"))
     }
 
     @Test

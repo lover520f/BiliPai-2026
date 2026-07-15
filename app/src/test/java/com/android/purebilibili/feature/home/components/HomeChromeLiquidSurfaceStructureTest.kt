@@ -172,17 +172,17 @@ class HomeChromeLiquidSurfaceStructureTest {
             lightweightTopTabItemSource.contains(".align(Alignment.BottomCenter)")
         )
         assertTrue(
-            "matched top dock helper should still use the KSU floating dock renderer for header controls",
-            topBarSource.contains(".kernelSuFloatingDockSurface(") &&
+            "matched top dock helper should use Miuix floating dock renderer for header controls",
+            topBarSource.contains(".kernelSuMiuixFloatingDockSurface(") &&
                 topBarSource.contains("liquidGlassPreset: BottomBarLiquidGlassPreset") &&
                 topBarSource.contains("liquidGlassPreset = liquidGlassPreset")
         )
         assertTrue(
-            "top tab indicator should reuse the bottom bar KSU indicator layer when chrome exists",
+            "top tab indicator should reuse the Miuix bottom-bar indicator layer when chrome exists",
             topBarSource.contains("val shouldRenderTopTabLiquidGlassIndicator = shouldUseLiquidGlassIndicator") &&
                 topBarSource.contains("!hasOuterChromeSurface") &&
                 topBarSource.contains("val shouldUseMd3DockBackedCapsule =") &&
-                topBarSource.contains("KernelSuBottomBarIndicatorLayer(") &&
+                topBarSource.contains("KernelSuMiuixBottomBarIndicatorLayer(") &&
                 topBarSource.contains("val shouldPrimeTopTabLiquidGlassCapture =") &&
                 topBarSource.contains("val topTabContentBackdrop = rememberLayerBackdrop()") &&
                 topBarSource.contains("rememberCombinedBackdrop(backdrop, topTabContentBackdrop)") &&

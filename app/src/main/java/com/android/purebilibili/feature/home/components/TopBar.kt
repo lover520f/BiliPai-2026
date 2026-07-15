@@ -91,11 +91,11 @@ import com.android.purebilibili.core.ui.animation.DampedDragAnimationState
 import com.android.purebilibili.core.ui.animation.rememberDampedDragAnimationState
 import com.android.purebilibili.core.ui.adaptive.MotionTier
 import com.android.purebilibili.core.ui.blur.currentUnifiedBlurIntensity
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.android.purebilibili.feature.home.components.liquid.rememberCombinedBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -668,7 +668,7 @@ internal fun Modifier.homeTopBottomBarMatchedSurface(
         blurIntensity = blurIntensity,
         liquidGlassPreset = liquidGlassPreset
     )
-    this.kernelSuFloatingDockSurface(
+    this.kernelSuMiuixFloatingDockSurface(
         shape = shape,
         backdrop = backdrop,
         containerColor = containerColor,
@@ -1362,7 +1362,7 @@ private fun LightweightHomeTopTabs(
                             itemWidthDp = itemWidth.value,
                             horizontalGapDp = dockIndicatorHorizontalGap.value
                         ).dp
-                        KernelSuBottomBarIndicatorLayer(
+                        KernelSuMiuixBottomBarIndicatorLayer(
                             visible = true,
                             dockContentAlpha = 1f,
                             indicatorTranslationXPx = resolveTopTabDockIndicatorOffsetPx(
@@ -1372,7 +1372,6 @@ private fun LightweightHomeTopTabs(
                                 }
                             ),
                             indicatorPanelOffsetPx = 0f,
-                            indicatorSettleReboundTransform = BottomBarClickPulseTransform(scaleX = 1f),
                             indicatorWidth = indicatorWidth,
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = capsuleShape,
@@ -1398,12 +1397,11 @@ private fun LightweightHomeTopTabs(
                         )
                     }
                     if (shouldUseMd3DockBackedCapsule) {
-                        KernelSuBottomBarIndicatorLayer(
+                        KernelSuMiuixBottomBarIndicatorLayer(
                             visible = true,
                             dockContentAlpha = 1f,
                             indicatorTranslationXPx = md3LiquidCapsuleTranslationXPx,
                             indicatorPanelOffsetPx = 0f,
-                            indicatorSettleReboundTransform = BottomBarClickPulseTransform(scaleX = 1f),
                             indicatorWidth = md3LiquidCapsuleWidth,
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = resolveSharedBottomBarCapsuleShape(),
@@ -1428,12 +1426,11 @@ private fun LightweightHomeTopTabs(
                     }
                     if (shouldUseMd3LiquidCapsule) {
                         val capsuleShape = resolveSharedBottomBarCapsuleShape()
-                        KernelSuBottomBarIndicatorLayer(
+                        KernelSuMiuixBottomBarIndicatorLayer(
                             visible = true,
                             dockContentAlpha = 1f,
                             indicatorTranslationXPx = md3LiquidCapsuleTranslationXPx,
                             indicatorPanelOffsetPx = 0f,
-                            indicatorSettleReboundTransform = BottomBarClickPulseTransform(scaleX = 1f),
                             indicatorWidth = md3LiquidCapsuleWidth,
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = capsuleShape,
