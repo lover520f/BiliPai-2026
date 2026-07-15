@@ -663,19 +663,14 @@ internal fun Modifier.homeTopBottomBarMatchedSurface(
         blurEnabled = isBlurEnabled || isGlassEnabled,
         darkTheme = isDarkTheme
     )
-    // Match dock material, then lighten for top-chrome reuse (over light headers).
-    val baseContainerColor = resolveAndroidNativeFloatingBottomBarContainerColor(
+    // v9.9.7 / floating-dock shell recipe (do not over-thin — reuse lighten made chips look solid gray).
+    val containerColor = resolveAndroidNativeFloatingBottomBarContainerColor(
         surfaceColor = MaterialTheme.colorScheme.surfaceContainer,
         tuning = tuning,
         glassEnabled = isGlassEnabled,
         blurEnabled = isBlurEnabled,
         blurIntensity = blurIntensity,
         liquidGlassPreset = liquidGlassPreset
-    )
-    val containerColor = resolveLiquidReuseShellContainerColor(
-        baseColor = baseContainerColor,
-        glassEnabled = isGlassEnabled,
-        chromeContext = LiquidReuseChromeContext.TOP_TAB,
     )
     this.kernelSuMiuixFloatingDockSurface(
         shape = shape,
@@ -688,7 +683,6 @@ internal fun Modifier.homeTopBottomBarMatchedSurface(
         hazeState = hazeState,
         motionTier = motionTier,
         isTransitionRunning = isTransitionRunning,
-        dropShadowAlphaScale = if (isGlassEnabled) 0.4f else 1f,
         forceLowBlurBudget = forceLowBlurBudget,
         liquidGlassPreset = liquidGlassPreset,
         isScrolling = isScrolling,
@@ -1125,38 +1119,29 @@ private fun LightweightHomeTopTabs(
             hasBackdrop = backdrop != null,
             indicatorVisualPolicy = topTabIndicatorVisualPolicy
         )
-        val topTabContentBackdrop = rememberLayerBackdrop()
-        val topTabCombinedBackdrop = if (
-            shouldRenderTopTabIndicatorBackdrop &&
-                topTabIndicatorBackdropPolicy.useCombinedBackdrop &&
-                backdrop != null
-        ) {
-            rememberCombinedBackdrop(backdrop, topTabContentBackdrop)
-        } else {
-            null
+        // v9.9.7: indicator contentBackdrop = export capture only (BILIPAI samples contentBackdrop).
+        // Miuix OOB-blacks empty LayerBackdrop — paint stable chrome surface under export glyphs.
+        val topTabExportSurfaceColor = AppSurfaceTokens.chromeBackground()
+        val topTabContentBackdrop = rememberLayerBackdrop(onDraw = {
+            drawRect(topTabExportSurfaceColor)
+            drawContent()
+        })
+        val effectiveTopTabIndicatorContentBackdrop: Backdrop? = when {
+            !shouldRenderTopTabIndicatorBackdrop ||
+                !topTabIndicatorBackdropPolicy.useIndicatorBackdrop -> null
+            topTabIndicatorBackdropPolicy.useCombinedBackdrop && backdrop != null ->
+                rememberCombinedBackdrop(backdrop, topTabContentBackdrop)
+            else -> topTabContentBackdrop
         }
-        // Dock parity: BILIPAI_TUNED samples contentBackdrop only — must be Combined(page, export),
-        // not export-only (empty LayerBackdrop samples as solid black).
-        val effectiveTopTabIndicatorContentBackdrop: Backdrop? =
+        // Actual sample source for BILIPAI_TUNED (matches v9.9.7 Kyant path).
+        val topTabIndicatorContentBackdrop: Backdrop? =
             if (!shouldRenderTopTabIndicatorBackdrop ||
                 !topTabIndicatorBackdropPolicy.useIndicatorBackdrop
             ) {
                 null
             } else {
-                resolveLiquidReuseIndicatorContentBackdrop(
-                    pageBackdrop = backdrop,
-                    exportBackdrop = topTabContentBackdrop,
-                    useCombined = topTabIndicatorBackdropPolicy.useCombinedBackdrop,
-                    combinedBackdrop = topTabCombinedBackdrop,
-                )
+                topTabContentBackdrop
             }
-        val topTabIdleSurfaceColor = resolveLiquidReuseIndicatorIdleSurfaceColor(
-            darkTheme = isDarkTheme,
-            chromeContext = LiquidReuseChromeContext.TOP_TAB,
-        )
-        val topTabIdleSurfaceMaxAlpha = resolveLiquidReuseIdleSurfaceMaxAlpha(
-            chromeContext = LiquidReuseChromeContext.TOP_TAB,
-        )
         val topTabThemeColor = MaterialTheme.colorScheme.primary
         val topTabExportTintColor = resolveAndroidNativeExportTintColor(
             themeColor = topTabThemeColor,
@@ -1433,12 +1418,15 @@ private fun LightweightHomeTopTabs(
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = capsuleShape,
                             liquidGlassPreset = BottomBarLiquidGlassPreset.BILIPAI_TUNED,
-                            // Combined(page, export) — same topology as floating bottom dock.
-                            contentBackdrop = effectiveTopTabIndicatorContentBackdrop,
-                            backdrop = backdrop,
+                            // v9.9.7: BILIPAI samples contentBackdrop = export capture (glyphs).
+                            contentBackdrop = topTabIndicatorContentBackdrop,
+                            backdrop = effectiveTopTabIndicatorContentBackdrop ?: backdrop,
                             indicatorLensSpec = topTabIndicatorLensSpec,
                             effectivePressProgress = topTabLensProgress,
-                            indicatorIdleSurfaceColor = topTabIdleSurfaceColor,
+                            indicatorIdleSurfaceColor = resolveIosTopTabCapsuleContainerColor(
+                                isDarkTheme = isDarkTheme,
+                                selectionFraction = 1f,
+                            ),
                             glassEnabled = shouldUseLiquidGlassIndicator,
                             indicatorEffectsEnabled = shouldUseLiquidGlassIndicator,
                             motionProgress = topTabMotionProgress,
@@ -1448,7 +1436,6 @@ private fun LightweightHomeTopTabs(
                             indicatorLayerScaleTransform = null,
                             bottomBarMotionSpec = topTabDragMotionSpec,
                             isDarkTheme = isDarkTheme,
-                            idleSurfaceMaxAlpha = topTabIdleSurfaceMaxAlpha,
                         )
                     }
                     if (shouldUseMd3DockBackedCapsule) {
@@ -1461,11 +1448,13 @@ private fun LightweightHomeTopTabs(
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = resolveSharedBottomBarCapsuleShape(),
                             liquidGlassPreset = BottomBarLiquidGlassPreset.BILIPAI_TUNED,
-                            contentBackdrop = effectiveTopTabIndicatorContentBackdrop,
-                            backdrop = backdrop,
+                            contentBackdrop = topTabIndicatorContentBackdrop,
+                            backdrop = effectiveTopTabIndicatorContentBackdrop ?: backdrop,
                             indicatorLensSpec = topTabIndicatorLensSpec,
                             effectivePressProgress = topTabLensProgress,
-                            indicatorIdleSurfaceColor = topTabIdleSurfaceColor,
+                            indicatorIdleSurfaceColor = resolveAndroidNativeIdleIndicatorSurfaceColor(
+                                darkTheme = isDarkTheme,
+                            ),
                             glassEnabled = true,
                             motionProgress = topTabMotionProgress,
                             velocityItemsPerSecond = topTabIndicatorLayerVelocityItemsPerSecond,
@@ -1474,7 +1463,6 @@ private fun LightweightHomeTopTabs(
                             indicatorLayerScaleTransform = null,
                             bottomBarMotionSpec = topTabDragMotionSpec,
                             isDarkTheme = isDarkTheme,
-                            idleSurfaceMaxAlpha = topTabIdleSurfaceMaxAlpha,
                         )
                     }
                     if (shouldUseMd3LiquidCapsule) {
@@ -1488,11 +1476,15 @@ private fun LightweightHomeTopTabs(
                             indicatorHeight = dockIndicatorHeight,
                             shellShape = capsuleShape,
                             liquidGlassPreset = BottomBarLiquidGlassPreset.BILIPAI_TUNED,
-                            contentBackdrop = effectiveTopTabIndicatorContentBackdrop,
-                            backdrop = backdrop,
+                            contentBackdrop = topTabIndicatorContentBackdrop,
+                            backdrop = effectiveTopTabIndicatorContentBackdrop ?: backdrop,
                             indicatorLensSpec = topTabIndicatorLensSpec,
                             effectivePressProgress = topTabLensProgress,
-                            indicatorIdleSurfaceColor = topTabIdleSurfaceColor,
+                            indicatorIdleSurfaceColor = if (isDarkTheme) {
+                                Color.White.copy(alpha = 0.1f)
+                            } else {
+                                Color.Black.copy(alpha = 0.1f)
+                            },
                             glassEnabled = true,
                             motionProgress = topTabMotionProgress,
                             velocityItemsPerSecond = topTabIndicatorLayerVelocityItemsPerSecond,
@@ -1501,7 +1493,6 @@ private fun LightweightHomeTopTabs(
                             indicatorLayerScaleTransform = null,
                             bottomBarMotionSpec = topTabDragMotionSpec,
                             isDarkTheme = isDarkTheme,
-                            idleSurfaceMaxAlpha = topTabIdleSurfaceMaxAlpha,
                         )
                     }
                 }

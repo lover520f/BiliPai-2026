@@ -405,8 +405,8 @@ internal enum class LiquidReuseChromeContext {
 }
 
 /**
- * Shell + idle indicator paints for liquid reuse. In-content chrome sits on white pages;
- * dock-tuned opacities read as solid gray chips there — use lighter overlays.
+ * Shell paints for liquid reuse. Prefer v9.9.7 / dock material; only slightly softens
+ * in-content shells so they don't read heavier than the floating bottom bar.
  */
 internal fun resolveLiquidReuseShellContainerColor(
     baseColor: Color,
@@ -417,57 +417,35 @@ internal fun resolveLiquidReuseShellContainerColor(
         return baseColor
     }
     val maxAlpha = when (chromeContext) {
-        // White/on-page chrome: keep shells glassy, not solid gray chips.
-        LiquidReuseChromeContext.TOP_TAB -> 0.10f
-        LiquidReuseChromeContext.IN_CONTENT_SEGMENTED -> 0.08f
+        LiquidReuseChromeContext.TOP_TAB -> baseColor.alpha
+        LiquidReuseChromeContext.IN_CONTENT_SEGMENTED ->
+            minOf(baseColor.alpha, 0.42f).coerceAtLeast(0.18f)
         LiquidReuseChromeContext.FLOATING_DOCK -> baseColor.alpha
     }
-    return baseColor.copy(alpha = minOf(baseColor.alpha.coerceAtLeast(0.04f), maxAlpha))
+    return baseColor.copy(alpha = maxAlpha)
 }
 
 internal fun resolveLiquidReuseIndicatorIdleSurfaceColor(
     darkTheme: Boolean,
     chromeContext: LiquidReuseChromeContext,
 ): Color {
-    return when (chromeContext) {
-        LiquidReuseChromeContext.FLOATING_DOCK,
-        LiquidReuseChromeContext.TOP_TAB ->
-            resolveAndroidNativeIdleIndicatorSurfaceColor(darkTheme)
-        LiquidReuseChromeContext.IN_CONTENT_SEGMENTED ->
-            if (darkTheme) {
-                Color.White.copy(alpha = 0.04f)
-            } else {
-                Color.Black.copy(alpha = 0.035f)
-            }
-    }
+    // v9.9.7 / dock idle indicator tint for all liquid reuse surfaces.
+    return resolveAndroidNativeIdleIndicatorSurfaceColor(darkTheme)
 }
 
-/** Cap for onDrawSurface idle fade (1 = full dock behavior). */
+/** Cap for onDrawSurface idle fade (1 = full dock / v9.9.7 behavior). */
 internal fun resolveLiquidReuseIdleSurfaceMaxAlpha(
     chromeContext: LiquidReuseChromeContext,
-): Float = when (chromeContext) {
-    LiquidReuseChromeContext.FLOATING_DOCK,
-    LiquidReuseChromeContext.TOP_TAB -> 1f
-    LiquidReuseChromeContext.IN_CONTENT_SEGMENTED -> 0.24f
-}
+): Float = 1f
 
 /**
- * Export-layer fill under Combined(page, export). Dock keeps full shell tint; in-content
- * reuse must stay nearly clear so white page samples don't turn into solid gray.
+ * Export-layer fill under Combined(page, export). Keep shell-aligned tint so export
+ * sampling matches v9.9.7 glass pills (surface under monochrome glyphs).
  */
 internal fun resolveLiquidReuseExportSurfaceColor(
     shellContainerColor: Color,
     chromeContext: LiquidReuseChromeContext,
-): Color {
-    return when (chromeContext) {
-        LiquidReuseChromeContext.FLOATING_DOCK -> shellContainerColor
-        LiquidReuseChromeContext.TOP_TAB,
-        LiquidReuseChromeContext.IN_CONTENT_SEGMENTED ->
-            shellContainerColor.copy(
-                alpha = minOf(shellContainerColor.alpha, 0.04f)
-            )
-    }
-}
+): Color = shellContainerColor
 
 /** Capture lens strength: full 24dp while interacting, like KernelSu bottom bar capture. */
 internal fun resolveSharedLiquidIndicatorCaptureLensProgress(
@@ -766,10 +744,13 @@ fun BottomBarLiquidSegmentedControl(
         }
         val panelOffsetPx = presetPanelOffsets.indicatorPanelOffsetPx
         val exportPanelOffsetPx = presetPanelOffsets.exportPanelOffsetPx
-        // Export capture layer (InstallerX/Miuix). Never self-sample this LayerBackdrop.
-        val tabsBackdrop = rememberLayerBackdrop()
-        // Dock parity: Combined(page, export) as indicator contentBackdrop.
-        // Never drawBackdrop(tabsBackdrop) on the same node that layerBackdrop(tabsBackdrop).
+        // Export capture (v9.9.7 contentBackdrop = tabs). Surface fill under glyphs so Miuix
+        // never samples empty/transparent export as solid black.
+        val tabsBackdrop = rememberLayerBackdrop(onDraw = {
+            drawRect(localSamplingSurfaceColor)
+            drawContent()
+        })
+        // Prefer Combined(stable surface, export) for Miuix OOB safety; never self-draw tabsBackdrop.
         val hasExternalBackdrop = samplingBackdrop != null
         val combinedIndicatorBackdrop = if (samplingBackdrop != null) {
             rememberCombinedBackdrop(samplingBackdrop, tabsBackdrop)
@@ -781,7 +762,7 @@ fun BottomBarLiquidSegmentedControl(
             exportBackdrop = tabsBackdrop,
             useCombined = hasExternalBackdrop,
             combinedBackdrop = combinedIndicatorBackdrop,
-        )
+        ) ?: tabsBackdrop
         val captureLensProgress = resolveSharedLiquidIndicatorCaptureLensProgress(
             lensProgress = lensProgress,
             isDragging = dragState.isDragging

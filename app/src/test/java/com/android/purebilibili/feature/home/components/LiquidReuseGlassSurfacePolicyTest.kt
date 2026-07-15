@@ -56,7 +56,7 @@ class LiquidReuseGlassSurfacePolicyTest {
     }
 
     @Test
-    fun inContentShellIsMoreTransparentThanDockBase() {
+    fun inContentShellSoftensHeavyDockAlphas() {
         val base = Color.White.copy(alpha = 0.55f)
         val dock = resolveLiquidReuseShellContainerColor(
             baseColor = base,
@@ -69,54 +69,36 @@ class LiquidReuseGlassSurfacePolicyTest {
             chromeContext = LiquidReuseChromeContext.IN_CONTENT_SEGMENTED,
         )
         assertEquals(base.alpha, dock.alpha, absoluteTolerance = 0.02f)
-        assertTrue(inContent.alpha + 0.001f < dock.alpha)
-        assertTrue(inContent.alpha <= 0.10f)
+        assertTrue(inContent.alpha <= 0.42f)
+        assertTrue(inContent.alpha >= 0.18f)
     }
 
     @Test
-    fun topTabIdleSurfaceMatchesFloatingDock() {
-        listOf(false, true).forEach { darkTheme ->
-            assertEquals(
-                resolveLiquidReuseIndicatorIdleSurfaceColor(
-                    darkTheme = darkTheme,
-                    chromeContext = LiquidReuseChromeContext.FLOATING_DOCK,
-                ),
-                resolveLiquidReuseIndicatorIdleSurfaceColor(
-                    darkTheme = darkTheme,
-                    chromeContext = LiquidReuseChromeContext.TOP_TAB,
-                ),
-            )
-        }
+    fun reuseIdleOverlayMatchesDockFullFade() {
         assertEquals(
             1f,
             resolveLiquidReuseIdleSurfaceMaxAlpha(LiquidReuseChromeContext.FLOATING_DOCK),
             absoluteTolerance = 0.001f,
         )
         assertEquals(
-            resolveLiquidReuseIdleSurfaceMaxAlpha(LiquidReuseChromeContext.FLOATING_DOCK),
+            1f,
             resolveLiquidReuseIdleSurfaceMaxAlpha(LiquidReuseChromeContext.TOP_TAB),
             absoluteTolerance = 0.001f,
         )
-        assertTrue(
-            resolveLiquidReuseIdleSurfaceMaxAlpha(LiquidReuseChromeContext.IN_CONTENT_SEGMENTED) <= 0.28f
+        assertEquals(
+            1f,
+            resolveLiquidReuseIdleSurfaceMaxAlpha(LiquidReuseChromeContext.IN_CONTENT_SEGMENTED),
+            absoluteTolerance = 0.001f,
         )
     }
 
     @Test
-    fun exportSurfaceIsNearlyClearForInContentReuse() {
-        val shell = Color.White.copy(alpha = 0.08f)
+    fun exportSurfaceKeepsShellTint() {
+        val shell = Color.White.copy(alpha = 0.35f)
         val export = resolveLiquidReuseExportSurfaceColor(
             shellContainerColor = shell,
             chromeContext = LiquidReuseChromeContext.IN_CONTENT_SEGMENTED,
         )
-        assertTrue(export.alpha <= 0.04f)
-        assertEquals(
-            shell.alpha,
-            resolveLiquidReuseExportSurfaceColor(
-                shellContainerColor = shell,
-                chromeContext = LiquidReuseChromeContext.FLOATING_DOCK,
-            ).alpha,
-            absoluteTolerance = 0.001f,
-        )
+        assertEquals(shell.alpha, export.alpha, absoluteTolerance = 0.001f)
     }
 }

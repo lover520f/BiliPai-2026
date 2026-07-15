@@ -184,8 +184,7 @@ class HomeChromeLiquidSurfaceStructureTest {
                 topBarSource.contains("val shouldUseMd3DockBackedCapsule =") &&
                 topBarSource.contains("KernelSuMiuixBottomBarIndicatorLayer(") &&
                 topBarSource.contains("val shouldPrimeTopTabLiquidGlassCapture =") &&
-                topBarSource.contains("val topTabContentBackdrop = rememberLayerBackdrop()") &&
-                topBarSource.contains("rememberCombinedBackdrop(backdrop, topTabContentBackdrop)") &&
+                topBarSource.contains("val topTabContentBackdrop = rememberLayerBackdrop(onDraw = {") &&
                 topBarSource.contains("layerBackdrop(topTabContentBackdrop)") &&
                 topBarSource.contains("ColorFilter.tint(topTabExportTintColor)") &&
                 topBarSource.contains("TopTabLiquidColorMode.GLASS_EXPORT") &&
@@ -196,8 +195,8 @@ class HomeChromeLiquidSurfaceStructureTest {
                 topBarSource.contains("val glassLayersAlwaysOn = shouldUseLiquidGlassIndicator") &&
                 topBarSource.contains("resolveTopTabIndicatorBackdropPolicy(") &&
                 topBarSource.contains("allowIdleGlassEffect = false") &&
-                topBarSource.contains("contentBackdrop = effectiveTopTabIndicatorContentBackdrop") &&
-                topBarSource.contains("resolveLiquidReuseIndicatorContentBackdrop(") &&
+                topBarSource.contains("contentBackdrop = topTabIndicatorContentBackdrop") &&
+                topBarSource.contains("resolveIosTopTabCapsuleContainerColor(") &&
                 topBarSource.contains("topTabListScrollOffsetPx") &&
                 topBarSource.contains("One shared shift for export") &&
                 topBarSource.contains("indicatorPanelOffsetPx = 0f") &&
