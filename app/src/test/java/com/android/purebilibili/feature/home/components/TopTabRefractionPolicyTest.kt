@@ -21,7 +21,7 @@ class TopTabRefractionPolicyTest {
         assertFalse(source.contains("KernelSuBottomBarIndicatorLayer("))
         assertFalse(source.contains("BottomBarLiquidIndicatorSurface("))
         assertTrue(source.contains("resolveBottomBarRefractionMotionProfile("))
-        assertTrue(source.contains("resolveBottomBarBackdropPresetIndicatorLens("))
+        assertTrue(source.contains("resolveLiquidReuseIndicatorLensSpec("))
         assertTrue(source.contains("topTabShouldStretchIndicator"))
         assertTrue(source.contains("val shouldPrimeTopTabLiquidGlassCapture ="))
         assertTrue(source.contains("val topTabContentBackdrop = rememberLayerBackdrop()"))
@@ -371,13 +371,20 @@ class TopTabRefractionPolicyTest {
         assertFalse(source.contains("SimpleLiquidIndicator("))
         assertFalse(source.contains("BottomBarStyleIndicatorSurface("))
         assertTrue(source.contains("resolveSharedLiquidIndicatorCaptureLensProgress("))
-        assertTrue(source.contains("resolveBottomBarBackdropPresetCaptureLens("))
+        assertTrue(source.contains("resolveLiquidReuseCaptureLensSpec("))
+        assertTrue(source.contains("resolveLiquidReuseIndicatorLensSpec("))
         assertTrue(source.contains("drawBackdrop("))
         assertTrue(source.contains("vibrancy()"))
         assertTrue(source.contains("blur(4.dp.toPx(), 4.dp.toPx())"))
         assertTrue(source.contains("refractionHeight = topTabCaptureLensSpec.refractionHeightDp.dp.toPx()"))
         assertTrue(source.contains("refractionAmount = topTabCaptureLensSpec.refractionAmountDp.dp.toPx()"))
-        assertTrue(source.contains("chromaticAberration = 0.5f"))
+        // Capture matches dock export (edge only); indicator capsule keeps depth/dispersion.
+        assertFalse(
+            source.contains(
+                "refractionAmount = topTabCaptureLensSpec.refractionAmountDp.dp.toPx(),\n" +
+                    "                                                    depthEffect = true"
+            )
+        )
         assertFalse(source.contains(".layerBackdrop(tabsBackdrop)"))
         assertFalse(source.contains("rememberCombinedBackdrop(backdrop, tabsBackdrop)"))
         assertTrue(source.contains("rememberCombinedBackdrop(backdrop, topTabContentBackdrop)"))

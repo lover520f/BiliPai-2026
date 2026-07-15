@@ -82,6 +82,49 @@ class BottomBarLiquidSegmentedControlStructureTest {
     }
 
     @Test
+    fun `compact segmented indicator scales lens distances by bottom bar height ratio`() {
+        assertEquals(
+            27f / 56f,
+            resolveLiquidReuseLensStrengthScale(indicatorHeightDp = 27f),
+            absoluteTolerance = 0.001f
+        )
+        assertEquals(
+            1f,
+            resolveLiquidReuseLensStrengthScale(indicatorHeightDp = 56f),
+            absoluteTolerance = 0.001f
+        )
+        assertEquals(
+            1f,
+            resolveLiquidReuseLensStrengthScale(indicatorHeightDp = 64f),
+            absoluteTolerance = 0.001f
+        )
+    }
+
+    @Test
+    fun `reuse capture and indicator lens match dock bands at full height`() {
+        val capture = resolveLiquidReuseCaptureLensSpec(progress = 1f, indicatorHeightDp = 56f)
+        val indicator = resolveLiquidReuseIndicatorLensSpec(progress = 1f, indicatorHeightDp = 56f)
+
+        assertEquals(24f, capture.refractionHeightDp, absoluteTolerance = 0.001f)
+        assertEquals(24f, capture.refractionAmountDp, absoluteTolerance = 0.001f)
+        assertEquals(10f, indicator.refractionHeightDp, absoluteTolerance = 0.001f)
+        assertEquals(14f, indicator.refractionAmountDp, absoluteTolerance = 0.001f)
+    }
+
+    @Test
+    fun `reuse lens keeps dock edge-band fraction on compact capsules`() {
+        val height = 28f
+        val scale = height / 56f
+        val capture = resolveLiquidReuseCaptureLensSpec(progress = 1f, indicatorHeightDp = height)
+        val indicator = resolveLiquidReuseIndicatorLensSpec(progress = 1f, indicatorHeightDp = height)
+
+        assertEquals(24f * scale, capture.refractionHeightDp, absoluteTolerance = 0.001f)
+        assertEquals(24f * scale, capture.refractionAmountDp, absoluteTolerance = 0.001f)
+        assertEquals(10f * scale, indicator.refractionHeightDp, absoluteTolerance = 0.001f)
+        assertEquals(14f * scale, indicator.refractionAmountDp, absoluteTolerance = 0.001f)
+    }
+
+    @Test
     fun `segmented indicator offset follows slot position without clamping dead zone`() {
         assertEquals(
             4f,
@@ -302,10 +345,19 @@ class BottomBarLiquidSegmentedControlStructureTest {
         assertFalse(source.contains("containerBackdrop = backdrop ?: tabsBackdrop"))
         assertTrue(source.contains("shouldDrawSegmentedControlExportCaptureBackdrop("))
         assertTrue(source.contains("drawBackdrop("))
-        assertTrue(source.contains("resolveBottomBarBackdropPresetCaptureLens("))
-        assertTrue(source.contains("resolveBottomBarBackdropPresetIndicatorLens("))
+        assertTrue(source.contains("resolveLiquidReuseCaptureLensSpec("))
+        assertTrue(source.contains("resolveLiquidReuseIndicatorLensSpec("))
+        assertTrue(source.contains("shellRefractionHeightDp = shellLensSpec.refractionHeightDp"))
+        assertTrue(source.contains("shellRefractionAmountDp = shellLensSpec.refractionAmountDp"))
         assertTrue(source.contains("resolveSharedLiquidIndicatorLensProgress("))
         assertTrue(source.contains("resolveSharedLiquidIndicatorCaptureLensProgress("))
+        // Capture matches bottom-bar export: edge lens only (no depth/dispersion).
+        assertFalse(
+            source.contains(
+                "refractionAmount = captureLensSpec.refractionAmountDp.dp.toPx(),\n" +
+                    "                                        depthEffect = true"
+            )
+        )
         assertFalse(source.contains("forceUnselectedColor = useGlassColorPath"))
         assertTrue(source.contains("exportMonochromeColor"))
         assertTrue(source.contains("resolveSharedLiquidExportMonochromeColor("))
@@ -338,7 +390,6 @@ class BottomBarLiquidSegmentedControlStructureTest {
         assertFalse(source.contains("val useIndicatorBackdrop = liquidGlassEnabled && indicatorVisualPolicy.shouldRefract"))
         assertFalse(source.contains("LiquidIndicator("))
         assertFalse(source.contains("backdrop = indicatorBackdrop"))
-        assertTrue(source.contains("chromaticAberration = 0.5f"))
         assertTrue(source.contains("getHomeSettings("))
         assertTrue(source.contains("resolveSharedLiquidGlassChromeEnabled("))
         assertTrue(source.contains("resolveSegmentedControlChromeStyle("))
@@ -373,6 +424,8 @@ class BottomBarLiquidSegmentedControlStructureTest {
         assertFalse(source.contains("scaleX = indicatorTransform.scaleX"))
         assertFalse(source.contains("scaleY = indicatorTransform.scaleY"))
         assertFalse(source.contains("containerWidthDp = maxWidth.value"))
+        // Capture edge lens is dock-aligned; capsule depth/dispersion lives in shared indicator layer.
+        assertFalse(source.contains("chromaticAberration = 0.5f"))
         val indicatorIndex = source.indexOf("KernelSuMiuixBottomBarIndicatorLayer(")
         val visibleLabelsIndex = source.indexOf(
             "selectionEmphasis = refractionMotionProfile.visibleSelectionEmphasis"

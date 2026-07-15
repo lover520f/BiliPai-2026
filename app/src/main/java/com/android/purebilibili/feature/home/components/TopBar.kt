@@ -1010,13 +1010,7 @@ private fun LightweightHomeTopTabs(
             pressProgress = topTabPressProgress
         )
         // Swipe/press lens progress so theme-tinted glass follows the capsule.
-        val topTabIndicatorLensSpec = resolveBottomBarBackdropPresetIndicatorLens(
-            progress = resolveSharedLiquidIndicatorLensProgress(
-                pressProgress = topTabPressProgress,
-                motionProgress = topTabMotionProgress,
-                isDragging = topTabDragActive
-            )
-        )
+        // Height-scaled later once dockIndicatorHeight is known (same as segmented reuse).
         val topTabIndicatorHighlightAlpha = resolveBottomBarLiquidGlassHighlightAlpha(
             motionProgress = topTabBackdropPresetProgress.indicatorProgress
         )
@@ -1050,6 +1044,23 @@ private fun LightweightHomeTopTabs(
             minHeightDp = resolveTopTabVisualTuning().floatingIndicatorHeightDp,
             indicatorWidthDp = md3LiquidCapsuleWidth.value
         ).dp
+        val topTabLensProgress = resolveSharedLiquidIndicatorLensProgress(
+            pressProgress = topTabPressProgress,
+            motionProgress = topTabMotionProgress,
+            isDragging = topTabDragActive
+        )
+        val topTabIndicatorLensSpec = resolveLiquidReuseIndicatorLensSpec(
+            progress = topTabLensProgress,
+            indicatorHeightDp = dockIndicatorHeight.value,
+        )
+        val topTabCaptureLensProgress = resolveSharedLiquidIndicatorCaptureLensProgress(
+            lensProgress = topTabLensProgress,
+            isDragging = topTabDragActive
+        )
+        val topTabCaptureLensSpec = resolveLiquidReuseCaptureLensSpec(
+            progress = topTabCaptureLensProgress,
+            indicatorHeightDp = dockIndicatorHeight.value,
+        )
         val md3LiquidCapsuleTranslationXPx by remember(
             topTabIndicatorPosition,
             itemWidth,
@@ -1137,18 +1148,6 @@ private fun LightweightHomeTopTabs(
                     combinedBackdrop = topTabCombinedBackdrop,
                 )
             }
-        val topTabLensProgress = resolveSharedLiquidIndicatorLensProgress(
-            pressProgress = topTabPressProgress,
-            motionProgress = topTabMotionProgress,
-            isDragging = topTabDragActive
-        )
-        val topTabCaptureLensProgress = resolveSharedLiquidIndicatorCaptureLensProgress(
-            lensProgress = topTabLensProgress,
-            isDragging = topTabDragActive
-        )
-        val topTabCaptureLensSpec = resolveBottomBarBackdropPresetCaptureLens(
-            progress = topTabCaptureLensProgress
-        )
         val topTabIdleSurfaceColor = resolveLiquidReuseIndicatorIdleSurfaceColor(
             darkTheme = isDarkTheme,
             chromeContext = LiquidReuseChromeContext.TOP_TAB,
@@ -1279,14 +1278,13 @@ private fun LightweightHomeTopTabs(
                                         backdrop = backdrop,
                                         shape = { resolveSharedBottomBarCapsuleShape() },
                                         effects = {
+                                            // Dock export capture: edge lens only (no depth/dispersion).
                                             vibrancy()
                                             blur(4.dp.toPx(), 4.dp.toPx())
                                             if (topTabCaptureLensProgress > 0.001f) {
                                                 lens(
                                                     refractionHeight = topTabCaptureLensSpec.refractionHeightDp.dp.toPx(),
                                                     refractionAmount = topTabCaptureLensSpec.refractionAmountDp.dp.toPx(),
-                                                    depthEffect = true,
-                                                    chromaticAberration = 0.5f
                                                 )
                                             }
                                         }

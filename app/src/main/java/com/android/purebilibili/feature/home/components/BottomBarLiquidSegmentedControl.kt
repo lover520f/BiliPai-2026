@@ -248,6 +248,61 @@ internal fun resolveSegmentedControlMotionSpec(): BottomBarMotionSpec {
 }
 
 /**
+ * Dock indicator band is 56.dp with capture 24/24 and indicator 10/14 lens.
+ * Scale those absolute distances by actual capsule height so compact reuse keeps
+ * the same top/bottom edge-band fraction after the shared 88/56 drag magnification.
+ */
+internal fun resolveLiquidReuseLensStrengthScale(
+    indicatorHeightDp: Float,
+    referenceHeightDp: Float = BOTTOM_BAR_LIQUID_SEGMENTED_CONTROL_INDICATOR_HEIGHT_DP.toFloat()
+): Float {
+    if (referenceHeightDp <= 0f) return 0f
+    return (indicatorHeightDp / referenceHeightDp).coerceIn(0f, 1f)
+}
+
+/**
+ * Map bottom-bar lens distances onto a reuse surface.
+ *
+ * [progress] is interaction strength (press / swipe floor / capture full).
+ * [heightScale] is [resolveLiquidReuseLensStrengthScale] so short capsules don't
+ * get dock-absolute 24.dp bands that swallow the whole pill.
+ */
+internal fun resolveLiquidReuseLensSpec(
+    baseHeightDp: Float,
+    baseAmountDp: Float,
+    progress: Float,
+    heightScale: Float,
+): BottomBarBackdropPresetLensSpec {
+    val strength = (progress.coerceIn(0f, 1f) * heightScale.coerceIn(0f, 1f))
+    return BottomBarBackdropPresetLensSpec(
+        refractionHeightDp = baseHeightDp * strength,
+        refractionAmountDp = baseAmountDp * strength,
+    )
+}
+
+/** Capture / shell edge lens — dock uses constant 24.dp when glass is on. */
+internal fun resolveLiquidReuseCaptureLensSpec(
+    progress: Float,
+    indicatorHeightDp: Float,
+): BottomBarBackdropPresetLensSpec = resolveLiquidReuseLensSpec(
+    baseHeightDp = 24f,
+    baseAmountDp = 24f,
+    progress = progress,
+    heightScale = resolveLiquidReuseLensStrengthScale(indicatorHeightDp),
+)
+
+/** Capsule lens — dock indicator uses 10.dp height / 14.dp amount at full press. */
+internal fun resolveLiquidReuseIndicatorLensSpec(
+    progress: Float,
+    indicatorHeightDp: Float,
+): BottomBarBackdropPresetLensSpec = resolveLiquidReuseLensSpec(
+    baseHeightDp = 10f,
+    baseAmountDp = 14f,
+    progress = progress,
+    heightScale = resolveLiquidReuseLensStrengthScale(indicatorHeightDp),
+)
+
+/**
  * Same panel-offset formula as [KernelSuAlignedBottomBar]: fraction of full dock width,
  * capped at 4.dp, EaseOut mapped.
  */
@@ -676,13 +731,20 @@ fun BottomBarLiquidSegmentedControl(
             lensProgress = lensProgress,
             isDragging = dragState.isDragging
         )
-        // Full 24dp capture lens while interacting — same constant strength as bottom bar capture.
-        val captureLensSpec = resolveBottomBarBackdropPresetCaptureLens(
-            progress = captureLensProgress
+        // Dock-identical capture (24/24) and indicator (10/14) bands, height-scaled for this capsule.
+        // After shared 88/56 drag scale the top/bottom edge fraction matches the bottom bar.
+        val captureLensSpec = resolveLiquidReuseCaptureLensSpec(
+            progress = captureLensProgress,
+            indicatorHeightDp = resolvedIndicatorHeight.value,
         )
-        // Indicator capsule lens follows swipe, not only finger-down press.
-        val indicatorLensSpec = resolveBottomBarBackdropPresetIndicatorLens(
-            progress = lensProgress
+        val indicatorLensSpec = resolveLiquidReuseIndicatorLensSpec(
+            progress = lensProgress,
+            indicatorHeightDp = resolvedIndicatorHeight.value,
+        )
+        // Shell uses the same 24.dp dock edge lens, scaled by control height (not only indicator).
+        val shellLensSpec = resolveLiquidReuseCaptureLensSpec(
+            progress = 1f,
+            indicatorHeightDp = height.value,
         )
         val indicatorIdleSurfaceColor = reuseIdleSurfaceColor
         Box(
@@ -694,6 +756,8 @@ fun BottomBarLiquidSegmentedControl(
                     containerColor = containerColor,
                     blurEnabled = liquidGlassEnabled,
                     glassEnabled = liquidGlassEnabled,
+                    shellRefractionHeightDp = shellLensSpec.refractionHeightDp,
+                    shellRefractionAmountDp = shellLensSpec.refractionAmountDp,
                     blurRadius = androidNativeTuning.shellBlurRadiusDp.dp,
                     hazeState = null,
                     motionTier = MotionTier.Normal,
@@ -749,14 +813,15 @@ fun BottomBarLiquidSegmentedControl(
                             backdrop = samplingBackdrop,
                             shape = { containerShape },
                             effects = {
+                                // Match KernelSu bottom-bar export capture: vibrancy + blur +
+                                // edge lens only (no depth/dispersion). Top/bottom bands carry
+                                // the vertical refraction that the capsule samples after drag scale.
                                 vibrancy()
                                 blur(4.dp.toPx(), 4.dp.toPx())
                                 if (captureLensProgress > 0.001f) {
                                     lens(
                                         refractionHeight = captureLensSpec.refractionHeightDp.dp.toPx(),
                                         refractionAmount = captureLensSpec.refractionAmountDp.dp.toPx(),
-                                        depthEffect = true,
-                                        chromaticAberration = 0.5f
                                     )
                                 }
                             },

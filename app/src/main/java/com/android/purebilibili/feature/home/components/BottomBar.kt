@@ -998,6 +998,12 @@ internal fun Modifier.kernelSuMiuixFloatingDockSurface(
     blurEnabled: Boolean,
     glassEnabled: Boolean,
     drawShellLens: Boolean = true,
+    /**
+     * Dock shell uses 24.dp edge refraction. Compact reuse should pass a height-scaled
+     * value so top/bottom bands stay proportional after drag magnification.
+     */
+    shellRefractionHeightDp: Float = 24f,
+    shellRefractionAmountDp: Float = 24f,
     blurRadius: Dp,
     hazeState: HazeState?,
     motionTier: MotionTier,
@@ -1019,6 +1025,8 @@ internal fun Modifier.kernelSuMiuixFloatingDockSurface(
     )
     val baseHighlight = rememberGravityRotatedHighlight(iosIndicatorSpecular, extraDegrees = -45f)
     val shadowAlphaScale = dropShadowAlphaScale.coerceIn(0f, 1f)
+    val shellLensHeightDp = shellRefractionHeightDp.coerceAtLeast(0f)
+    val shellLensAmountDp = shellRefractionAmountDp.coerceAtLeast(0f)
 
     this
         .then(
@@ -1060,10 +1068,10 @@ internal fun Modifier.kernelSuMiuixFloatingDockSurface(
                             if (glassEnabled) {
                                 miuixVibrancy()
                                 miuixBlur(4.dp.toPx(), 4.dp.toPx())
-                                if (drawShellLens) {
+                                if (drawShellLens && shellLensHeightDp > 0.001f && shellLensAmountDp > 0.001f) {
                                     miuixLens(
-                                        refractionHeight = 24.dp.toPx(),
-                                        refractionAmount = 24.dp.toPx()
+                                        refractionHeight = shellLensHeightDp.dp.toPx(),
+                                        refractionAmount = shellLensAmountDp.dp.toPx()
                                     )
                                 }
                             } else if (blurEnabled && !useHazeBlur) {
