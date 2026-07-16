@@ -699,13 +699,22 @@ fun ElegantVideoCard(
                     )
                 }
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+            // crossfade 必须进 remember key：若 clearReturning 后才打开 crossfade，
+            // 会新建 ImageRequest 导致 Coil 再跑一次淡入闪烁（快速返回尤其明显）。
+            val coverImageRequest = remember(
+                coverUrl,
+                coverCacheKey,
+                coverCrossfadeEnabled,
+            ) {
+                ImageRequest.Builder(context)
                     .data(coverUrl)
                     .crossfade(coverCrossfadeEnabled)
                     .memoryCacheKey(coverCacheKey)
                     .diskCacheKey(coverCacheKey)
-                    .build(),
+                    .build()
+            }
+            AsyncImage(
+                model = coverImageRequest,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()

@@ -34,6 +34,13 @@ internal fun resolveVideoCardScrollLiteVisualPolicy(
     )
 }
 
+/**
+ * 列表封面是否允许 Coil crossfade。
+ *
+ * 关键：快速/普通返回结束后 [isReturningFromDetail] 会被 clear，若此时把 crossfade
+ * 从 false 拨回 true，ImageRequest 重建会触发一次假加载淡入 → **落位后再闪一下**。
+ * 因此只要仍是 shared 返回目标卡（lastClicked），就持续关闭 crossfade，直到用户点了别的卡。
+ */
 internal fun shouldEnableVideoCardCoverCrossfade(
     isScrollInProgress: Boolean,
     isReturningFromDetail: Boolean,
@@ -41,8 +48,11 @@ internal fun shouldEnableVideoCardCoverCrossfade(
     isSharedReturnTarget: Boolean
 ): Boolean {
     if (isScrollInProgress) return false
-    // 返回目标封面由 sharedBounds 承接播放器画面，Coil 淡入会在落位后再次改变亮度导致闪烁。
-    return !(isReturningFromDetail && useCoverSharedBounds && isSharedReturnTarget)
+    // 返回目标：全程禁用 Coil 淡入（含 clearReturning 之后）。
+    if (useCoverSharedBounds && isSharedReturnTarget) return false
+    // 返回会话中非 shell 路径的兜底
+    if (isReturningFromDetail && isSharedReturnTarget) return false
+    return true
 }
 
 /**

@@ -130,7 +130,8 @@ class VideoCardScrollLiteVisualPolicyTest {
     }
 
     @Test
-    fun `return target cover disables crossfade during shared transition`() {
+    fun `return target cover disables crossfade during and after shared return`() {
+        // 返回过程中
         assertFalse(
             shouldEnableVideoCardCoverCrossfade(
                 isScrollInProgress = false,
@@ -139,10 +140,38 @@ class VideoCardScrollLiteVisualPolicyTest {
                 isSharedReturnTarget = true
             )
         )
+        // clearReturning 之后仍是 lastClicked 目标：必须继续关 crossfade，否则会再闪一次
+        assertFalse(
+            shouldEnableVideoCardCoverCrossfade(
+                isScrollInProgress = false,
+                isReturningFromDetail = false,
+                useCoverSharedBounds = true,
+                isSharedReturnTarget = true
+            )
+        )
+        // 非返回目标可正常 crossfade
+        assertTrue(
+            shouldEnableVideoCardCoverCrossfade(
+                isScrollInProgress = false,
+                isReturningFromDetail = false,
+                useCoverSharedBounds = true,
+                isSharedReturnTarget = false
+            )
+        )
+    }
+
+    @Test
+    fun `video card cover request remembers crossfade to avoid rebuild flash`() {
+        val source = File("src/main/java/com/android/purebilibili/feature/home/components/cards/VideoCard.kt")
+            .readText()
+        assertTrue(source.contains("val coverImageRequest = remember("))
+        assertTrue(source.contains("coverCrossfadeEnabled"))
+        assertTrue(source.contains("model = coverImageRequest"))
     }
 
     @Test
     fun `non return target cover keeps crossfade`() {
+        // 同屏其它卡：返回会话中仍可 crossfade
         assertTrue(
             shouldEnableVideoCardCoverCrossfade(
                 isScrollInProgress = false,
@@ -151,7 +180,8 @@ class VideoCardScrollLiteVisualPolicyTest {
                 isSharedReturnTarget = false
             )
         )
-        assertTrue(
+        // lastClicked 返回目标：clear 后仍关 crossfade（防落位闪）
+        assertFalse(
             shouldEnableVideoCardCoverCrossfade(
                 isScrollInProgress = false,
                 isReturningFromDetail = false,
