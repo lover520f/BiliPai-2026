@@ -32,10 +32,10 @@ data class VideoSupplementUiState(
 )
 
 fun interface VideoSupplementLoader {
-    suspend fun load(subject: VideoSubjectSnapshot): VideoSupplementSeed
+    suspend fun load(subject: VideoSubjectSnapshot): VideoSupplementSeed?
 }
 
-private val EmptyVideoSupplementLoader = VideoSupplementLoader { VideoSupplementSeed() }
+private val EmptyVideoSupplementLoader = VideoSupplementLoader { null }
 
 class VideoSupplementViewModel(
     private val loader: VideoSupplementLoader = EmptyVideoSupplementLoader,
@@ -88,7 +88,7 @@ class VideoSupplementViewModel(
         subjectJob?.cancel()
         subjectJob = viewModelScope.launch {
             delay(startDelayMs)
-            val loaded = loader.load(subject)
+            val loaded = loader.load(subject) ?: return@launch
             val current = _uiState.value
             if (current.visible && current.subject?.generation == subject.generation) {
                 sync(loaded)

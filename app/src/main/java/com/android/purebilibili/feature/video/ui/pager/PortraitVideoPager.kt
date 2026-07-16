@@ -142,11 +142,12 @@ import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackViewModel
 import com.android.purebilibili.feature.video.viewmodel.VideoCommentViewModel
 import com.android.purebilibili.feature.video.viewmodel.VideoComposerViewModel
 import com.android.purebilibili.feature.video.viewmodel.VideoEngagementViewModel
-import com.android.purebilibili.feature.video.viewmodel.VideoEngagementEvent
+import com.android.purebilibili.feature.video.viewmodel.VideoEngagementUiState
 import com.android.purebilibili.feature.video.viewmodel.VideoSupplementViewModel
 import com.android.purebilibili.feature.video.usecase.TripleActionResult
 import com.android.purebilibili.feature.video.viewmodel.toEngagementSeed
 import com.android.purebilibili.feature.video.viewmodel.toSupplementSeed
+import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
 import com.android.purebilibili.feature.video.viewmodel.resolvePlaybackCompletionRepeatMode
 import com.android.purebilibili.feature.video.viewmodel.resolvePlaybackEndAction
 import com.bytedance.danmaku.render.engine.DanmakuView
@@ -202,6 +203,7 @@ fun PortraitVideoPager(
     onHomeClick: () -> Unit = onBack,
     onVideoChange: (String) -> Unit,
     viewModel: VideoPlaybackViewModel,
+    engagementViewModel: VideoEngagementViewModel,
     sharedPlayer: ExoPlayer? = null,
     initialStartPositionMs: Long = 0L,
     onProgressUpdate: (String, Long, Long) -> Unit = { _, _, _ -> },
@@ -211,8 +213,6 @@ fun PortraitVideoPager(
     onRotateToLandscape: () -> Unit
 ) {
     val context = LocalContext.current
-    val engagementViewModel: VideoEngagementViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(key = "portrait_engagement_$initialBvid")
     val composerViewModel: VideoComposerViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(key = "portrait_composer_$initialBvid")
     val supplementViewModel: VideoSupplementViewModel =
@@ -222,26 +222,20 @@ fun PortraitVideoPager(
             key = "portrait_comments_$initialBvid"
         )
     val playbackDomainState by viewModel.uiState.collectAsStateWithLifecycle()
+    val engagementState by engagementViewModel.uiState.collectAsStateWithLifecycle()
     val subjectSnapshot by viewModel.subjectSnapshot.collectAsStateWithLifecycle()
-    LaunchedEffect(context) {
-        engagementViewModel.initWithContext(context)
-    }
-    LaunchedEffect(engagementViewModel) {
-        engagementViewModel.events.collect { event ->
-            when (event) {
-                is VideoEngagementEvent.Message -> viewModel.toast(event.text)
-                is VideoEngagementEvent.OpenFollowGroups ->
-                    viewModel.showFollowGroupDialogForUser(event.mid)
-                is VideoEngagementEvent.LoadVideo -> viewModel.loadVideo(event.bvid, autoPlay = true)
-            }
-        }
-    }
-    LaunchedEffect(subjectSnapshot, playbackDomainState, isActive) {
+    val engagementSeed = (playbackDomainState as? VideoPlaybackUiState.Success)?.toEngagementSeed()
+    val supplementSeed = (playbackDomainState as? VideoPlaybackUiState.Success)?.toSupplementSeed()
+    LaunchedEffect(subjectSnapshot, engagementSeed) {
         val subject = subjectSnapshot ?: return@LaunchedEffect
-        val ready = playbackDomainState as? VideoPlaybackUiState.Success ?: return@LaunchedEffect
-        engagementViewModel.bindSubject(subject, ready.toEngagementSeed())
+        val seed = engagementSeed ?: return@LaunchedEffect
+        engagementViewModel.bindSubject(subject, seed)
         composerViewModel.bindSubject(subject)
-        supplementViewModel.bindSubject(subject, ready.toSupplementSeed())
+    }
+    LaunchedEffect(subjectSnapshot, supplementSeed, isActive) {
+        val subject = subjectSnapshot ?: return@LaunchedEffect
+        val seed = supplementSeed ?: return@LaunchedEffect
+        supplementViewModel.bindSubject(subject, seed)
         supplementViewModel.setVisible(isActive)
     }
     val useSharedPlayer = sharedPlayer != null
@@ -1123,6 +1117,7 @@ fun PortraitVideoPager(
                 onHomeClick = onHomeClick,
                 viewModel = viewModel,
                 commentViewModel = commentViewModel,
+                engagementState = engagementState,
                 onToggleFollow = engagementViewModel::toggleFollow,
                 onToggleLike = engagementViewModel::toggleLike,
                 onTripleAction = engagementViewModel::doTripleAction,
@@ -1192,6 +1187,7 @@ private fun VideoPageItem(
     onHomeClick: () -> Unit,
     viewModel: VideoPlaybackViewModel,
     commentViewModel: VideoCommentViewModel,
+    engagementState: VideoEngagementUiState,
     onToggleFollow: (Long?, Boolean?) -> Unit,
     onToggleLike: (Long?, String?, Boolean?, ((Boolean) -> Unit)?) -> Unit,
     onTripleAction: (Long?, String?, Boolean?, Int?, Boolean?, ((TripleActionResult) -> Unit)?) -> Unit,
@@ -2099,7 +2095,8 @@ private fun VideoPageItem(
         // Overlay & Interaction
     val currentUiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val isCurrentModelVideo = (currentUiState as? VideoPlaybackUiState.Success)?.info?.bvid == bvid
-    val currentSuccess = currentUiState as? VideoPlaybackUiState.Success
+    val currentSuccess = (currentUiState as? VideoPlaybackUiState.Success)
+        ?.withEngagementUiState(engagementState)
     var portraitInteractionOverride by remember(bvid) {
         mutableStateOf(PortraitVideoInteractionOverride())
     }

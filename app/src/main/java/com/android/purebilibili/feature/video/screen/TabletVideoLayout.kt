@@ -63,6 +63,7 @@ import com.android.purebilibili.core.ui.LocalSharedTransitionEnabled
 import com.android.purebilibili.core.ui.transition.VIDEO_SHARED_COVER_ASPECT_RATIO
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.purebilibili.feature.video.viewmodel.VideoEngagementViewModel
+import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
 
 /**
  * 🖥️ 平板端视频详情页布局
@@ -251,11 +252,12 @@ fun TabletVideoLayout(
                 // 📜 视频信息区域（可滚动）
                 if (uiState is VideoPlaybackUiState.Success) {
                     val success = uiState
+                    val engagementSuccess = success.withEngagementUiState(engagementState)
                     val currentPageIndex = success.info.pages.indexOfFirst { it.cid == success.info.cid }.coerceAtLeast(0)
                     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
                     
                     ScrollableVideoInfoSection(
-                        info = success.info,
+                        info = engagementSuccess.info,
                         isFollowing = engagementState.isFollowing,
                         isFavorited = engagementState.isFavorited,
                         isLiked = engagementState.isLiked,
@@ -273,7 +275,7 @@ fun TabletVideoLayout(
                         onFollowClick = { engagementViewModel.toggleFollow() },
                         onFavoriteClick = { engagementViewModel.toggleFavorite() },
                         onLikeClick = { engagementViewModel.toggleLike() },
-                        onCoinClick = { viewModel.openCoinDialog() },
+                        onCoinClick = { engagementViewModel.openCoinDialog() },
                         onTripleClick = { engagementViewModel.doTripleAction() },
                         onPageSelect = { viewModel.switchPage(it) },
                         onUpClick = onUpClick,

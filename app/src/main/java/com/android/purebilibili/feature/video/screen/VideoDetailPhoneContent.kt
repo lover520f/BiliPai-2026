@@ -46,6 +46,7 @@ import com.android.purebilibili.feature.video.viewmodel.CommentUiState
 import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackUiState
 import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackViewModel
 import com.android.purebilibili.feature.video.viewmodel.VideoEngagementViewModel
+import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
 import com.android.purebilibili.feature.video.viewmodel.VideoCommentViewModel
 import com.android.purebilibili.feature.video.player.PlaylistItem
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -107,6 +108,7 @@ internal fun VideoDetailPhoneSuccessContentLayer(
     onShowExternalPlaylistQueueSheet: () -> Unit
 ) {
     val engagementState by engagementViewModel.uiState.collectAsStateWithLifecycle()
+    val engagementSuccess = success.withEngagementUiState(engagementState)
     val relatedVideoTransitionEnabled = LocalSharedTransitionEnabled.current
     // Android 16 ART 曾拒绝校验 VideoDetailScreen 中捕获过多状态的匿名 Compose lambda。
     // 保持这个成功态为命名边界，避免 R8/Compose 再生成单个超大内容块。
@@ -179,7 +181,7 @@ internal fun VideoDetailPhoneSuccessContentLayer(
                             }
                         ) {
                             VideoContentSection(
-                                info = success.info,
+                                info = engagementSuccess.info,
                                 relatedVideos = success.related,
                                 replies = commentState.replies,
                                 replyCount = commentState.replyCount,
@@ -202,7 +204,7 @@ internal fun VideoDetailPhoneSuccessContentLayer(
                                 currentPageIndex = currentPageIndex,
                                 downloadProgress = downloadProgress,
                                 isInWatchLater = engagementState.isInWatchLater,
-                                followingMids = success.followingMids,
+                                followingMids = engagementState.followingMids,
                                 videoTags = success.videoTags,
                                 sortMode = commentState.sortMode,
                                 upOnlyFilter = commentState.upOnlyFilter,
@@ -219,7 +221,7 @@ internal fun VideoDetailPhoneSuccessContentLayer(
                                     openFavoriteFolders(VideoFavoriteEntryPoint.DetailActionRow)
                                 },
                                 onLikeClick = { engagementViewModel.toggleLike() },
-                                onCoinClick = { viewModel.openCoinDialog() },
+                                onCoinClick = { engagementViewModel.openCoinDialog() },
                                 onTripleClick = { engagementViewModel.doTripleAction() },
                                 onPageSelect = { viewModel.switchPage(it) },
                                 onUpClick = navigateToUserSpaceFromVideo,
@@ -333,7 +335,7 @@ internal fun VideoDetailPhoneSuccessContentLayer(
                                 onFavoriteClick = {
                                     openFavoriteFolders(VideoFavoriteEntryPoint.BottomInputBar)
                                 },
-                                onCoinClick = { viewModel.openCoinDialog() },
+                                onCoinClick = { engagementViewModel.openCoinDialog() },
                                 onShareClick = {
                                     onShareVideo(
                                         buildVideoSharePayload(

@@ -1,5 +1,7 @@
 package com.android.purebilibili.feature.video.viewmodel
 
+import com.android.purebilibili.feature.video.usecase.TripleActionResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -44,6 +46,57 @@ class VideoDomainViewModelTest {
         viewModel.bindSubject(subject("BV2", generation = 2L), VideoEngagementSeed())
         assertFalse(viewModel.uiState.value.coinDialogVisible)
         assertFalse(viewModel.uiState.value.isLiked)
+    }
+
+    @Test
+    fun `engagement keeps successful local result when playback seed is stale`() = runTest(dispatcher) {
+        val viewModel = VideoEngagementViewModel(actions = FakeEngagementActions())
+        val first = subject("BV1", generation = 1L)
+        viewModel.bindSubject(first, VideoEngagementSeed(isLiked = false, likeCount = 10))
+
+        viewModel.toggleLike()
+        runCurrent()
+        viewModel.bindSubject(first, VideoEngagementSeed(isLiked = false, likeCount = 10))
+
+        assertTrue(viewModel.uiState.value.isLiked)
+        assertEquals(11, viewModel.uiState.value.likeCount)
+
+        viewModel.bindSubject(subject("BV2", generation = 2L), VideoEngagementSeed(likeCount = 3))
+        assertFalse(viewModel.uiState.value.isLiked)
+        assertEquals(3, viewModel.uiState.value.likeCount)
+    }
+
+    @Test
+    fun `engagement discards an old request after subject generation changes`() = runTest(dispatcher) {
+        val pendingLike = CompletableDeferred<Result<Boolean>>()
+        val viewModel = VideoEngagementViewModel(
+            actions = FakeEngagementActions(pendingLike = pendingLike)
+        )
+        viewModel.bindSubject(subject("BV1", generation = 1L), VideoEngagementSeed(likeCount = 10))
+        viewModel.toggleLike()
+        runCurrent()
+
+        viewModel.bindSubject(subject("BV2", generation = 2L), VideoEngagementSeed(likeCount = 3))
+        pendingLike.complete(Result.success(true))
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.isLiked)
+        assertEquals(3, viewModel.uiState.value.likeCount)
+    }
+
+    @Test
+    fun `coin entry loads balance in engagement state`() = runTest(dispatcher) {
+        val viewModel = VideoEngagementViewModel(
+            actions = FakeEngagementActions(),
+            coinBalanceLoader = VideoCoinBalanceLoader { 8.5 }
+        )
+        viewModel.bindSubject(subject("BV1", generation = 1L), VideoEngagementSeed())
+
+        viewModel.openCoinDialog()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.coinDialogVisible)
+        assertEquals(8.5, viewModel.uiState.value.userCoinBalance ?: 0.0, 0.0)
     }
 
     @Test
@@ -109,6 +162,21 @@ class VideoDomainViewModelTest {
     }
 
     @Test
+    fun `supplement default deferred loader preserves playback seed`() = runTest(dispatcher) {
+        val viewModel = VideoSupplementViewModel(startDelayMs = 100L)
+        viewModel.bindSubject(
+            subject("BV1", generation = 1L),
+            VideoSupplementSeed(onlineCount = "seeded", ownerFollowerCount = 12)
+        )
+
+        advanceTimeBy(100L)
+        runCurrent()
+
+        assertEquals("seeded", viewModel.uiState.value.onlineCount)
+        assertEquals(12, viewModel.uiState.value.ownerFollowerCount)
+    }
+
+    @Test
     fun `composer buffered event survives a temporary collector stop`() = runTest(dispatcher) {
         val viewModel = VideoComposerViewModel()
 
@@ -127,4 +195,35 @@ class VideoDomainViewModelTest {
         durationMs = 1_000L,
         generation = generation
     )
+
+    private class FakeEngagementActions(
+        private val pendingLike: CompletableDeferred<Result<Boolean>>? = null
+    ) : VideoEngagementActions {
+        override suspend fun toggleFollow(mid: Long, currentlyFollowing: Boolean) =
+            Result.success(!currentlyFollowing)
+
+        override suspend fun toggleLike(aid: Long, currentlyLiked: Boolean, bvid: String) =
+            pendingLike?.await() ?: Result.success(!currentlyLiked)
+
+        override suspend fun toggleFavorite(aid: Long, currentlyFavorited: Boolean, bvid: String) =
+            Result.success(!currentlyFavorited)
+
+        override suspend fun toggleWatchLater(
+            aid: Long,
+            currentlyInWatchLater: Boolean,
+            bvid: String
+        ) = Result.success(!currentlyInWatchLater)
+
+        override suspend fun doCoin(aid: Long, count: Int, alsoLike: Boolean, bvid: String) =
+            Result.success(true)
+
+        override suspend fun doTripleAction(aid: Long) = Result.success(
+            TripleActionResult(
+                likeSuccess = true,
+                coinSuccess = true,
+                coinMessage = null,
+                favoriteSuccess = true
+            )
+        )
+    }
 }

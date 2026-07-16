@@ -1591,6 +1591,13 @@ class VideoPlaybackViewModel : ViewModel() {
     fun dismissFavoriteFolderDialog() {
         _favoriteFolderDialogVisible.value = false
     }
+
+    fun invalidateFavoriteFolderCache() {
+        favoriteFoldersBoundAid = null
+        lastSavedFavoriteFolderIds = emptySet()
+        _favoriteFolders.value = emptyList()
+        _favoriteSelectedFolderIds.value = emptySet()
+    }
     
     private fun loadFavoriteFolders(aid: Long? = null, keepCurrentSelection: Boolean = false) {
         viewModelScope.launch {

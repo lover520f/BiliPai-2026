@@ -1263,6 +1263,7 @@ fun VideoDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val subjectSnapshot by viewModel.subjectSnapshot.collectAsStateWithLifecycle()
     val engagementState by engagementViewModel.uiState.collectAsStateWithLifecycle()
+    val favoriteFolderSaveEvent by viewModel.favoriteFolderSaveEvent.collectAsStateWithLifecycle()
     val resumePlaybackSuggestion by viewModel.resumePlaybackSuggestion.collectAsStateWithLifecycle()
     LaunchedEffect(context) {
         engagementViewModel.initWithContext(context)
@@ -1274,15 +1275,30 @@ fun VideoDetailScreen(
                 is VideoEngagementEvent.OpenFollowGroups ->
                     viewModel.showFollowGroupDialogForUser(event.mid)
                 is VideoEngagementEvent.LoadVideo -> viewModel.loadVideo(event.bvid, autoPlay = true)
+                VideoEngagementEvent.InvalidateFavoriteFolders ->
+                    viewModel.invalidateFavoriteFolderCache()
             }
         }
     }
-    LaunchedEffect(subjectSnapshot, uiState) {
+    val engagementSeed = (uiState as? VideoPlaybackUiState.Success)?.toEngagementSeed()
+    val supplementSeed = (uiState as? VideoPlaybackUiState.Success)?.toSupplementSeed()
+    LaunchedEffect(subjectSnapshot, engagementSeed) {
         val subject = subjectSnapshot ?: return@LaunchedEffect
-        val ready = uiState as? VideoPlaybackUiState.Success ?: return@LaunchedEffect
-        engagementViewModel.bindSubject(subject, ready.toEngagementSeed())
+        val seed = engagementSeed ?: return@LaunchedEffect
+        engagementViewModel.bindSubject(subject, seed)
         composerViewModel.bindSubject(subject)
-        supplementViewModel.bindSubject(subject, ready.toSupplementSeed())
+    }
+    LaunchedEffect(subjectSnapshot, supplementSeed) {
+        val subject = subjectSnapshot ?: return@LaunchedEffect
+        val seed = supplementSeed ?: return@LaunchedEffect
+        supplementViewModel.bindSubject(subject, seed)
+    }
+    LaunchedEffect(favoriteFolderSaveEvent?.version) {
+        favoriteFolderSaveEvent?.let { event ->
+            if (subjectSnapshot?.aid == event.aid) {
+                engagementViewModel.applyFavoriteFolderResult(event.isFavorited)
+            }
+        }
     }
     LaunchedEffect(isVisible) {
         supplementViewModel.setVisible(isVisible)
@@ -4155,6 +4171,7 @@ fun VideoDetailScreen(
                         portraitPendingSelectionBvid = newBvid
                     },
                     viewModel = viewModel,
+                    engagementViewModel = engagementViewModel,
                     sharedPlayer = if (useSharedPortraitPlayer) playerState.player else null,
                     // [新增] 进度同步
                     initialStartPositionMs = portraitSyncSnapshotPositionMs,
@@ -4256,11 +4273,10 @@ fun VideoDetailScreen(
         //  [新增] 投币对话框
         val coinDialogVisible = engagementState.coinDialogVisible
         val currentCoinCount = engagementState.coinCount
-        val userBalance by viewModel.userCoinBalance.collectAsStateWithLifecycle()
         CoinDialog(
             visible = coinDialogVisible,
             currentCoinCount = currentCoinCount,
-            userBalance = userBalance,
+            userBalance = engagementState.userCoinBalance,
             onDismiss = { engagementViewModel.setCoinDialogVisible(false) },
             onConfirm = engagementViewModel::doCoin
         )

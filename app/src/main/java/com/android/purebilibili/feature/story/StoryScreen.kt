@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,10 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
 import com.android.purebilibili.feature.video.ui.pager.PortraitVideoPager
 import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackViewModel
+import com.android.purebilibili.feature.video.viewmodel.VideoEngagementEvent
+import com.android.purebilibili.feature.video.viewmodel.VideoEngagementViewModel
 
 @UnstableApi
 @Composable
@@ -32,6 +36,7 @@ fun StoryScreen(
     seedTitle: String = "",
     viewModel: StoryViewModel = viewModel(),
     playerViewModel: VideoPlaybackViewModel = viewModel(),
+    engagementViewModel: VideoEngagementViewModel = viewModel(),
     isActive: Boolean = true,
     onBack: () -> Unit,
     onVideoClick: (String, Long, String) -> Unit = { _, _, _ -> },
@@ -39,7 +44,24 @@ fun StoryScreen(
     onSearchClick: () -> Unit = {},
     onRotateToLandscape: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(context) {
+        engagementViewModel.initWithContext(context)
+    }
+    LaunchedEffect(engagementViewModel) {
+        engagementViewModel.events.collect { event ->
+            when (event) {
+                is VideoEngagementEvent.Message -> playerViewModel.toast(event.text)
+                is VideoEngagementEvent.OpenFollowGroups ->
+                    playerViewModel.showFollowGroupDialogForUser(event.mid)
+                is VideoEngagementEvent.LoadVideo ->
+                    playerViewModel.loadVideo(event.bvid, autoPlay = true)
+                VideoEngagementEvent.InvalidateFavoriteFolders ->
+                    playerViewModel.invalidateFavoriteFolderCache()
+            }
+        }
+    }
     val seed = remember(seedBvid, seedCid, seedCover, seedTitle) {
         if (seedBvid.isNotBlank()) {
             StoryFeedSeed(
@@ -96,6 +118,7 @@ fun StoryScreen(
                     onHomeClick = onBack,
                     onVideoChange = { },
                     viewModel = playerViewModel,
+                    engagementViewModel = engagementViewModel,
                     onExitSnapshot = { bvid, _, cid ->
                         latestExitSnapshot = StoryPortraitExitSnapshot(
                             bvid = bvid,

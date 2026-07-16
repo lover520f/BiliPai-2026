@@ -507,7 +507,9 @@ class PortraitVideoPagerPolicyTest {
         assertTrue(source.contains("rememberIsolatedDanmakuManager("))
         assertTrue(source.contains("key = \"portrait_comments_\$initialBvid\""))
         assertTrue(source.contains("commentViewModel.clearForVideoChange()"))
-        assertTrue(pagerSignature.contains("viewModel: VideoPlaybackViewModel,\n    sharedPlayer: ExoPlayer?"))
+        assertTrue(pagerSignature.contains("viewModel: VideoPlaybackViewModel,"))
+        assertTrue(pagerSignature.contains("engagementViewModel: VideoEngagementViewModel,"))
+        assertTrue(pagerSignature.contains("sharedPlayer: ExoPlayer?"))
         assertFalse(pagerSignature.contains("commentViewModel: VideoCommentViewModel"))
     }
 }
