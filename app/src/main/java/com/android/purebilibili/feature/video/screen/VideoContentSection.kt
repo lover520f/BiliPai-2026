@@ -1266,7 +1266,8 @@ private fun VideoHeaderContent(
                 onDownloadClick = onDownloadClick,
                 onWatchLaterClick = onWatchLaterClick,
                 onFavoriteLongClick = onFavoriteLongClick,
-                onShareClick = onShareClick
+                onShareClick = onShareClick,
+                showCommentAction = false,
             )
         }
 

@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.purebilibili.core.ui.AppIcons
 import com.android.purebilibili.core.ui.rememberAppCommentIcon
+import com.android.purebilibili.core.ui.rememberAppDownloadIcon
+import com.android.purebilibili.core.ui.rememberAppShareIcon
+import com.android.purebilibili.core.ui.rememberAppWatchLaterIcon
 import com.android.purebilibili.core.util.FormatUtils
 import com.android.purebilibili.core.util.HapticType
 import com.android.purebilibili.core.util.rememberHapticFeedback
@@ -49,6 +52,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
 import com.android.purebilibili.feature.video.ui.feedback.resolveVideoDetailActionActiveColors
 import com.android.purebilibili.feature.video.ui.feedback.resolveVideoActionCountTint
 import com.android.purebilibili.feature.video.ui.feedback.resolveVideoActionTint
@@ -62,6 +66,22 @@ internal fun shouldCancelTriplePressOnRelease(
     tripleCompleted: Boolean
 ): Boolean {
     return isTriplePressing && !tripleCompleted
+}
+
+internal fun resolveVideoDetailShareActionText(shareCount: Int): String {
+    return if (shareCount > 0) {
+        FormatUtils.formatStat(shareCount.toLong())
+    } else {
+        "分享"
+    }
+}
+
+internal fun resolveVideoDetailActionRowItemSpacing(actionCount: Int): Dp {
+    return if (actionCount >= 6) 0.dp else 2.dp
+}
+
+internal fun resolveVideoDetailActionButtonHorizontalPadding(actionCount: Int): Dp {
+    return if (actionCount >= 6) 2.dp else 4.dp
 }
 
 /**
@@ -143,11 +163,18 @@ fun ActionButtonsRow(
         }
     }
 
+    val shareIcon = rememberAppShareIcon()
+    val watchLaterIcon = rememberAppWatchLaterIcon()
+    val downloadIcon = rememberAppDownloadIcon()
+    val actionCount = 6 + if (showCommentAction) 1 else 0 // like/coin/fav/share/watchLater/cache[+comment]
+    val itemSpacing = resolveVideoDetailActionRowItemSpacing(actionCount)
+    val buttonHorizontalPadding = resolveVideoDetailActionButtonHorizontalPadding(actionCount)
+
     Row(
         modifier = modifier
-            .animateContentSize() // 🚀 [优化] 使布局变化更平滑
+            .animateContentSize()
             .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Like - 支持长按触发三连
@@ -164,6 +191,7 @@ fun ActionButtonsRow(
                 activeColor = activeColors.primaryAction,
                 progress = tripleProgress,
                 onClick = onLikeClick,
+                horizontalPadding = buttonHorizontalPadding,
                 modifier = Modifier.pointerInput(
                     isLiked,
                     tripleCompleted,
@@ -209,7 +237,8 @@ fun ActionButtonsRow(
                 isActive = coinCount > 0,
                 activeColor = activeColors.primaryAction,
                 progress = tripleProgress,
-                onClick = onCoinClick
+                onClick = onCoinClick,
+                horizontalPadding = buttonHorizontalPadding
             )
         }
 
@@ -225,7 +254,8 @@ fun ActionButtonsRow(
                     text = "评论 ${FormatUtils.formatStat(info.stat.reply.toLong())}",
                     isActive = false,
                     activeColor = activeColors.primaryAction,
-                    onClick = onCommentClick
+                    onClick = onCommentClick,
+                    horizontalPadding = buttonHorizontalPadding
                 )
             }
         }
@@ -244,7 +274,25 @@ fun ActionButtonsRow(
                 activeColor = activeColors.primaryAction,
                 progress = tripleProgress,
                 onClick = onFavoriteClick,
-                onLongClick = onFavoriteLongClick
+                onLongClick = onFavoriteLongClick,
+                horizontalPadding = buttonHorizontalPadding
+            )
+        }
+
+        // Share
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BiliActionButton(
+                icon = shareIcon,
+                text = resolveVideoDetailShareActionText(info.stat.share),
+                isActive = false,
+                activeColor = activeColors.primaryAction,
+                onClick = onShareClick,
+                horizontalPadding = buttonHorizontalPadding
             )
         }
         
@@ -256,11 +304,12 @@ fun ActionButtonsRow(
             contentAlignment = Alignment.Center
         ) {
             BiliActionButton(
-                icon = if (isInWatchLater) CupertinoIcons.Filled.Clock else CupertinoIcons.Default.Clock,
+                icon = watchLaterIcon,
                 text = if (isInWatchLater) "已添加" else "稍后看",
                 isActive = isInWatchLater,
                 activeColor = activeColors.watchLater,
-                onClick = onWatchLaterClick
+                onClick = onWatchLaterClick,
+                horizontalPadding = buttonHorizontalPadding
             )
         }
         
@@ -279,7 +328,7 @@ fun ActionButtonsRow(
             contentAlignment = Alignment.Center
         ) {
             BiliActionButton(
-                icon = if (isDownloaded) CupertinoIcons.Default.Checkmark else CupertinoIcons.Default.ArrowDown,
+                icon = if (isDownloaded) CupertinoIcons.Default.Checkmark else downloadIcon,
                 text = downloadText,
                 isActive = isDownloaded || isDownloading,
                 activeColor = if (isDownloaded) {
@@ -287,7 +336,8 @@ fun ActionButtonsRow(
                 } else {
                     activeColors.downloadInProgress
                 },
-                onClick = onDownloadClick
+                onClick = onDownloadClick,
+                horizontalPadding = buttonHorizontalPadding
             )
         }
 
@@ -305,7 +355,8 @@ private fun TripleProgressActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
-    disableInternalClick: Boolean = false
+    disableInternalClick: Boolean = false,
+    horizontalPadding: Dp = 4.dp
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -351,7 +402,7 @@ private fun TripleProgressActionButton(
                     )
                 }
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .padding(horizontal = horizontalPadding, vertical = 2.dp)
     ) {
         Box(
             modifier = Modifier.size(28.dp),
@@ -397,7 +448,9 @@ private fun TripleProgressActionButton(
             fontSize = 11.sp,
             color = textTint,
             fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false
         )
     }
 }
@@ -611,7 +664,8 @@ private fun BiliActionButton(
     activeColor: Color,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null, // [New] Long click support
-    enableActivePulse: Boolean = false
+    enableActivePulse: Boolean = false,
+    horizontalPadding: Dp = 4.dp
 ) {
     // Press animation
     val interactionSource = remember { MutableInteractionSource() }
@@ -670,21 +724,28 @@ private fun BiliActionButton(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .padding(horizontal = horizontalPadding, vertical = 2.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(24.dp)
-        )
+        Box(
+            modifier = Modifier.size(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = text,
             fontSize = 11.sp,
             color = textTint,
             fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false
         )
     }
 }

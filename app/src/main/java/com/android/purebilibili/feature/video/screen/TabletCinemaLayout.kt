@@ -805,6 +805,7 @@ private fun CinemaMetaActions(
                 success.info.bvid
             )
         },
+        showCommentAction = false,
         modifier = modifier
     )
 }
