@@ -69,7 +69,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 //  这里使用 ?: 抛出异常，解决了 Type mismatch 问题
                 qrcodeKey = data.qrcode_key ?: throw Exception("二维码 Key 为空")
 
-                Logger.d("LoginDebug", "2. Web 二维码获取成功 Key: $qrcodeKey")
+                Logger.d("LoginDebug", "Web 二维码获取成功")
                 val bitmap = generateQrBitmap(url)
                 currentBitmap = bitmap //  保存以便在 Scanned 状态使用
                 _state.value = LoginState.QrCode(bitmap)
@@ -174,7 +174,14 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun stopPolling() { isPolling = false }
+    fun stopPolling() {
+        isPolling = false
+        isTvPolling = false
+    }
+
+    fun showLoginError(message: String) {
+        _state.value = LoginState.Error(message)
+    }
 
     private fun generateQrBitmap(content: String): Bitmap {
         val writer = QRCodeWriter()
@@ -213,7 +220,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val response = NetworkModule.passportApi.getCaptcha()
                 if (response.code == 0 && response.data != null) {
                     currentCaptchaData = response.data
-                    Logger.d("LoginDebug", "极验参数获取成功: gt=${response.data.geetest?.gt}")
+                    Logger.d("LoginDebug", "极验参数获取成功")
                     _state.value = LoginState.CaptchaReady(response.data)
                 } else {
                     _state.value = LoginState.Error("获取验证参数失败: ${response.message}")
@@ -232,7 +239,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         currentValidate = validate
         currentSeccode = seccode
         currentChallenge = challenge
-        Logger.d("LoginDebug", "极验验证成功: validate=$validate")
+        Logger.d("LoginDebug", "极验验证成功")
     }
     
     /**
@@ -250,7 +257,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
                 
-                Logger.d("LoginDebug", "发送短信验证码到: +$countryCode $phone")
+                Logger.d("LoginDebug", "发送短信验证码请求")
                 
                 val response = NetworkModule.passportApi.sendSmsCode(
                     cid = countryCode,
@@ -263,7 +270,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 
                 if (response.code == 0 && response.data != null) {
                     currentCaptchaKey = response.data.captchaKey
-                    Logger.d("LoginDebug", "短信发送成功: captchaKey=${currentCaptchaKey}")
+                    Logger.d("LoginDebug", "短信验证码已发送")
                     _state.value = LoginState.SmsSent(currentCaptchaKey)
                 } else {
                     _state.value = LoginState.Error("短信发送失败: ${response.message}")
@@ -282,10 +289,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _state.value = LoginState.Loading
-                Logger.d(
-                    "LoginDebug",
-                    "短信验证码登录: cid=$currentCountryCode, phone=$currentPhone, code=$code"
-                )
+                Logger.d("LoginDebug", "短信验证码登录请求")
                 
                 val response = NetworkModule.passportApi.loginBySms(
                     cid = currentCountryCode,
@@ -316,7 +320,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _state.value = LoginState.Loading
-                Logger.d("LoginDebug", "密码登录: phone=$phone")
+                Logger.d("LoginDebug", "密码登录请求")
                 
                 // 1. 获取 RSA 公钥
                 val keyResponse = NetworkModule.passportApi.getWebKey()
@@ -384,12 +388,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
         
         if (sessData.isNotEmpty()) {
-            Logger.d("LoginDebug", " 登录成功: SESSDATA=$sessData")
-            TokenManager.saveCookies(getApplication(), sessData)
-            if (biliJct.isNotEmpty()) {
-                TokenManager.saveCsrf(getApplication(), biliJct)
-            }
-            finishLogin("phone")
+            completeLogin(
+                sessData = sessData,
+                csrf = biliJct,
+                source = "phone"
+            )
         } else {
             _state.value = LoginState.Error("Cookie 解析失败")
         }
@@ -406,6 +409,57 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 privacyModeEnabled = com.android.purebilibili.core.store.SettingsManager
                     .isPrivacyModeEnabledSync(getApplication())
             )
+        }
+    }
+
+    private suspend fun completeLogin(
+        sessData: String,
+        csrf: String = "",
+        buvid3: String = "",
+        mid: Long = 0L,
+        accessToken: String = "",
+        refreshToken: String = "",
+        source: String
+    ) {
+        TokenManager.saveCookies(getApplication(), sessData)
+        if (csrf.isNotBlank()) TokenManager.saveCsrf(getApplication(), csrf)
+        if (buvid3.isNotBlank()) TokenManager.saveBuvid3(getApplication(), buvid3)
+        if (mid > 0L) TokenManager.saveMid(getApplication(), mid)
+        if (accessToken.isNotBlank()) {
+            TokenManager.saveAccessToken(getApplication(), accessToken, refreshToken)
+        }
+        finishLogin(source)
+    }
+
+    fun loginByCookie(rawCookieHeader: String) {
+        val importedCookies = parseLoginCookieHeader(rawCookieHeader)
+        if (importedCookies == null) {
+            _state.value = LoginState.Error("Cookie 中缺少 SESSDATA")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _state.value = LoginState.Loading
+                val response = NetworkModule.passportApi
+                    .validateCookieSession(importedCookies.toCookieHeader())
+                val navData = response.data
+                if (response.code != 0 || navData == null || !navData.isLogin || navData.mid <= 0L) {
+                    _state.value = LoginState.Error("Cookie 无效或已过期")
+                    return@launch
+                }
+
+                completeLogin(
+                    sessData = importedCookies.sessData,
+                    csrf = importedCookies.csrf.orEmpty(),
+                    buvid3 = importedCookies.buvid3.orEmpty(),
+                    mid = navData.mid,
+                    source = "cookie_import"
+                )
+            } catch (e: Exception) {
+                com.android.purebilibili.core.util.Logger.e("LoginDebug", "Cookie 验证失败", e)
+                _state.value = LoginState.Error("Cookie 验证失败，请检查内容后重试")
+            }
         }
     }
 
@@ -469,7 +523,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     tvAuthCode = data.authCode ?: throw Exception("TV auth_code 为空")
                     val qrUrl = data.url ?: throw Exception("TV 二维码 URL 为空")
                     
-                    Logger.d("TvLogin", "2. TV 二维码获取成功: authCode=${tvAuthCode.take(10)}...")
+                    Logger.d("TvLogin", "TV 二维码获取成功")
                     
                     val bitmap = generateQrBitmap(qrUrl)
                     currentBitmap = bitmap
@@ -514,38 +568,24 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                             Logger.d("TvLogin", " TV 登录成功!")
                             val data = response.data
                             if (data != null) {
-                                // 保存 access_token
-                                TokenManager.saveAccessToken(
-                                    getApplication(),
-                                    data.accessToken,
-                                    data.refreshToken
+                                val cookies = data.cookieInfo?.cookies.orEmpty()
+                                    .associate { it.name to it.value }
+                                val sessData = cookies["SESSDATA"].orEmpty()
+                                if (sessData.isBlank()) {
+                                    _state.value = LoginState.Error("登录数据缺少 SESSDATA")
+                                    isTvPolling = false
+                                    return@launch
+                                }
+                                completeLogin(
+                                    sessData = sessData,
+                                    csrf = cookies["bili_jct"].orEmpty(),
+                                    buvid3 = cookies["buvid3"].orEmpty(),
+                                    mid = data.mid,
+                                    accessToken = data.accessToken,
+                                    refreshToken = data.refreshToken,
+                                    source = "qrcode_tv"
                                 )
-                                
-                                // 保存 mid
-                                if (data.mid > 0) {
-                                    TokenManager.saveMid(getApplication(), data.mid)
-                                }
-                                
-                                // 从 cookie_info 中提取并保存 SESSDATA, bili_jct
-                                data.cookieInfo?.cookies?.forEach { cookie ->
-                                    when (cookie.name) {
-                                        "SESSDATA" -> {
-                                            kotlinx.coroutines.runBlocking {
-                                                TokenManager.saveCookies(getApplication(), cookie.value)
-                                            }
-                                            Logger.d("TvLogin", " 保存 SESSDATA")
-                                        }
-                                        "bili_jct" -> {
-                                            TokenManager.saveCsrf(getApplication(), cookie.value)
-                                            Logger.d("TvLogin", " 保存 bili_jct")
-                                        }
-                                    }
-                                }
-                                
-                                Logger.d("TvLogin", " access_token saved")
-                                
                                 isTvPolling = false
-                                finishLogin("qrcode_tv")
                             } else {
                                 _state.value = LoginState.Error("登录数据解析失败")
                             }

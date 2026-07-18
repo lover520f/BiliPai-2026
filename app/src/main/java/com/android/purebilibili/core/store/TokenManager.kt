@@ -69,7 +69,10 @@ object TokenManager {
         accessTokenCache = sp.getString(SP_KEY_ACCESS_TOKEN, null)  //  读取 access_token
         refreshTokenCache = sp.getString(SP_KEY_REFRESH_TOKEN, null)  //  读取 refresh_token
         
-        com.android.purebilibili.core.util.Logger.d("TokenManager", " init: sessData=${sessDataCache?.take(10)}..., accessToken=${accessTokenCache?.take(10)}..., mid=$midCache")
+        com.android.purebilibili.core.util.Logger.d(
+            "TokenManager",
+            "init: hasSession=${!sessDataCache.isNullOrBlank()}, hasAccessToken=${!accessTokenCache.isNullOrBlank()}, mid=$midCache"
+        )
 
         // 2. 启动 DataStore 监听 (主要数据源)
         CoroutineScope(Dispatchers.IO).launch {
@@ -105,7 +108,7 @@ object TokenManager {
         csrfCache = csrf
         context.getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
             .edit().putString(SP_KEY_CSRF, csrf).apply()
-        com.android.purebilibili.core.util.Logger.d("TokenManager", " saveCsrf: ${csrf.take(10)}...")
+        com.android.purebilibili.core.util.Logger.d("TokenManager", "saveCsrf")
     }
     
     //  [新增] 保存用户 MID
@@ -125,7 +128,7 @@ object TokenManager {
             .putString(SP_KEY_ACCESS_TOKEN, accessToken)
             .putString(SP_KEY_REFRESH_TOKEN, refreshToken)
             .apply()
-        com.android.purebilibili.core.util.Logger.d("TokenManager", " saveAccessToken: ${accessToken.take(10)}..., refreshToken: ${refreshToken.take(10)}...")
+        com.android.purebilibili.core.util.Logger.d("TokenManager", "saveAccessToken")
     }
 
     fun saveVipStatus(isVip: Boolean) {
@@ -134,7 +137,7 @@ object TokenManager {
 
     suspend fun saveCookies(context: Context, sessData: String) {
         sessDataCache = sessData
-        com.android.purebilibili.core.util.Logger.d("TokenManager", " saveCookies: ${sessData.take(10)}..., cache updated to: ${sessDataCache?.take(10)}...")
+        com.android.purebilibili.core.util.Logger.d("TokenManager", "saveCookies")
         
         // 1. 存入 SP (同步/快速)
         context.getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)

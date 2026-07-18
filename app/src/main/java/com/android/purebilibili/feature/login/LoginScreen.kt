@@ -1,37 +1,83 @@
 package com.android.purebilibili.feature.login
 
 import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-// Enums
 enum class LoginMethod {
-    QR_CODE
+    TV_QR,
+    PASSWORD,
+    SMS,
+    COOKIE_IMPORT
 }
 
-internal fun resolveAvailableLoginMethods(): List<LoginMethod> = listOf(LoginMethod.QR_CODE)
+internal fun resolveAvailableLoginMethods(): List<LoginMethod> = LoginMethod.entries
 
 internal fun resolveQrLoginReason(): String {
-    return "当前仅保留扫码登录，因为只有扫码能稳定获取完整登录态，并解锁高画质播放能力（4K/HDR/1080P60）。"
+    return "推荐使用 TV 扫码登录，可获得更完整的播放登录态并解锁高画质播放能力。"
+}
+
+private sealed interface CaptchaRequest {
+    data class Sms(val phone: String) : CaptchaRequest
+    data class Password(val phone: String, val password: String) : CaptchaRequest
 }
 
 @Composable
@@ -41,110 +87,154 @@ fun LoginScreen(
     onClose: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    // Handle navigation when login is successful
-    LaunchedEffect(state) {
-        if (state is LoginState.Success) {
-            onLoginSuccess()
-        }
-    }
-    
-    // System Bar Handling
+    var selectedMethod by rememberSaveable { mutableStateOf(LoginMethod.TV_QR) }
+    var captchaRequest by remember { mutableStateOf<CaptchaRequest?>(null) }
+    var captchaManager by remember { mutableStateOf<CaptchaManager?>(null) }
     val activity = LocalActivity.current
-    val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
-    DisposableEffect(isDark, activity) {
-        val window = activity?.window
-        val insetsController = if (window != null) WindowInsetsControllerCompat(window, view) else null
-        
-        val originalStatusBarColor = window?.statusBarColor ?: 0
-        val originalNavBarColor = window?.navigationBarColor ?: 0
-        val originalLightStatusBars = insetsController?.isAppearanceLightStatusBars ?: true
-        val originalLightNavBars = insetsController?.isAppearanceLightNavigationBars ?: true
-        
-        if (window != null) {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
-            insetsController?.isAppearanceLightStatusBars = !isDark
-            insetsController?.isAppearanceLightNavigationBars = !isDark
-        }
-        
-        onDispose {
-            if (window != null) {
-                window.statusBarColor = originalStatusBarColor
-                window.navigationBarColor = originalNavBarColor
-                insetsController?.isAppearanceLightStatusBars = originalLightStatusBars
-                insetsController?.isAppearanceLightNavigationBars = originalLightNavBars
-            }
+
+    LaunchedEffect(state) {
+        if (state is LoginState.Success) onLoginSuccess()
+    }
+
+    LaunchedEffect(selectedMethod) {
+        captchaRequest = null
+        viewModel.stopPolling()
+        if (selectedMethod == LoginMethod.TV_QR) {
+            viewModel.loadTvQrCode()
+        } else {
+            viewModel.resetPhoneLogin()
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadQrCode()
+    LaunchedEffect(state, captchaRequest, activity) {
+        val request = captchaRequest ?: return@LaunchedEffect
+        val captchaData = (state as? LoginState.CaptchaReady)?.captchaData ?: return@LaunchedEffect
+        val hostActivity = activity ?: return@LaunchedEffect
+        captchaManager?.destroy()
+        captchaManager = CaptchaManager(hostActivity).also { manager ->
+            manager.startCaptcha(
+                gt = captchaData.geetest?.gt.orEmpty(),
+                challenge = captchaData.geetest?.challenge.orEmpty(),
+                onSuccess = { validate, seccode, challenge ->
+                    viewModel.saveCaptchaResult(validate, seccode, challenge)
+                    when (request) {
+                        is CaptchaRequest.Sms -> viewModel.sendSmsCode(request.phone, 86)
+                        is CaptchaRequest.Password -> viewModel.loginByPassword(request.phone, request.password)
+                    }
+                    captchaRequest = null
+                },
+                onFailed = { error ->
+                    captchaRequest = null
+                    viewModel.showLoginError(error)
+                },
+                onCancel = {
+                    captchaRequest = null
+                    viewModel.showLoginError("已取消安全验证")
+                }
+            )
+        }
     }
-    
+
     DisposableEffect(Unit) {
-        onDispose { viewModel.stopPolling() }
+        onDispose {
+            captchaManager?.destroy()
+            viewModel.stopPolling()
+        }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LoginBackground()
-
-        IOSLoginLayout(
-            state = state,
-            viewModel = viewModel,
-            onClose = onClose
-        )
-    }
+    LoginPage(
+        state = state,
+        selectedMethod = selectedMethod,
+        onMethodSelected = { selectedMethod = it },
+        onClose = onClose,
+        onRefreshQr = viewModel::loadTvQrCode,
+        onRequestSms = { phone ->
+            captchaRequest = CaptchaRequest.Sms(phone)
+            viewModel.getCaptcha()
+        },
+        onSubmitSms = viewModel::loginBySms,
+        onRequestPassword = { phone, password ->
+            captchaRequest = CaptchaRequest.Password(phone, password)
+            viewModel.getCaptcha()
+        },
+        onImportCookie = viewModel::loginByCookie
+    )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IOSLoginLayout(
+internal fun LoginPage(
     state: LoginState,
-    viewModel: LoginViewModel,
+    selectedMethod: LoginMethod,
+    onMethodSelected: (LoginMethod) -> Unit,
     onClose: () -> Unit,
+    onRefreshQr: () -> Unit,
+    onRequestSms: (String) -> Unit,
+    onSubmitSms: (Int) -> Unit,
+    onRequestPassword: (String, String) -> Unit,
+    onImportCookie: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        val isWide = maxWidth >= 840.dp
-        val sheetModifier = if (isWide) {
-            Modifier
-                .fillMaxWidth(0.92f)
-                .widthIn(max = 980.dp)
-                .heightIn(min = 560.dp, max = 700.dp)
-        } else {
-            Modifier
-                .fillMaxWidth()
-                .widthIn(max = 560.dp)
-        }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            TopBar(
-                onClose = onClose,
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        androidx.compose.material3.Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("登录") },
+                    actions = {
+                        IconButton(onClick = onClose) {
+                            Icon(Icons.Outlined.Close, contentDescription = "关闭登录")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(4.dp)
-            )
-
-            GlassCard(
-                modifier = sheetModifier.align(Alignment.Center)
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding(),
+                contentAlignment = Alignment.TopCenter
             ) {
-                if (isWide) {
-                    WideLoginSheetContent(
-                        state = state,
-                        viewModel = viewModel
-                    )
-                } else {
-                    CompactLoginSheetContent(
-                        state = state,
-                        viewModel = viewModel
-                    )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 560.dp)
+                        .testTag("login_scroll_content"),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        LoginHeader()
+                    }
+                    item {
+                        LoginMethodTabs(
+                            selectedMethod = selectedMethod,
+                            onMethodSelected = onMethodSelected
+                        )
+                    }
+                    item {
+                        LoginStateMessage(state)
+                    }
+                    item {
+                        when (selectedMethod) {
+                            LoginMethod.TV_QR -> TvQrLoginContent(state, onRefreshQr)
+                            LoginMethod.PASSWORD -> PasswordLoginContent(state, onRequestPassword)
+                            LoginMethod.SMS -> SmsLoginContent(state, onRequestSms, onSubmitSms)
+                            LoginMethod.COOKIE_IMPORT -> CookieImportContent(state, onImportCookie)
+                        }
+                    }
+                    item {
+                        Text(
+                            text = "继续即表示你同意用户协议和隐私政策。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -152,114 +242,284 @@ private fun IOSLoginLayout(
 }
 
 @Composable
-private fun CompactLoginSheetContent(
-    state: LoginState,
-    viewModel: LoginViewModel
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 22.dp, vertical = 20.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        BrandingHeader(isSmall = false)
-        Spacer(modifier = Modifier.height(24.dp))
-        LoginContentArea(
-            state = state,
-            onRefreshQr = { viewModel.loadQrCode() },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(20.dp))
+private fun LoginHeader(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = "登录 BiliPai", style = MaterialTheme.typography.headlineMedium)
         Text(
-            text = "登录即代表同意用户协议和隐私政策",
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-            fontSize = 12.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
+            text = "选择一种方式继续，你的观看进度和账号信息会同步到当前设备。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 @Composable
-private fun WideLoginSheetContent(
-    state: LoginState,
-    viewModel: LoginViewModel
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(22.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(0.42f)
-                .fillMaxHeight(),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.Center
-        ) {
-            BrandingHeader(isSmall = false)
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "为什么现在需要扫码登录？",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = resolveQrLoginReason(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                lineHeight = 18.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.width(20.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(1.dp)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-        )
-        Spacer(modifier = Modifier.width(20.dp))
-
-        Column(
-            modifier = Modifier
-                .weight(0.58f)
-                .fillMaxHeight()
-        ) {
-            LoginContentArea(
-                state = state,
-                onRefreshQr = { viewModel.loadQrCode() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "继续即表示你同意用户协议与隐私政策。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-            )
-        }
-    }
-}
-
-@Composable
-fun LoginContentArea(
-    state: LoginState,
-    onRefreshQr: () -> Unit,
+private fun LoginMethodTabs(
+    selectedMethod: LoginMethod,
+    onMethodSelected: (LoginMethod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AnimatedContent(
-        targetState = LoginMethod.QR_CODE,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(300)) + slideInVertically { height -> height / 20 } togetherWith
-            fadeOut(animationSpec = tween(300)) + slideOutVertically { height -> -height / 20 }
-        },
-        label = "login_content",
-        modifier = modifier
+    PrimaryScrollableTabRow(
+        selectedTabIndex = resolveAvailableLoginMethods().indexOf(selectedMethod),
+        modifier = modifier.fillMaxWidth(),
+        edgePadding = 0.dp
     ) {
-        QrCodeLoginContent(state, onRefreshQr)
+        resolveAvailableLoginMethods().forEach { method ->
+            Tab(
+                selected = method == selectedMethod,
+                onClick = { onMethodSelected(method) },
+                text = { Text(loginMethodLabel(method)) },
+                icon = { Icon(loginMethodIcon(method), contentDescription = null) }
+            )
+        }
+    }
+}
+
+private fun loginMethodLabel(method: LoginMethod): String = when (method) {
+    LoginMethod.TV_QR -> "扫码登录"
+    LoginMethod.PASSWORD -> "密码登录"
+    LoginMethod.SMS -> "短信登录"
+    LoginMethod.COOKIE_IMPORT -> "Cookie 导入"
+}
+
+private fun loginMethodIcon(method: LoginMethod) = when (method) {
+    LoginMethod.TV_QR -> Icons.Outlined.QrCode2
+    LoginMethod.PASSWORD -> Icons.Outlined.Password
+    LoginMethod.SMS -> Icons.Outlined.Phone
+    LoginMethod.COOKIE_IMPORT -> Icons.Outlined.ContentPaste
+}
+
+@Composable
+private fun LoginStateMessage(state: LoginState, modifier: Modifier = Modifier) {
+    val message = (state as? LoginState.Error)?.msg ?: return
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun TvQrLoginContent(
+    state: LoginState,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(text = "扫码登录", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = resolveQrLoginReason(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            when (state) {
+                is LoginState.QrCode, is LoginState.Scanned -> {
+                    val bitmap = when (state) {
+                        is LoginState.QrCode -> state.bitmap
+                        is LoginState.Scanned -> state.bitmap
+                    }
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "登录二维码",
+                        modifier = Modifier.size(232.dp).testTag("login_qr_code")
+                    )
+                    if (state is LoginState.Scanned) {
+                        Text(
+                            text = "已扫码，请在手机上确认登录。",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                LoginState.Loading -> CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                else -> Icon(
+                    imageVector = Icons.Outlined.QrCode2,
+                    contentDescription = null,
+                    modifier = Modifier.size(232.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Refresh, contentDescription = null)
+                Spacer(Modifier.size(8.dp))
+                Text("刷新二维码")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PasswordLoginContent(
+    state: LoginState,
+    onSubmit: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var phone by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val isLoading = state is LoginState.Loading || state is LoginState.CaptchaReady
+
+    LoginFormCard(title = "密码登录", modifier = modifier) {
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it.filter(Char::isDigit) },
+            label = { Text("手机号") },
+            leadingIcon = { Icon(Icons.Outlined.Phone, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("密码") },
+            leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = if (passwordVisible) "隐藏密码" else "显示密码"
+                    )
+                }
+            },
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "提交前需要完成安全验证。遇到风控时请改用扫码登录。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Button(
+            onClick = { onSubmit(phone, password) },
+            enabled = phone.isNotBlank() && password.isNotBlank() && !isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("验证并登录")
+        }
+    }
+}
+
+@Composable
+private fun SmsLoginContent(
+    state: LoginState,
+    onRequestCode: (String) -> Unit,
+    onSubmitCode: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var phone by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable { mutableStateOf("") }
+    val codeSent = state is LoginState.SmsSent
+    val isLoading = state is LoginState.Loading || state is LoginState.CaptchaReady
+
+    LoginFormCard(title = "短信验证码登录", modifier = modifier) {
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it.filter(Char::isDigit) },
+            label = { Text("中国大陆手机号") },
+            prefix = { Text("+86 ") },
+            leadingIcon = { Icon(Icons.Outlined.Phone, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (codeSent || code.isNotEmpty()) {
+            OutlinedTextField(
+                value = code,
+                onValueChange = { code = it.filter(Char::isDigit).take(6) },
+                label = { Text("短信验证码") },
+                leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Text(
+            text = "发送验证码前需要完成安全验证。验证码有效期与发送频率以服务端规则为准。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (codeSent || code.isNotEmpty()) {
+            Button(
+                onClick = { onSubmitCode(code.toIntOrNull() ?: 0) },
+                enabled = code.length == 6 && !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("登录")
+            }
+        } else {
+            Button(
+                onClick = { onRequestCode(phone) },
+                enabled = phone.length >= 6 && !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("获取验证码")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CookieImportContent(
+    state: LoginState,
+    onImport: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var cookieHeader by rememberSaveable { mutableStateOf("") }
+    val isLoading = state is LoginState.Loading
+
+    LoginFormCard(title = "Cookie 导入", modifier = modifier) {
+        Text(
+            text = "粘贴浏览器中的完整 Cookie 字符串。导入前会先验证账号，验证失败不会覆盖当前登录状态。",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = cookieHeader,
+            onValueChange = { cookieHeader = it },
+            label = { Text("Cookie") },
+            leadingIcon = { Icon(Icons.Outlined.ContentPaste, contentDescription = null) },
+            minLines = 5,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(
+            onClick = { onImport(cookieHeader) },
+            enabled = cookieHeader.isNotBlank() && !isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("验证并导入")
+        }
+    }
+}
+
+@Composable
+private fun LoginFormCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleLarge)
+            content()
+        }
     }
 }

@@ -18,6 +18,7 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Query
@@ -1693,6 +1694,11 @@ interface BangumiApi {
 }
 
 interface PassportApi {
+    @GET("https://api.bilibili.com/x/web-interface/nav")
+    suspend fun validateCookieSession(
+        @Header("Cookie") cookieHeader: String
+    ): NavResponse
+
     // 二维码登录
     @GET("x/passport-login/web/qrcode/generate")
     suspend fun generateQrCode(): QrCodeResponse
