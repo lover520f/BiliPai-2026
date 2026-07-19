@@ -128,6 +128,9 @@ fun AnimationSettingsContent(
         .collectAsStateWithLifecycle(initialValue = true)
     val appNavigationSettings by SettingsManager.getAppNavigationSettings(context)
         .collectAsStateWithLifecycle(initialValue = AppNavigationSettings())
+    val videoTransitionRealtimeBlurEnabled by SettingsManager
+        .getVideoTransitionRealtimeBlurEnabled(context)
+        .collectAsStateWithLifecycle(initialValue = true)
     val effectiveEntranceSpec = rememberEffectiveEntranceMotionSpec()
     // 开关开着、但有效参数被降级为不动画 → 系统减弱动效在生效。
     val entranceDowngradedBySystem = uiEntranceAnimationEnabled && !effectiveEntranceSpec.animate
@@ -226,6 +229,15 @@ fun AnimationSettingsContent(
                             subtitle = "全局视频卡片与详情页的共享元素过渡效果",
                             checked = state.cardTransitionEnabled,
                             onCheckedChange = { viewModel.toggleCardTransition(it) },
+                            iconTint = iOSTeal
+                        )
+                        IOSDivider()
+                        IOSSwitchItem(
+                            icon = rememberSettingsSemanticIcon(SettingsIconRole.CARD_TRANSITION_ANIMATION),
+                            title = "过渡动画实时模糊",
+                            subtitle = "过渡期间对背景使用实时模糊效果，关闭可降低 GPU 负载",
+                            checked = videoTransitionRealtimeBlurEnabled,
+                            onCheckedChange = { viewModel.toggleVideoTransitionRealtimeBlur(it) },
                             iconTint = iOSTeal
                         )
                         IOSDivider()

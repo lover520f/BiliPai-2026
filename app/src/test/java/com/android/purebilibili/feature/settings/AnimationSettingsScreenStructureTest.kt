@@ -23,6 +23,15 @@ class AnimationSettingsScreenStructureTest {
         assertFalse(source.contains("resolvePredictiveBackExitDirectionOptions"))
     }
 
+    @Test
+    fun animationSettingsScreen_exposesRealtimeTransitionBlurToggle() {
+        val source = animationSettingsSource()
+
+        assertTrue(source.contains("title = \"过渡动画实时模糊\""))
+        assertTrue(source.contains("checked = videoTransitionRealtimeBlurEnabled"))
+        assertTrue(source.contains("toggleVideoTransitionRealtimeBlur"))
+    }
+
     private fun animationSettingsSource(): String {
         return listOf(
             File("app/src/main/java/com/android/purebilibili/feature/settings/screen/AnimationSettingsScreen.kt"),

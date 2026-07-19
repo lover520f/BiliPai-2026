@@ -360,6 +360,9 @@ fun AppNavigation(
         )
     }
     val cardTransitionEnabled = appearance.cardTransitionEnabled
+    val videoTransitionRealtimeBlurEnabled by SettingsManager
+        .getVideoTransitionRealtimeBlurEnabled(context)
+        .collectAsStateWithLifecycle(initialValue = true)
     val isBottomBarBlurEnabled = appearance.bottomBarBlurEnabled
     val bottomBarLabelMode = appearance.bottomBarLabelMode
     val isBottomBarFloating = appearance.bottomBarFloating
@@ -1327,6 +1330,7 @@ fun AppNavigation(
                         depthGestureRestore = globalWallpaperDepthGestureRestore,
                         isDataSaverActive = isDataSaverActiveForGlobalWallpaper,
                         isLightBackground = isLightBackground,
+                        realtimeBlurEnabled = videoTransitionRealtimeBlurEnabled,
                     )
                 fun bottomPagerNavKeyForItem(item: BottomNavItem): BiliPaiNavKey {
                     return when (item) {
@@ -1399,6 +1403,9 @@ fun AppNavigation(
                                             isGestureRestoreInProgressProvider = backgroundState.isGestureRestoreInProgressProvider,
                                             motionTierProvider = backgroundState.motionTierProvider,
                                             isLightBackgroundProvider = backgroundState.isLightBackgroundProvider,
+                                            realtimeBlurEnabledProvider = {
+                                                videoTransitionRealtimeBlurEnabled
+                                            },
                                         )
                                     } else {
                                         modifier

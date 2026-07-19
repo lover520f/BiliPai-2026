@@ -59,6 +59,18 @@ class VideoCardTransitionBackgroundPolicyTest {
     }
 
     @Test
+    fun snapshotBlur_respectsRealtimeBlurSetting() {
+        assertFalse(
+            shouldUseVideoCardTransitionSnapshotBlur(
+                phase = VideoCardTransitionBackgroundPhase.OPENING,
+                motionTier = MotionTier.Normal,
+                realtimeBlurEnabled = false,
+                sdkInt = 35,
+            )
+        )
+    }
+
+    @Test
     fun navBackdrop_isHiddenWhenPredictiveReturnTargetsAnotherVideoDetail() {
         assertFalse(
             shouldShowVideoCardTransitionNavBackdrop(

@@ -313,10 +313,12 @@ internal fun resolveVideoCardTransitionNavBackdropColor(
 internal fun shouldUseVideoCardTransitionSnapshotBlur(
     phase: VideoCardTransitionBackgroundPhase,
     motionTier: MotionTier,
+    realtimeBlurEnabled: Boolean = true,
     sdkInt: Int = Build.VERSION.SDK_INT,
 ): Boolean {
     if (phase == VideoCardTransitionBackgroundPhase.IDLE) return false
     if (motionTier == MotionTier.Reduced) return false
+    if (!realtimeBlurEnabled) return false
     return sdkInt >= Build.VERSION_CODES.S
 }
 
@@ -410,6 +412,7 @@ internal fun Modifier.videoCardTransitionBackgroundEffect(
     isGestureRestoreInProgressProvider: () -> Boolean = { false },
     motionTierProvider: () -> MotionTier = { MotionTier.Normal },
     isLightBackgroundProvider: () -> Boolean = { false },
+    realtimeBlurEnabledProvider: () -> Boolean = { true },
 ): Modifier {
     val contentLayer = rememberGraphicsLayer()
     val snapshotState = remember { VideoCardTransitionSnapshotLayerState() }
@@ -418,6 +421,7 @@ internal fun Modifier.videoCardTransitionBackgroundEffect(
     val useSnapshotBlur = shouldUseVideoCardTransitionSnapshotBlur(
         phase = phase,
         motionTier = motionTier,
+        realtimeBlurEnabled = realtimeBlurEnabledProvider(),
     )
 
     LaunchedEffect(phase, useSnapshotBlur) {
@@ -474,6 +478,7 @@ internal fun Modifier.videoCardTransitionBackgroundEffect(
         val snapshotBlurActive = shouldUseVideoCardTransitionSnapshotBlur(
             phase = activePhase,
             motionTier = activeMotionTier,
+            realtimeBlurEnabled = realtimeBlurEnabledProvider(),
         )
 
         if (!snapshotBlurActive) {

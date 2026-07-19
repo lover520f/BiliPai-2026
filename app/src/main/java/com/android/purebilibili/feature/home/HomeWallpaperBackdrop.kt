@@ -39,6 +39,7 @@ internal fun DepthSyncedGlobalHomeWallpaperBackdrop(
     depthGestureRestore: MutableState<Boolean>,
     isDataSaverActive: Boolean = false,
     isLightBackground: Boolean = false,
+    realtimeBlurEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val phase by depthPhase
@@ -59,6 +60,7 @@ internal fun DepthSyncedGlobalHomeWallpaperBackdrop(
                         isGestureRestoreInProgressProvider = { depthGestureRestore.value },
                         motionTierProvider = { motionTier },
                         isLightBackgroundProvider = { isLightBackground },
+                        realtimeBlurEnabledProvider = { realtimeBlurEnabled },
                     )
                 } else {
                     Modifier

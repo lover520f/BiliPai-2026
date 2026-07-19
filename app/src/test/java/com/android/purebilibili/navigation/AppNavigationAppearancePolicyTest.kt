@@ -146,10 +146,11 @@ class AppNavigationAppearancePolicyTest {
     }
 
     @Test
-    fun appNavigationRemovesVideoTransitionRealtimeBlurRuntimePath() {
+    fun appNavigationReadsVideoTransitionRealtimeBlurSetting() {
         val source = loadSource("app/src/main/java/com/android/purebilibili/navigation/AppNavigation.kt")
 
-        assertFalse(source.contains("videoTransitionRealtimeBlurEnabled"))
+        assertTrue(source.contains("videoTransitionRealtimeBlurEnabled"))
+        assertTrue(source.contains("realtimeBlurEnabledProvider"))
         assertFalse(source.contains("video_source_background_blur"))
         assertFalse(source.contains("RenderEffect.createBlurEffect"))
     }
