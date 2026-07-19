@@ -43,9 +43,9 @@ import com.android.purebilibili.feature.video.ui.section.VideoPlayerSection
 import com.android.purebilibili.feature.video.ui.section.VideoTitleWithDesc
 import com.android.purebilibili.feature.video.usecase.seekPlayerFromUserAction
 import com.android.purebilibili.feature.video.viewmodel.CommentUiState
+import com.android.purebilibili.feature.video.viewmodel.SubReplyUiState
+import com.android.purebilibili.feature.video.viewmodel.VideoEngagementUiState
 import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackUiState
-import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackViewModel
-import com.android.purebilibili.feature.video.viewmodel.VideoCommentViewModel
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.alexzhirkevich.cupertino.CupertinoActivityIndicator
@@ -62,7 +62,6 @@ import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
 import com.android.purebilibili.core.ui.LocalSharedTransitionEnabled
 import com.android.purebilibili.core.ui.transition.VIDEO_SHARED_COVER_ASPECT_RATIO
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.android.purebilibili.feature.video.viewmodel.VideoEngagementViewModel
 import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
 
 /**
@@ -74,13 +73,16 @@ import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun TabletVideoLayout(
+internal fun TabletVideoLayout(
     playerState: VideoPlayerState,
     uiState: VideoPlaybackUiState,
     commentState: CommentUiState,
-    viewModel: VideoPlaybackViewModel,
-    engagementViewModel: VideoEngagementViewModel,
-    commentViewModel: VideoCommentViewModel,
+    engagementState: VideoEngagementUiState,
+    subReplyState: SubReplyUiState,
+    downloadProgress: Float,
+    playbackActions: VideoDetailPlaybackActions,
+    engagementActions: VideoDetailEngagementActions,
+    commentActions: VideoDetailCommentActions,
     configuration: Configuration,
     isVerticalVideo: Boolean,
     sleepTimerMinutes: Int?,
@@ -115,7 +117,6 @@ fun TabletVideoLayout(
     forceCoverOnlyOnReturn: Boolean = false,
     predictiveBackCancelRecoveryGeneration: Int = 0
 ) {
-    val engagementState by engagementViewModel.uiState.collectAsStateWithLifecycle()
     val layoutPolicy = remember(configuration.screenWidthDp) {
         resolveTabletVideoLayoutPolicy(
             widthDp = configuration.screenWidthDp
@@ -203,26 +204,26 @@ fun TabletVideoLayout(
                             useTextureSurfaceForNavigation = transitionEnabled,
                             predictiveBackCancelRecoveryGeneration = predictiveBackCancelRecoveryGeneration,
                             onToggleFullscreen = onToggleFullscreen,
-                            onQualityChange = { qid -> viewModel.changeQuality(qid) },
+                            onQualityChange = playbackActions.changeQuality,
                             onBack = onBack,
                             onHomeClick = onHomeClick,
                             bvid = bvid,
                             coverUrl = coverUrl,
-                            onDoubleTapLike = { engagementViewModel.toggleLike() },
-                            onReloadVideo = { viewModel.reloadVideo() },
+                            onDoubleTapLike = engagementActions.toggleLike,
+                            onReloadVideo = playbackActions.reloadVideo,
                             cdnCount = (uiState as? VideoPlaybackUiState.Success)?.cdnCount ?: 1,
                             cdnLineDiagnostics = (uiState as? VideoPlaybackUiState.Success)?.cdnLineDiagnostics.orEmpty(),
                             isCdnProbing = (uiState as? VideoPlaybackUiState.Success)?.isCdnProbing ?: false,
-                            onSwitchCdn = { viewModel.switchCdn() },
-                            onSwitchCdnTo = { viewModel.switchCdnTo(it) },
-                            onProbeCdnCandidates = { viewModel.probeCurrentCdnCandidates() },
+                            onSwitchCdn = playbackActions.switchCdn,
+                            onSwitchCdnTo = playbackActions.switchCdnTo,
+                            onProbeCdnCandidates = playbackActions.probeCdnCandidates,
                             isAudioOnly = false,
                             onAudioOnlyToggle = {
-                                viewModel.setAudioMode(true)
+                                playbackActions.setAudioMode(true)
                                 onNavigateToAudioMode()
                             },
                             sleepTimerMinutes = sleepTimerMinutes,
-                            onSleepTimerChange = { viewModel.setSleepTimer(it) },
+                            onSleepTimerChange = playbackActions.setSleepTimer,
                             videoshotData = (uiState as? VideoPlaybackUiState.Success)?.videoshotData,
                             viewPoints = viewPoints,
                             isVerticalVideo = isVerticalVideo,
@@ -237,14 +238,14 @@ fun TabletVideoLayout(
                             onSecondCodecChange = onSecondCodecChange,
                             currentAudioQuality = currentAudioQuality,
                             onAudioQualityChange = onAudioQualityChange,
-                            onPlaybackSpeedChange = { viewModel.applyPlaybackSpeedFromUi(it) },
+                            onPlaybackSpeedChange = playbackActions.applyPlaybackSpeed,
                             // [New Actions]
-                            onSaveCover = { viewModel.saveCover(context) },
-                            onDownloadAudio = { viewModel.downloadAudio(context) },
+                            onSaveCover = playbackActions.saveCover,
+                            onDownloadAudio = playbackActions.downloadAudio,
                             // 🔁 [新增] 播放模式
                             currentPlayMode = currentPlayMode,
                             onPlayModeClick = onPlayModeClick,
-                            onSubtitleTrackSelected = viewModel::selectSubtitleTrack
+                            onSubtitleTrackSelected = playbackActions.selectSubtitleTrack
                         )
                     }
                 }
@@ -254,8 +255,6 @@ fun TabletVideoLayout(
                     val success = uiState
                     val engagementSuccess = success.withEngagementUiState(engagementState)
                     val currentPageIndex = success.info.pages.indexOfFirst { it.cid == success.info.cid }.coerceAtLeast(0)
-                    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
-                    
                     ScrollableVideoInfoSection(
                         info = engagementSuccess.info,
                         isFollowing = engagementState.isFollowing,
@@ -272,15 +271,15 @@ fun TabletVideoLayout(
                         bgmInfoList = success.bgmInfoList,
                         onBgmClick = onBgmClick,
                         relatedVideos = success.related,
-                        onFollowClick = { engagementViewModel.toggleFollow() },
-                        onFavoriteClick = { engagementViewModel.toggleFavorite() },
-                        onLikeClick = { engagementViewModel.toggleLike() },
-                        onCoinClick = { engagementViewModel.openCoinDialog() },
-                        onTripleClick = { engagementViewModel.doTripleAction() },
-                        onPageSelect = { viewModel.switchPage(it) },
+                        onFollowClick = engagementActions.toggleFollow,
+                        onFavoriteClick = engagementActions.toggleFavorite,
+                        onLikeClick = engagementActions.toggleLike,
+                        onCoinClick = engagementActions.openCoinDialog,
+                        onTripleClick = engagementActions.doTripleAction,
+                        onPageSelect = playbackActions.switchPage,
                         onUpClick = onUpClick,
-                        onDownloadClick = { viewModel.openDownloadDialog() },
-                        onWatchLaterClick = { engagementViewModel.toggleWatchLater() },
+                        onDownloadClick = playbackActions.openDownloadDialog,
+                        onWatchLaterClick = engagementActions.toggleWatchLater,
                         onRelatedVideoClick = onRelatedVideoClick,
                         onOpenBilibiliLink = onOpenBilibiliLink,
                         modifier = Modifier
@@ -300,8 +299,9 @@ fun TabletVideoLayout(
                 TabletSecondaryContent(
                     success = success,
                     commentState = commentState,
-                    commentViewModel = commentViewModel,
-                    viewModel = viewModel,
+                    subReplyState = subReplyState,
+                    playbackActions = playbackActions,
+                    commentActions = commentActions,
                     playerState = playerState,
                     onUpClick = onUpClick,
                     paneMode = secondaryPaneMode,
@@ -328,8 +328,9 @@ fun TabletVideoLayout(
 private fun TabletSecondaryContent(
     success: VideoPlaybackUiState.Success,
     commentState: CommentUiState,
-    commentViewModel: VideoCommentViewModel,
-    viewModel: VideoPlaybackViewModel,
+    subReplyState: SubReplyUiState,
+    playbackActions: VideoDetailPlaybackActions,
+    commentActions: VideoDetailCommentActions,
     playerState: VideoPlayerState,
     onUpClick: (Long) -> Unit,
     paneMode: TabletSecondaryPaneMode,
@@ -354,7 +355,6 @@ private fun TabletSecondaryContent(
         initialPage = selectedTab,
         pageCount = { 2 }
     )
-    val subReplyState by commentViewModel.subReplyState.collectAsStateWithLifecycle()
     val tabs = listOf("评论 ${if (commentState.replyCount > 0) "(${commentState.replyCount})" else ""}", "相关推荐")
     
     // 评论图片预览状态
@@ -521,7 +521,7 @@ private fun TabletSecondaryContent(
                         }
                     }
                     LaunchedEffect(shouldLoadMore) {
-                        if (shouldLoadMore) commentViewModel.loadComments()
+                        if (shouldLoadMore) commentActions.loadComments()
                     }
 
                     if (subReplyState.visible && subReplyState.rootReply != null) {
@@ -530,9 +530,9 @@ private fun TabletSecondaryContent(
                             commentState = commentState,
                             emoteMap = success.emoteMap,
                             maxTimestampMs = success.videoDurationMs.takeIf { it > 0L },
-                            onLoadMore = { commentViewModel.loadMoreSubReplies() },
-                            onDismiss = { commentViewModel.closeSubReply() },
-                            onRootCommentClick = { viewModel.openRootCommentComposer() },
+                            onLoadMore = commentActions.loadMoreSubReplies,
+                            onDismiss = commentActions.closeSubReply,
+                            onRootCommentClick = playbackActions.openRootCommentComposer,
                             onTimestampClick = { positionMs ->
                                 seekPlayerFromUserAction(playerState.player, positionMs)
                             },
@@ -543,16 +543,13 @@ private fun TabletSecondaryContent(
                                 previewTextContent = textContent
                                 showImagePreview = true
                             },
-                            onReplyClick = { reply ->
-                                viewModel.setReplyingTo(reply)
-                                viewModel.showCommentInputDialog()
-                            },
-                            onConversationClick = commentViewModel::openSubReplyConversation,
-                            onConversationBack = commentViewModel::closeSubReplyConversation,
-                            onDissolveStart = { rpid -> commentViewModel.startSubDissolve(rpid) },
-                            onDeleteComment = { rpid -> commentViewModel.deleteSubComment(rpid) },
-                            onCommentLike = commentViewModel::likeComment,
-                            onReportComment = commentViewModel::reportComment,
+                            onReplyClick = playbackActions.replyTo,
+                            onConversationClick = commentActions.openSubReplyConversation,
+                            onConversationBack = commentActions.closeSubReplyConversation,
+                            onDissolveStart = commentActions.startSubDissolve,
+                            onDeleteComment = commentActions.deleteSubComment,
+                            onCommentLike = commentActions.likeComment,
+                            onReportComment = commentActions.reportComment,
                             onUrlClick = openCommentUrl,
                             showIdentityDecorations = showIdentityDecorations,
                             onAvatarClick = { mid -> mid.toLongOrNull()?.let(onUpClick) ?: Unit }
@@ -564,7 +561,7 @@ private fun TabletSecondaryContent(
                                 count = commentState.replyCount,
                                 sortMode = commentState.sortMode,
                                 onSortModeChange = { mode ->
-                                    commentViewModel.setSortMode(mode)
+                                    commentActions.setSortMode(mode)
                                     scope.launch {
                                         com.android.purebilibili.core.store.SettingsManager
                                             .setCommentDefaultSortMode(context, mode.apiMode)
@@ -588,7 +585,7 @@ private fun TabletSecondaryContent(
                                     color = commentAppearance.composerHintBackgroundColor,
                                     shape = RoundedCornerShape(14.dp),
                                     onClick = {
-                                        viewModel.openRootCommentComposer()
+                                        playbackActions.openRootCommentComposer()
                                     }
                                 ) {
                                     Text(
@@ -606,7 +603,7 @@ private fun TabletSecondaryContent(
                             ) { reply ->
                                 com.android.purebilibili.core.ui.animation.MaybeDissolvableVideoCard(
                                     isDissolving = reply.rpid in commentState.dissolvingIds,
-                                    onDissolveComplete = { commentViewModel.deleteComment(reply.rpid) },
+                                    onDissolveComplete = { commentActions.deleteComment(reply.rpid) },
                                     cardId = "comment_${reply.rpid}",
                                     modifier = Modifier.padding(bottom = 1.dp)
                                 ) {
@@ -618,7 +615,7 @@ private fun TabletSecondaryContent(
                                         showIdentityDecorations = showIdentityDecorations,
                                         isPinned = reply.rpid in commentState.pinnedReplyIds,
                                         onClick = {},
-                                        onSubClick = commentViewModel::openSubReply,
+                                        onSubClick = { reply, _ -> commentActions.openSubReply(reply) },
                                         onTimestampClick = { positionMs ->
                                             seekPlayerFromUserAction(playerState.player, positionMs)
                                         },
@@ -630,21 +627,18 @@ private fun TabletSecondaryContent(
                                             previewTextContent = textContent
                                             showImagePreview = true
                                         },
-                                        onLikeClick = { commentViewModel.likeComment(reply.rpid) },
+                                        onLikeClick = { commentActions.likeComment(reply.rpid) },
                                         isLiked = reply.action == 1 || reply.rpid in commentState.likedComments,
-                                        onReplyClick = {
-                                            viewModel.setReplyingTo(reply)
-                                            viewModel.showCommentInputDialog()
-                                        },
-                                        onReportClick = { reason -> commentViewModel.reportComment(reply.rpid, reason) },
+                                        onReplyClick = { playbackActions.replyTo(reply) },
+                                        onReportClick = { reason -> commentActions.reportComment(reply.rpid, reason) },
                                         canToggleTop = shouldShowReplyTopAction(
                                             currentMid = commentState.currentMid,
                                             upMid = success.info.owner.mid,
                                             item = reply
                                         ),
-                                        onToggleTopClick = { commentViewModel.toggleTopComment(reply) },
+                                        onToggleTopClick = { commentActions.toggleTopComment(reply) },
                                         onDeleteClick = if (commentState.currentMid > 0 && reply.mid == commentState.currentMid) {
-                                            { commentViewModel.startDissolve(reply.rpid) }
+                                            { commentActions.startDissolve(reply.rpid) }
                                         } else null,
                                         onUrlClick = openCommentUrl,
                                         onAvatarClick = { mid -> mid.toLongOrNull()?.let { onUpClick(it) } }
@@ -695,7 +689,7 @@ private fun TabletSecondaryContent(
                         }
 
                         FloatingActionButton(
-                            onClick = { commentViewModel.toggleUpOnly() },
+                            onClick = commentActions.toggleUpOnly,
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp),

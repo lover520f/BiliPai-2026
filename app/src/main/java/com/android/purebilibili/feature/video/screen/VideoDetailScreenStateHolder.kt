@@ -568,125 +568,6 @@ internal fun resolveVideoPlayerSectionTarget(
     )
 }
 
-@Composable
-private fun PortraitInlineVideoPlayerHost(
-    modifier: Modifier,
-    animatedViewportWidth: Dp,
-    animatedViewportHeight: Dp,
-    inlinePlayerAlpha: Float,
-    inlinePlayerScale: Float,
-    context: Context,
-    playerState: VideoPlayerState,
-    uiState: VideoPlaybackUiState,
-    isPipMode: Boolean,
-    transitionEnabled: Boolean,
-    onToggleFullscreen: () -> Unit,
-    viewModel: VideoPlaybackViewModel,
-    onDoubleTapLike: () -> Unit,
-    onBack: () -> Unit,
-    onHomeClick: () -> Unit,
-    videoPlayerSectionTarget: VideoPlayerSectionTarget,
-    sponsorSegment: com.android.purebilibili.data.model.response.SponsorSegment?,
-    showSponsorSkipButton: Boolean,
-    sleepTimerMinutes: Int?,
-    viewPoints: List<ViewPoint>,
-    pbpProgressData: PbpProgressData?,
-    sponsorProgressMarkers: List<com.android.purebilibili.data.model.response.SponsorProgressMarker>,
-    isVerticalVideo: Boolean,
-    onPortraitFullscreen: () -> Unit,
-    isPortraitFullscreen: Boolean,
-    onPipClick: () -> Unit,
-    codecPreference: String,
-    secondCodecPreference: String,
-    audioQualityPreference: Int,
-    onNavigateToAudioMode: () -> Unit,
-    forceCoverOnly: Boolean,
-    liveBackPreview: Boolean,
-    useTextureSurfaceForNavigation: Boolean,
-    predictiveBackCancelRecoveryGeneration: Int,
-    allowLivePlayerSharedElement: Boolean,
-    sourceRouteForSharedElement: String?,
-    suppressSubtitleOverlay: Boolean,
-    subtitleDisplayModePreferenceOverride: SubtitleDisplayMode?,
-    onSubtitleDisplayModePreferenceOverrideChange: (SubtitleDisplayMode) -> Unit
-) {
-    val successState = uiState as? VideoPlaybackUiState.Success
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(animatedViewportHeight)
-            .alpha(inlinePlayerAlpha)
-            .graphicsLayer {
-                scaleX = inlinePlayerScale
-                scaleY = inlinePlayerScale
-                transformOrigin = TransformOrigin(0.5f, 0f)
-            }
-    ) {
-        VideoPlayerSection(
-            playerState = playerState,
-            uiState = uiState,
-            isFullscreen = false,
-            isInPipMode = isPipMode,
-            transitionEnabled = transitionEnabled,
-            onToggleFullscreen = onToggleFullscreen,
-            onQualityChange = { qid -> viewModel.changeQuality(qid) },
-            onBack = onBack,
-            onHomeClick = onHomeClick,
-            onDanmakuInputClick = { viewModel.showDanmakuSendDialog() },
-            bvid = videoPlayerSectionTarget.bvid,
-            coverUrl = videoPlayerSectionTarget.entryCoverUrl,
-            onDoubleTapLike = onDoubleTapLike,
-            sponsorSegment = sponsorSegment,
-            showSponsorSkipButton = showSponsorSkipButton,
-            onSponsorSkip = { viewModel.skipCurrentSponsorSegment() },
-            onSponsorDismiss = { viewModel.dismissSponsorSkipButton() },
-            onReloadVideo = { viewModel.reloadVideo() },
-            currentCdnIndex = successState?.currentCdnIndex ?: 0,
-            cdnCount = successState?.cdnCount ?: 1,
-            cdnLineDiagnostics = successState?.cdnLineDiagnostics.orEmpty(),
-            isCdnProbing = successState?.isCdnProbing ?: false,
-            onSwitchCdn = { viewModel.switchCdn() },
-            onSwitchCdnTo = { viewModel.switchCdnTo(it) },
-            onProbeCdnCandidates = { viewModel.probeCurrentCdnCandidates() },
-            isAudioOnly = false,
-            onAudioOnlyToggle = onNavigateToAudioMode,
-            sleepTimerMinutes = sleepTimerMinutes,
-            onSleepTimerChange = { viewModel.setSleepTimer(it) },
-            videoshotData = successState?.videoshotData,
-            viewPoints = viewPoints,
-            pbpProgressData = pbpProgressData,
-            sponsorMarkers = sponsorProgressMarkers,
-            onUserSeek = { position -> viewModel.notifyPluginsOfExplicitSeek(position) },
-            isVerticalVideo = isVerticalVideo,
-            onPortraitFullscreen = onPortraitFullscreen,
-            isPortraitFullscreen = isPortraitFullscreen,
-            viewportWidthDpOverride = animatedViewportWidth.value.roundToInt(),
-            onPipClick = onPipClick,
-            currentCodec = codecPreference,
-            onCodecChange = { viewModel.setVideoCodec(it) },
-            currentSecondCodec = secondCodecPreference,
-            onSecondCodecChange = { viewModel.setVideoSecondCodec(it) },
-            currentAudioQuality = audioQualityPreference,
-            onAudioQualityChange = { viewModel.setAudioQuality(it) },
-            onPlaybackSpeedChange = { viewModel.applyPlaybackSpeedFromUi(it) },
-            onAudioLangChange = { viewModel.changeAudioLanguage(it) },
-            onSaveCover = { viewModel.saveCover(context) },
-            onDownloadAudio = { viewModel.downloadAudio(context) },
-            forceCoverOnly = forceCoverOnly,
-            liveBackPreview = liveBackPreview,
-            useTextureSurfaceForNavigation = useTextureSurfaceForNavigation,
-            predictiveBackCancelRecoveryGeneration = predictiveBackCancelRecoveryGeneration,
-            allowLivePlayerSharedElement = allowLivePlayerSharedElement,
-            sourceRouteForSharedElement = sourceRouteForSharedElement,
-            suppressSubtitleOverlay = suppressSubtitleOverlay,
-            subtitleDisplayModePreferenceOverride = subtitleDisplayModePreferenceOverride,
-            onSubtitleDisplayModePreferenceOverrideChange = onSubtitleDisplayModePreferenceOverrideChange,
-            onSubtitleTrackSelected = viewModel::selectSubtitleTrack
-        )
-    }
-}
-
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @OptIn(
     ExperimentalSharedTransitionApi::class,
@@ -776,10 +657,86 @@ internal fun VideoDetailScreenStateHolder(
         )
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     val subjectSnapshot by viewModel.subjectSnapshot.collectAsStateWithLifecycle()
     val engagementState by engagementViewModel.uiState.collectAsStateWithLifecycle()
     val favoriteFolderSaveEvent by viewModel.favoriteFolderSaveEvent.collectAsStateWithLifecycle()
     val resumePlaybackSuggestion by viewModel.resumePlaybackSuggestion.collectAsStateWithLifecycle()
+    val playbackActions = remember(viewModel, context) {
+        VideoDetailPlaybackActions(
+            changeQuality = viewModel::changeQuality,
+            reloadVideo = viewModel::reloadVideo,
+            switchCdn = viewModel::switchCdn,
+            switchCdnTo = viewModel::switchCdnTo,
+            probeCdnCandidates = viewModel::probeCurrentCdnCandidates,
+            setAudioMode = viewModel::setAudioMode,
+            setSleepTimer = viewModel::setSleepTimer,
+            switchPage = viewModel::switchPage,
+            openDownloadDialog = viewModel::openDownloadDialog,
+            showDanmakuSendDialog = viewModel::showDanmakuSendDialog,
+            skipSponsorSegment = viewModel::skipCurrentSponsorSegment,
+            dismissSponsorSkipButton = viewModel::dismissSponsorSkipButton,
+            notifyExplicitSeek = viewModel::notifyPluginsOfExplicitSeek,
+            setVideoCodec = viewModel::setVideoCodec,
+            setVideoSecondCodec = viewModel::setVideoSecondCodec,
+            setAudioQuality = viewModel::setAudioQuality,
+            applyPlaybackSpeed = viewModel::applyPlaybackSpeedFromUi,
+            changeAudioLanguage = viewModel::changeAudioLanguage,
+            saveCover = { viewModel.saveCover(context) },
+            downloadAudio = { viewModel.downloadAudio(context) },
+            selectSubtitleTrack = viewModel::selectSubtitleTrack,
+            showFavoriteFolderDialog = viewModel::showFavoriteFolderDialog,
+            toggleFavoriteFolderSelection = viewModel::toggleFavoriteFolderSelection,
+            saveFavoriteFolderSelection = viewModel::saveFavoriteFolderSelection,
+            dismissFavoriteFolderDialog = viewModel::dismissFavoriteFolderDialog,
+            createFavoriteFolder = viewModel::createFavoriteFolder,
+            retryAiSummary = viewModel::retryAiSummary,
+            createVideoNoteDraftFromAiSummary = viewModel::createVideoNoteDraftFromAiSummary,
+            openVideoNoteEditor = viewModel::openVideoNoteEditor,
+            closeVideoNoteEditor = viewModel::closeVideoNoteEditor,
+            updateVideoNoteEditorDocument = viewModel::updateVideoNoteEditorDocument,
+            insertCurrentPlaybackTimestampIntoNote = viewModel::insertCurrentPlaybackTimestampIntoNote,
+            seekTo = viewModel::seekTo,
+            saveVideoNote = viewModel::saveVideoNote,
+            deleteVideoNote = viewModel::deleteVideoNote,
+            retryVideoNote = viewModel::retryVideoNote,
+            openRootCommentComposer = viewModel::openRootCommentComposer,
+            replyTo = {
+                viewModel.setReplyingTo(it)
+                viewModel.showCommentInputDialog()
+            },
+            markVideoNotInterested = viewModel::markVideoNotInterested
+        )
+    }
+    val engagementActions = remember(engagementViewModel) {
+        VideoDetailEngagementActions(
+            toggleFollow = engagementViewModel::toggleFollow,
+            toggleFavorite = engagementViewModel::toggleFavorite,
+            toggleLike = engagementViewModel::toggleLike,
+            openCoinDialog = engagementViewModel::openCoinDialog,
+            doTripleAction = engagementViewModel::doTripleAction,
+            toggleWatchLater = engagementViewModel::toggleWatchLater
+        )
+    }
+    val commentActions = remember(commentViewModel) {
+        VideoDetailCommentActions(
+            loadComments = commentViewModel::loadComments,
+            setSortMode = commentViewModel::setSortMode,
+            toggleUpOnly = commentViewModel::toggleUpOnly,
+            deleteComment = commentViewModel::deleteComment,
+            startDissolve = commentViewModel::startDissolve,
+            loadMoreSubReplies = commentViewModel::loadMoreSubReplies,
+            openSubReply = commentViewModel::openSubReply,
+            openSubReplyConversation = commentViewModel::openSubReplyConversation,
+            closeSubReplyConversation = commentViewModel::closeSubReplyConversation,
+            closeSubReply = commentViewModel::closeSubReply,
+            startSubDissolve = commentViewModel::startSubDissolve,
+            deleteSubComment = commentViewModel::deleteSubComment,
+            likeComment = commentViewModel::likeComment,
+            reportComment = { rpid, reason -> commentViewModel.reportComment(rpid, reason) },
+            toggleTopComment = commentViewModel::toggleTopComment
+        )
+    }
     VideoDetailDomainEffects(
         context = context,
         isVisible = isVisible,
@@ -2868,9 +2825,12 @@ internal fun VideoDetailScreenStateHolder(
                             playerState = playerState,
                             uiState = uiState,
                             commentState = commentState,
-                            viewModel = viewModel,
-                            engagementViewModel = engagementViewModel,
-                            commentViewModel = commentViewModel,
+                            engagementState = engagementState,
+                            subReplyState = subReplyState,
+                            downloadProgress = downloadProgress,
+                            playbackActions = playbackActions,
+                            engagementActions = engagementActions,
+                            commentActions = commentActions,
                             configuration = configuration,
                             isVerticalVideo = isVerticalVideo,
                             sleepTimerMinutes = sleepTimerMinutes,
@@ -3304,13 +3264,12 @@ internal fun VideoDetailScreenStateHolder(
                                 animatedViewportHeight = animatedViewportHeight,
                                 inlinePlayerAlpha = inlinePlayerAlpha,
                                 inlinePlayerScale = inlinePlayerScale,
-                                context = context,
                                 playerState = playerState,
                                 uiState = uiState,
                                 isPipMode = isPipMode,
                                 transitionEnabled = detailChildTransitionEnabled,
                                 onToggleFullscreen = { toggleFullscreen() },
-                                viewModel = viewModel,
+                                playbackActions = playbackActions,
                                 onDoubleTapLike = engagementViewModel::toggleLike,
                                 onBack = handleBack,
                                 onHomeClick = {
@@ -3406,17 +3365,17 @@ internal fun VideoDetailScreenStateHolder(
 
                                 is VideoPlaybackUiState.Success -> {
                                     val success = uiState as VideoPlaybackUiState.Success
-                                    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
                                     VideoDetailPhoneSuccessContentLayer(
                                         success = success,
                                         introListState = introListState,
                                         commentListState = commentListState,
                                         videoContentPagerState = videoContentPagerState,
                                         commentState = commentState,
+                                        engagementState = engagementState,
                                         commentMemberDecorationsEnabled = commentMemberDecorationsEnabled,
-                                        viewModel = viewModel,
-                                        engagementViewModel = engagementViewModel,
-                                        commentViewModel = commentViewModel,
+                                        playbackActions = playbackActions,
+                                        engagementActions = engagementActions,
+                                        commentActions = commentActions,
                                         context = context,
                                         sortPreferenceScope = sortPreferenceScope,
                                         playerState = playerState,
@@ -4319,679 +4278,13 @@ internal fun VideoDetailScreenStateHolder(
         }
     }
 
-    VideoDetailRouteSheetHost(
-        frameProvider = routeSheetFrameProvider,
-        motion = routeSheetMotion,
+    VideoDetailScreenContent(
+        transitionState = transitionState,
+        routeSheetMotion = routeSheetMotion,
         isFullscreenMode = isFullscreenMode,
         backgroundColor = MaterialTheme.colorScheme.background,
-        backgroundAlpha = 1f,
         modifier = detailShellModifier,
-        content = { VideoDetailRouteSheetMainContent() },
+        mainContent = { VideoDetailRouteSheetMainContent() },
         overlayContent = { VideoDetailRouteSheetOverlayContent() }
-    )
-}
-
-@Composable
-private fun VideoDetailFollowGroupDialog(
-    viewModel: VideoPlaybackViewModel
-) {
-    val followGroupDialogVisible by viewModel.followGroupDialogVisible.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    val followGroupTags by viewModel.followGroupTags.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    val followGroupSelectedTagIds by viewModel.followGroupSelectedTagIds.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    val isFollowGroupsLoading by viewModel.isFollowGroupsLoading.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    val isSavingFollowGroups by viewModel.isSavingFollowGroups.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    if (!followGroupDialogVisible) return
-
-    AlertDialog(
-        onDismissRequest = {
-            if (!isSavingFollowGroups) viewModel.dismissFollowGroupDialog()
-        },
-        title = { Text("设置关注分组") },
-        text = {
-            if (isFollowGroupsLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CupertinoActivityIndicator()
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    if (followGroupTags.isEmpty()) {
-                        Text(
-                            text = "暂无可用分组（不勾选即为默认分组）",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                    } else {
-                        followGroupTags.forEach { tag ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.toggleFollowGroupSelection(tag.tagid) }
-                                    .padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = followGroupSelectedTagIds.contains(tag.tagid),
-                                    onCheckedChange = { viewModel.toggleFollowGroupSelection(tag.tagid) }
-                                )
-                                Text(
-                                    text = "${tag.name} (${tag.count})",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                    Text(
-                        text = "可多选，确定后覆盖原分组设置。",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { viewModel.saveFollowGroupSelection() },
-                enabled = !isFollowGroupsLoading && !isSavingFollowGroups
-            ) {
-                if (isSavingFollowGroups) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("确定")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = { viewModel.dismissFollowGroupDialog() },
-                enabled = !isSavingFollowGroups
-            ) {
-                Text("取消")
-            }
-        }
-    )
-}
-
-@Composable
-private fun VideoDetailPlaybackEndedDialog(
-    viewModel: VideoPlaybackViewModel,
-    player: Player
-) {
-    val showPlaybackEndedDialog by viewModel.showPlaybackEndedDialog.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    if (!showPlaybackEndedDialog) return
-
-    androidx.compose.ui.window.Dialog(
-        onDismissRequest = { viewModel.dismissPlaybackEndedDialog() }
-    ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "播放完成",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "选择接下来的操作",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Button(
-                    onClick = {
-                        viewModel.dismissPlaybackEndedDialog()
-                        player.seekTo(0)
-                        playPlayerFromUserAction(player)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text("🔄 重播当前视频")
-                }
-                Button(
-                    onClick = {
-                        viewModel.dismissPlaybackEndedDialog()
-                        viewModel.playNextRecommended()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("▶️ 播放下一个视频")
-                }
-                TextButton(
-                    onClick = { viewModel.dismissPlaybackEndedDialog() }
-                ) {
-                    Text("暂不操作")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VideoDetailQualitySwitchFailureDialog(
-    context: Context,
-    viewModel: VideoPlaybackViewModel,
-    qualitySwitchFailureDialog: QualitySwitchFailureDialogState?,
-    qualitySwitchFailureDialogEnabled: Boolean,
-    qualitySwitchFailureDialogOnceEnabled: Boolean,
-    qualitySwitchFailureDialogShown: Boolean,
-    playerDiagnosticLoggingEnabled: Boolean,
-    qualitySwitchDialogScope: CoroutineScope
-) {
-    LaunchedEffect(
-        qualitySwitchFailureDialog?.requestedQualityId,
-        qualitySwitchFailureDialogEnabled,
-        qualitySwitchFailureDialogOnceEnabled,
-        qualitySwitchFailureDialogShown
-    ) {
-        val dialog = qualitySwitchFailureDialog ?: return@LaunchedEffect
-        val shouldSuppressDialog = !qualitySwitchFailureDialogEnabled ||
-            (qualitySwitchFailureDialogOnceEnabled && qualitySwitchFailureDialogShown)
-        if (shouldSuppressDialog) {
-            viewModel.dismissQualitySwitchFailureDialog()
-        }
-    }
-
-    qualitySwitchFailureDialog
-        ?.takeIf {
-            qualitySwitchFailureDialogEnabled &&
-                !(qualitySwitchFailureDialogOnceEnabled && qualitySwitchFailureDialogShown)
-        }
-        ?.let { dialog ->
-            fun dismissQualitySwitchFailureDialogAfterUserChoice() {
-                qualitySwitchDialogScope.launch {
-                    if (qualitySwitchFailureDialogOnceEnabled) {
-                        com.android.purebilibili.core.store.SettingsManager
-                            .markQualitySwitchFailureDialogShown(context)
-                    }
-                    viewModel.dismissQualitySwitchFailureDialog()
-                }
-            }
-
-            AlertDialog(
-                onDismissRequest = { dismissQualitySwitchFailureDialogAfterUserChoice() },
-                title = { Text(dialog.title) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(dialog.message)
-                        TextButton(
-                            onClick = {
-                                qualitySwitchDialogScope.launch {
-                                    com.android.purebilibili.core.store.SettingsManager
-                                        .setPlayerDiagnosticLoggingEnabled(
-                                            context,
-                                            !playerDiagnosticLoggingEnabled
-                                        )
-                                }
-                            },
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(
-                                if (playerDiagnosticLoggingEnabled) {
-                                    "关闭诊断日志"
-                                } else {
-                                    "开启诊断日志"
-                                }
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    qualitySwitchDialogScope.launch {
-                                        val nextValue = !qualitySwitchFailureDialogOnceEnabled
-                                        com.android.purebilibili.core.store.SettingsManager
-                                            .setQualitySwitchFailureDialogOnceEnabled(context, nextValue)
-                                    }
-                                },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = qualitySwitchFailureDialogOnceEnabled,
-                                onCheckedChange = { checked ->
-                                    qualitySwitchDialogScope.launch {
-                                        com.android.purebilibili.core.store.SettingsManager
-                                            .setQualitySwitchFailureDialogOnceEnabled(context, checked)
-                                    }
-                                }
-                            )
-                            Text("仅提示一次")
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            com.android.purebilibili.core.util.LogCollector.exportAndShare(context)
-                            dismissQualitySwitchFailureDialogAfterUserChoice()
-                        }
-                    ) {
-                        Text("导出日志")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { dismissQualitySwitchFailureDialogAfterUserChoice() }) {
-                        Text("关闭")
-                    }
-                }
-            )
-        }
-}
-
-@Composable
-private fun VideoDetailDanmakuContextMenu(
-    context: Context,
-    viewModel: VideoPlaybackViewModel,
-    activeDanmakuBlockRulesRaw: String,
-    activeDanmakuScope: com.android.purebilibili.core.store.DanmakuSettingsScope,
-    sortPreferenceScope: CoroutineScope
-) {
-    val danmakuMenuState by viewModel.danmakuMenuState.collectAsStateWithLifecycle(
-        context = kotlin.coroutines.EmptyCoroutineContext
-    )
-    if (!danmakuMenuState.visible) return
-
-    DanmakuContextMenu(
-        text = danmakuMenuState.text,
-        onDismiss = { viewModel.hideDanmakuMenu() },
-        onLike = { viewModel.likeDanmaku(danmakuMenuState.dmid) },
-        onRecall = { viewModel.recallDanmaku(danmakuMenuState.dmid) },
-        onReport = { reason ->
-            viewModel.reportDanmaku(danmakuMenuState.dmid, reason)
-        },
-        voteCount = danmakuMenuState.voteCount,
-        hasLiked = danmakuMenuState.hasLiked,
-        voteLoading = danmakuMenuState.voteLoading,
-        canVote = danmakuMenuState.canVote,
-        canRecall = danmakuMenuState.isSelf,
-        canBlockKeyword = danmakuMenuState.text.isNotBlank(),
-        onBlockKeyword = {
-            val updatedRules = appendDanmakuKeywordBlockRule(
-                rawRules = activeDanmakuBlockRulesRaw,
-                keyword = danmakuMenuState.text
-            )
-            val changed = updatedRules != activeDanmakuBlockRulesRaw
-            sortPreferenceScope.launch {
-                com.android.purebilibili.core.store.SettingsManager.setDanmakuBlockRulesRaw(
-                    context,
-                    updatedRules,
-                    activeDanmakuScope
-                )
-            }
-            viewModel.toast(
-                resolveDanmakuBlockActionFeedbackMessage(
-                    target = DanmakuBlockActionTarget.KEYWORD,
-                    changed = changed
-                )
-            )
-        },
-        canBlockUser = danmakuMenuState.userHash.isNotBlank(),
-        onBlockUser = {
-            val userHash = danmakuMenuState.userHash
-            if (userHash.isBlank()) {
-                viewModel.toast("该弹幕缺少发送者标识")
-            } else {
-                val updatedRules = appendDanmakuUserHashBlockRule(
-                    rawRules = activeDanmakuBlockRulesRaw,
-                    userHash = userHash
-                )
-                val changed = updatedRules != activeDanmakuBlockRulesRaw
-                sortPreferenceScope.launch {
-                    com.android.purebilibili.core.store.SettingsManager.setDanmakuBlockRulesRaw(
-                        context,
-                        updatedRules,
-                        activeDanmakuScope
-                    )
-                }
-                viewModel.toast(
-                    resolveDanmakuBlockActionFeedbackMessage(
-                        target = DanmakuBlockActionTarget.USER,
-                        changed = changed
-                    )
-                )
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
-@Composable
-private fun ExternalPlaylistQueueSheet(
-    visible: Boolean,
-    title: String,
-    playlist: List<PlaylistItem>,
-    currentIndex: Int,
-    hazeState: HazeState,
-    presentation: ExternalPlaylistQueueSheetPresentation,
-    onDismiss: () -> Unit,
-    onVideoSelected: (Int, PlaylistItem) -> Unit
-) {
-    if (!visible) return
-
-    BackHandler(enabled = visible) {
-        onDismiss()
-    }
-
-    val configuration = LocalConfiguration.current
-    val listMaxHeight = resolveExternalPlaylistQueueListMaxHeightDp(configuration.screenHeightDp).dp
-    val navigationBarBottomPadding = WindowInsets.navigationBars
-        .asPaddingValues()
-        .calculateBottomPadding()
-    val bottomSpacerHeight = resolveExternalPlaylistQueueBottomSpacerDp(
-        navigationBarBottomPadding.value.roundToInt()
-    ).dp
-    val sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-
-    when (presentation) {
-        ExternalPlaylistQueueSheetPresentation.INLINE_HAZE -> {
-            val interactionSource = remember { MutableInteractionSource() }
-            val useHazeEffect = shouldAllowRuntimeShaderBackedHazeEffect(Build.VERSION.SDK_INT)
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.18f))
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) { onDismiss() }
-                )
-
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .clip(sheetShape)
-                        .then(
-                            if (useHazeEffect) {
-                                Modifier.hazeEffect(
-                                    state = hazeState,
-                                    style = HazeMaterials.ultraThin()
-                                )
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    shape = sheetShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
-                    tonalElevation = 0.dp,
-                    border = BorderStroke(
-                        width = 0.6.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    )
-                ) {
-                    ExternalPlaylistQueueSheetContent(
-                        title = title,
-                        playlist = playlist,
-                        currentIndex = currentIndex,
-                        listMaxHeight = listMaxHeight,
-                        bottomSpacerHeight = bottomSpacerHeight,
-                        onVideoSelected = onVideoSelected
-                    )
-                }
-            }
-        }
-        ExternalPlaylistQueueSheetPresentation.MODAL -> {
-            IOSModalBottomSheet(
-                onDismissRequest = onDismiss,
-                containerColor = Color.Transparent,
-                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(sheetShape)
-                        .unifiedBlur(hazeState = hazeState, shape = sheetShape),
-                    shape = sheetShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
-                    tonalElevation = 0.dp,
-                    border = BorderStroke(
-                        width = 0.6.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    )
-                ) {
-                    ExternalPlaylistQueueSheetContent(
-                        title = title,
-                        playlist = playlist,
-                        currentIndex = currentIndex,
-                        listMaxHeight = listMaxHeight,
-                        bottomSpacerHeight = bottomSpacerHeight,
-                        onVideoSelected = onVideoSelected
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExternalPlaylistQueueSheetContent(
-    title: String,
-    playlist: List<PlaylistItem>,
-    currentIndex: Int,
-    listMaxHeight: androidx.compose.ui.unit.Dp,
-    bottomSpacerHeight: androidx.compose.ui.unit.Dp,
-    onVideoSelected: (Int, PlaylistItem) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "${playlist.size}个视频",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        )
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = listMaxHeight),
-            contentPadding = PaddingValues(bottom = bottomSpacerHeight)
-        ) {
-            items(
-                playlist.size,
-                key = { index ->
-                    val item = playlist[index]
-                    resolveIndexedVideoLazyKey(
-                        namespace = "video_playlist",
-                        index = index,
-                        bvid = item.bvid
-                    )
-                }
-            ) { index ->
-                val item = playlist[index]
-                val selected = index == currentIndex
-                val normalizedCoverUrl = normalizePlaylistCoverUrlForUi(item.cover)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (selected) {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                            } else {
-                                Color.Transparent
-                            }
-                        )
-                        .clickable { onVideoSelected(index, item) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${index + 1}",
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(96.dp)
-                            .height(54.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                    ) {
-                        if (normalizedCoverUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = normalizedCoverUrl,
-                                contentDescription = item.title,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "无封面",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = item.title,
-                            maxLines = 1,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = item.owner,
-                            maxLines = 1,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
-                        )
-                    }
-                    if (selected) {
-                        Icon(
-                            imageVector = rememberAppPlayIcon(),
-                            contentDescription = "当前播放",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetachedVideoCommentThreadHost(
-    visible: Boolean,
-    successState: VideoPlaybackUiState.Success?,
-    commentState: CommentUiState,
-    commentViewModel: VideoCommentViewModel,
-    forceInitialize: Boolean,
-    viewModel: VideoPlaybackViewModel,
-    onUpClick: (Long) -> Unit,
-    onNavigateToRelatedVideo: (String) -> Unit,
-    onSearchKeywordClick: (String) -> Unit,
-    onOpenBilibiliLink: ((String) -> Unit)?,
-    screenHeightPx: Int,
-    topReservedPx: Int,
-    onTimestampClick: (Long) -> Unit
-) {
-    if (!visible) return
-
-    val subReplyState by commentViewModel.subReplyState.collectAsStateWithLifecycle()
-
-    VideoCommentSheetHost(
-        mainSheetVisible = resolveVideoDetailCommentThreadHostMainSheetVisible(
-            useEmbeddedPresentation = com.android.purebilibili.feature.video.ui.pager
-                .shouldUseEmbeddedVideoSubReplyPresentation(),
-            subReplyVisible = subReplyState.visible
-        ),
-        onDismiss = { commentViewModel.closeSubReply() },
-        commentViewModel = commentViewModel,
-        aid = successState?.info?.aid ?: 0L,
-        upMid = commentState.upMid,
-        expectedReplyCount = commentState.replyCount,
-        emoteMap = successState?.emoteMap ?: emptyMap(),
-        onRootCommentClick = { viewModel.openRootCommentComposer() },
-        onReplyClick = { replyItem ->
-            android.util.Log.d("VideoDetailScreen", "📝 Reply to: ${replyItem.member.uname}")
-            viewModel.setReplyingTo(replyItem)
-            viewModel.showCommentInputDialog()
-        },
-        onUserClick = onUpClick,
-        onVideoClick = onNavigateToRelatedVideo,
-        onSearchKeywordClick = onSearchKeywordClick,
-        onOpenBilibiliLink = onOpenBilibiliLink,
-        screenHeightPx = screenHeightPx,
-        topReservedPx = topReservedPx,
-        onTimestampClick = onTimestampClick,
-        maxTimestampMs = successState?.videoDurationMs?.takeIf { it > 0L },
-        forceInitialize = forceInitialize,
-        handleFraudEvents = false
     )
 }
