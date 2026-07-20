@@ -142,6 +142,13 @@ object CardPositionManager {
         lastClickedVideoSourceKey = null
         lastClickedVideoSourceCornerDp = null
     }
+
+    /**
+     * 相关推荐 pop 回父详情后，把 source key 恢复为进入 related 前的列表来源。
+     */
+    fun restoreVideoSourceKey(sourceKey: String?) {
+        lastClickedVideoSourceKey = sourceKey?.trim()?.takeIf { it.isNotEmpty() }
+    }
     
     /**
      *  卡片水平位置枚举

@@ -521,7 +521,14 @@ internal fun VideoDetailScreenStateHolder(
         )
     }
 
-    val navigateToRelatedVideo = remember(onVideoClick, miniPlayerManager, uiState, currentBvid) {
+    val relatedNavigationScope = rememberCoroutineScope()
+    val navigateToRelatedVideo = remember(
+        onVideoClick,
+        miniPlayerManager,
+        uiState,
+        currentBvid,
+        relatedNavigationScope,
+    ) {
         { targetBvid: String, options: android.os.Bundle? ->
             val success = uiState as? VideoPlaybackUiState.Success
             val explicitCid = options?.getLong(VIDEO_NAV_TARGET_CID_KEY) ?: 0L
@@ -549,6 +556,7 @@ internal fun VideoDetailScreenStateHolder(
                     autoPlay = true
                 )
             } else {
+                // 先摘掉父详情壳 sharedBounds，再 push，避免相关卡嵌套在父壳内吃不到 morph。
                 presentationState.markNavigatingToVideo()
                 miniPlayerManager?.isNavigatingToVideo = true
                 markSecondaryNavigationLeave(expectedBvid = success?.info?.bvid ?: currentBvid)
@@ -556,7 +564,11 @@ internal fun VideoDetailScreenStateHolder(
                 if (resolvedCid > 0L) {
                     navOptions.putLong(VIDEO_NAV_TARGET_CID_KEY, resolvedCid)
                 }
-                onVideoClick(targetBvid, navOptions)
+                relatedNavigationScope.launch {
+                    androidx.compose.runtime.withFrameNanos { }
+                    onVideoClick(targetBvid, navOptions)
+                }
+                Unit
             }
         }
     }
@@ -997,8 +1009,24 @@ internal fun VideoDetailScreenStateHolder(
     val detailShellShape = remember(sharedTransitionSourceCornerDp) {
         RoundedCornerShape(sharedTransitionSourceCornerDp.dp)
     }
+    val isSharedTransitionActive = rootSharedTransitionScope?.isTransitionActive == true
+    val suppressDetailShellForRelatedChild = shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+        detailBvid = bvid,
+        lastClickedVideoSourceKey = CardPositionManager.lastClickedVideoSourceKey,
+        isSharedTransitionActive = isSharedTransitionActive,
+    )
+    LaunchedEffect(isNavigatingToVideo, homeSharedTransitionMotionSpec.durationMillis) {
+        if (!isNavigatingToVideo) return@LaunchedEffect
+        // 进场 morph 结束后恢复父壳，避免长期禁用导致再回列表时丢 shell。
+        kotlinx.coroutines.delay(homeSharedTransitionMotionSpec.durationMillis.toLong() + 48L)
+        if (isNavigatingToVideo) {
+            presentationState.clearNavigatingToVideo()
+        }
+    }
     val detailShellModifier = Modifier.videoCardShellSharedBoundsOrEmpty(
-        enabled = detailShellSharedBoundsEnabled,
+        enabled = detailShellSharedBoundsEnabled &&
+            !isNavigatingToVideo &&
+            !suppressDetailShellForRelatedChild,
         sharedTransitionScope = rootSharedTransitionScope,
         animatedVisibilityScope = rootAnimatedVisibilityScope,
         bvid = bvid,

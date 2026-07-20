@@ -63,6 +63,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -89,6 +90,7 @@ import coil.compose.AsyncImage
 import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
 import com.android.purebilibili.core.ui.LocalSharedTransitionScope
 import com.android.purebilibili.core.ui.LocalSharedTransitionEnabled
+import com.android.purebilibili.core.ui.transition.LocalVideoCardSharedElementSourceRoute
 import com.android.purebilibili.core.store.SettingsManager
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -1363,24 +1365,28 @@ private fun CinemaRelatedPane(
                 )
             }
         ) { _, video ->
-            RelatedVideoItem(
-                video = video,
-                isFollowed = video.owner.mid in success.followingMids,
-                transitionEnabled = LocalSharedTransitionEnabled.current,
-                showUpBadge = showUpBadge,
-                onClick = {
-                    val activity = (context as? Activity)
-                        ?: (context as? ContextWrapper)?.baseContext as? Activity
-                    val options = activity?.let {
-                        android.app.ActivityOptions.makeSceneTransitionAnimation(it).toBundle()
+            CompositionLocalProvider(
+                LocalVideoCardSharedElementSourceRoute provides "video/${success.info.bvid}"
+            ) {
+                RelatedVideoItem(
+                    video = video,
+                    isFollowed = video.owner.mid in success.followingMids,
+                    transitionEnabled = LocalSharedTransitionEnabled.current,
+                    showUpBadge = showUpBadge,
+                    onClick = {
+                        val activity = (context as? Activity)
+                            ?: (context as? ContextWrapper)?.baseContext as? Activity
+                        val options = activity?.let {
+                            android.app.ActivityOptions.makeSceneTransitionAnimation(it).toBundle()
+                        }
+                        val navOptions = android.os.Bundle(options ?: android.os.Bundle.EMPTY)
+                        if (video.cid > 0L) {
+                            navOptions.putLong(VIDEO_NAV_TARGET_CID_KEY, video.cid)
+                        }
+                        onRelatedVideoClick(video.bvid, navOptions)
                     }
-                    val navOptions = android.os.Bundle(options ?: android.os.Bundle.EMPTY)
-                    if (video.cid > 0L) {
-                        navOptions.putLong(VIDEO_NAV_TARGET_CID_KEY, video.cid)
-                    }
-                    onRelatedVideoClick(video.bvid, navOptions)
-                }
-            )
+                )
+            }
         }
         if (success.related.isEmpty()) {
             item {

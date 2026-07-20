@@ -341,7 +341,10 @@ internal fun resolveBiliPaiNavEntryRouteTransitions(
     val forward = when {
         cardTransitionEnabled && sharedReadyFavoriteCollection ->
             BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT
-        cardTransitionEnabled && sharedReadyVideoPush -> BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT
+        // 相关推荐详情→详情：路由层必须 NO_OP，避免 FALLBACK fade 盖掉 shell morph。
+        // 即便 CardPositionManager 尚未对齐，sharedBounds key 仍可独立完成转场。
+        cardTransitionEnabled && (sharedReadyVideoPush || relatedVideoDetail) ->
+            BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT
         !cardTransitionEnabled && directionalVideoPushReady ->
             resolveCardDisabledVideoForwardTransition(sourceMetadata.cardSourceDirection)
                 ?: BiliPaiNavRouteTransition.FALLBACK

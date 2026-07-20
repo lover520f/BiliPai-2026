@@ -104,9 +104,9 @@ class VideoDetailScreenPolicyTest {
         assertTrue(relatedVideoSource.contains("shouldSwitchCollectionVideoInsideCurrentDetailPage("))
         assertTrue(relatedVideoSource.contains("switchVideoInCurrentDetailPage("))
         assertTrue(relatedVideoSource.contains("onVideoClick(targetBvid, navOptions)"))
+        assertTrue(relatedVideoSource.contains("relatedNavigationScope.launch"))
         assertTrue(
-            source.contains("currentBvid = normalizedBvid") &&
-                source.contains("currentBvidCid = safeCid") &&
+            source.contains("presentationState.switchVideo(normalizedBvid, safeCid)") &&
                 source.contains("viewModel.loadVideo(")
         )
     }
@@ -205,6 +205,8 @@ class VideoDetailScreenPolicyTest {
 
         assertTrue(tabletSource.contains("transitionEnabled = LocalSharedTransitionEnabled.current"))
         assertTrue(cinemaSource.contains("transitionEnabled = LocalSharedTransitionEnabled.current"))
+        assertTrue(tabletSource.contains("LocalVideoCardSharedElementSourceRoute provides"))
+        assertTrue(cinemaSource.contains("LocalVideoCardSharedElementSourceRoute provides"))
     }
 
     @Test

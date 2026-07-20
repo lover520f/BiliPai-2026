@@ -2858,6 +2858,13 @@ fun AppNavigation(
                         markNavigation3VideoReturnBeforeBackAction(targetKey = previousKey)
                         navigation3ReturnSession.isQuickReturnFromDetail
                     },
+                    onRelatedVideoDetailReturned = {
+                        navigation3ReturnSession =
+                            navigation3ReturnSession.restoreListVideoSourceAfterRelatedReturn()
+                        CardPositionManager.restoreVideoSourceKey(
+                            navigation3ReturnSession.lastVideoSourceKey
+                        )
+                    },
                     modifier = Modifier.fillMaxSize(),
                     sharedTransitionScope = LocalSharedTransitionScope.current,
                     visibleBottomBarRoutes = visibleBottomBarRoutes,

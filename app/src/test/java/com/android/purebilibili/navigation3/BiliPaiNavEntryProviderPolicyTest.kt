@@ -112,14 +112,15 @@ class BiliPaiNavEntryProviderPolicyTest {
     }
 
     @Test
-    fun relatedVideoDetailWithoutRecordedSourceFallsBackOnForward() {
+    fun relatedVideoDetailWithoutRecordedSourceStillUsesSharedElementRouteLayer() {
         val transitions = resolveBiliPaiNavEntryRouteTransitions(
             key = BiliPaiNavKey.VideoDetail(bvid = "BV_B", sourceRoute = "video/BV_A"),
             cardTransitionEnabled = true,
             sourceMetadata = BiliPaiNavSourceMetadata()
         )
 
-        assertEquals(BiliPaiNavRouteTransition.FALLBACK, transitions.forward)
+        // 相关推荐进场不再因 CardPositionManager 未对齐退化成 FALLBACK fade。
+        assertEquals(BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT, transitions.forward)
         assertEquals(BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT, transitions.pop)
         assertEquals(BiliPaiNavRouteTransition.NO_OP_SHARED_ELEMENT, transitions.predictivePop)
     }

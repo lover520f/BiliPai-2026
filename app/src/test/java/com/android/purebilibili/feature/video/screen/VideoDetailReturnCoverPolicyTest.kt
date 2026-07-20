@@ -534,4 +534,36 @@ class VideoDetailReturnCoverPolicyTest {
             playerContainerBlock.contains("!forceCoverOnlyForReturn")
         )
     }
+
+    @Test
+    fun `related child transition suppresses parent detail shell shared bounds`() {
+        assertTrue(
+            shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+                detailBvid = "BV_A",
+                lastClickedVideoSourceKey = "video/BV_A:BV_B",
+                isSharedTransitionActive = true,
+            )
+        )
+        assertFalse(
+            shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+                detailBvid = "BV_A",
+                lastClickedVideoSourceKey = "video/BV_A:BV_B",
+                isSharedTransitionActive = false,
+            )
+        )
+        assertFalse(
+            shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+                detailBvid = "BV_A",
+                lastClickedVideoSourceKey = "home:BV_A",
+                isSharedTransitionActive = true,
+            )
+        )
+        assertFalse(
+            shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+                detailBvid = "BV_A",
+                lastClickedVideoSourceKey = "video/BV_OTHER:BV_B",
+                isSharedTransitionActive = true,
+            )
+        )
+    }
 }

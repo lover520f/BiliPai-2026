@@ -60,6 +60,7 @@ import androidx.compose.foundation.shape.CircleShape
 import com.android.purebilibili.core.ui.LocalSharedTransitionScope
 import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
 import com.android.purebilibili.core.ui.LocalSharedTransitionEnabled
+import com.android.purebilibili.core.ui.transition.LocalVideoCardSharedElementSourceRoute
 import com.android.purebilibili.core.ui.transition.VIDEO_SHARED_COVER_ASPECT_RATIO
 import com.android.purebilibili.feature.video.viewmodel.withEngagementUiState
 
@@ -735,23 +736,28 @@ private fun TabletSecondaryContent(
                                 )
                             }
                         ) { _, video ->
-                            RelatedVideoItem(
-                                video = video,
-                                isFollowed = video.owner.mid in success.followingMids,
-                                transitionEnabled = LocalSharedTransitionEnabled.current,
-                                showUpBadge = showUpBadge,
-                                onClick = {
-                                    val activity = (context as? android.app.Activity) ?: (context as? android.content.ContextWrapper)?.baseContext as? android.app.Activity
-                                    val options = activity?.let {
-                                        android.app.ActivityOptions.makeSceneTransitionAnimation(it).toBundle()
+                            CompositionLocalProvider(
+                                LocalVideoCardSharedElementSourceRoute provides "video/${success.info.bvid}"
+                            ) {
+                                RelatedVideoItem(
+                                    video = video,
+                                    isFollowed = video.owner.mid in success.followingMids,
+                                    transitionEnabled = LocalSharedTransitionEnabled.current,
+                                    showUpBadge = showUpBadge,
+                                    onClick = {
+                                        val activity = (context as? android.app.Activity)
+                                            ?: (context as? android.content.ContextWrapper)?.baseContext as? android.app.Activity
+                                        val options = activity?.let {
+                                            android.app.ActivityOptions.makeSceneTransitionAnimation(it).toBundle()
+                                        }
+                                        val navOptions = android.os.Bundle(options ?: android.os.Bundle.EMPTY)
+                                        if (video.cid > 0L) {
+                                            navOptions.putLong(VIDEO_NAV_TARGET_CID_KEY, video.cid)
+                                        }
+                                        onRelatedVideoClick(video.bvid, navOptions)
                                     }
-                                    val navOptions = android.os.Bundle(options ?: android.os.Bundle.EMPTY)
-                                    if (video.cid > 0L) {
-                                        navOptions.putLong(VIDEO_NAV_TARGET_CID_KEY, video.cid)
-                                    }
-                                    onRelatedVideoClick(video.bvid, navOptions)
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }

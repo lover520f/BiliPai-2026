@@ -112,6 +112,10 @@ internal fun BiliPaiNavDisplayHost(
      * performBack 里 onBack 更晚，不能只靠 [isQuickReturnFromDetail] 快照。
      */
     onPrepareVideoCardSharedReturn: () -> Boolean = { isQuickReturnFromDetail },
+    /**
+     * 从相关推荐详情 pop 回父详情后回调：恢复进入 related 前的列表来源 session/key。
+     */
+    onRelatedVideoDetailReturned: () -> Unit = {},
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     visibleBottomBarRoutes: Set<String> = emptySet(),
@@ -267,6 +271,14 @@ internal fun BiliPaiNavDisplayHost(
             }
 
             returnedFromVideoDetail -> {
+                if (
+                    isRelatedVideoDetailReturn(
+                        fromKey = previousTop as? BiliPaiNavKey.VideoDetail,
+                        toKey = currentTop,
+                    )
+                ) {
+                    onRelatedVideoDetailReturned()
+                }
                 videoCardTransitionSourceRoute = returningSourceRoute
                 if (videoCardTransitionBackgroundPhase != VideoCardTransitionBackgroundPhase.RETURNING) {
                     if (

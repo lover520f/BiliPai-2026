@@ -247,6 +247,27 @@ internal fun resolveVideoDetailMotionSpec(
     )
 }
 
+/**
+ * 相关推荐卡片的 shell sharedBounds 嵌在父详情壳内。
+ * 父壳若在子转场期间仍注册 sharedBounds，会嵌套劫持导致「点相关推荐没过渡」。
+ * 仅在「本页是相关来源宿主 + 共享过渡进行中」时临时摘掉父壳。
+ */
+internal fun shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
+    detailBvid: String,
+    lastClickedVideoSourceKey: String?,
+    isSharedTransitionActive: Boolean,
+): Boolean {
+    if (!isSharedTransitionActive) return false
+    val normalizedBvid = detailBvid.trim()
+    if (normalizedBvid.isEmpty()) return false
+    val hostRoute = lastClickedVideoSourceKey
+        ?.substringBefore(":")
+        ?.substringBefore("?")
+        ?.takeIf { it.isNotBlank() }
+        ?: return false
+    return hostRoute == "video/$normalizedBvid"
+}
+
 internal fun resolveVideoDetailRouteSheetMotion(
     sourceRoute: String?,
     transitionEnabled: Boolean

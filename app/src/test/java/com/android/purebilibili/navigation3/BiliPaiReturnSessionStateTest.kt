@@ -66,4 +66,32 @@ class BiliPaiReturnSessionStateTest {
         assertEquals("history", state.lastVideoSourceRoute)
         assertEquals(null, state.lastVideoSourceKey)
     }
+
+    @Test
+    fun relatedDetailSourcePreservesAndRestoresListSource() {
+        val state = BiliPaiReturnSessionState()
+            .recordVideoSource(
+                BiliPaiVideoSource(
+                    route = "home",
+                    key = "home:BV_A"
+                )
+            )
+            .recordVideoSource(
+                BiliPaiVideoSource(
+                    route = "video/BV_A",
+                    key = "video/BV_A:BV_B"
+                )
+            )
+
+        assertEquals("video/BV_A", state.lastVideoSourceRoute)
+        assertEquals("video/BV_A:BV_B", state.lastVideoSourceKey)
+        assertEquals("home", state.previousListVideoSourceRoute)
+        assertEquals("home:BV_A", state.previousListVideoSourceKey)
+
+        val restored = state.restoreListVideoSourceAfterRelatedReturn()
+        assertEquals("home", restored.lastVideoSourceRoute)
+        assertEquals("home:BV_A", restored.lastVideoSourceKey)
+        assertEquals(null, restored.previousListVideoSourceRoute)
+        assertEquals(null, restored.previousListVideoSourceKey)
+    }
 }
