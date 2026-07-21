@@ -276,44 +276,55 @@ class VideoCardScrollLiteVisualPolicyTest {
     }
 
     @Test
-    fun homeCardChrome_yieldsOnOpenAndStaysWithCoverOnReturn() {
-        // 进场初：标题仍在（随整卡飞）
-        assertEquals(
-            1f,
-            resolveHomeCardChromeAlphaDuringShellReturnMorph(
+    fun homeCardChrome_revealsWithSettleProgressDuringReturnMorph() {
+        assertTrue(
+            shouldSuppressHomeCardVisualDuringShellReturnMorph(
                 useCardContainerSharedBounds = true,
                 isSharedMorphSourceCard = true,
-                isReturningFromDetail = false,
-                transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.OPENING,
+                isReturningFromDetail = true,
                 isSharedTransitionActive = true,
-                transitionBackgroundProgress = 0f,
-            ),
-            0.001f,
+                transitionBackgroundProgress = 1f,
+            )
         )
-        // 进场中段：标题让位（给详情元素腾空）
-        val midOpen = resolveHomeCardChromeAlphaDuringShellReturnMorph(
-            useCardContainerSharedBounds = true,
-            isSharedMorphSourceCard = true,
-            isReturningFromDetail = false,
-            transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.OPENING,
-            isSharedTransitionActive = true,
-            transitionBackgroundProgress = 0.25f,
-        )
-        assertTrue(midOpen in 0.01f..0.99f)
-        // 进场后段：标题收干净
         assertEquals(
             0f,
             resolveHomeCardChromeAlphaDuringShellReturnMorph(
                 useCardContainerSharedBounds = true,
                 isSharedMorphSourceCard = true,
-                isReturningFromDetail = false,
-                transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.OPENING,
+                isReturningFromDetail = true,
                 isSharedTransitionActive = true,
-                transitionBackgroundProgress = 0.55f,
+                transitionBackgroundProgress = 1f,
             ),
             0.001f,
         )
-        // 返回：标题与封面同拍满显
+        // 末段落位：settle=0.8 → 已过 revealStart(0.42)，开始淡入
+        val midReveal = resolveHomeCardChromeAlphaDuringShellReturnMorph(
+            useCardContainerSharedBounds = true,
+            isSharedMorphSourceCard = true,
+            isReturningFromDetail = true,
+            transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.RETURNING,
+            isSharedTransitionActive = true,
+            transitionBackgroundProgress = 0.2f,
+        )
+        assertTrue(midReveal > 0f && midReveal < 1f)
+        assertEquals(
+            resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 0.8f),
+            midReveal,
+            0.001f,
+        )
+        // 中段 settle=0.3 < 0.42：标题仍藏，避免叠 live
+        assertEquals(
+            0f,
+            resolveHomeCardChromeAlphaDuringShellReturnMorph(
+                useCardContainerSharedBounds = true,
+                isSharedMorphSourceCard = true,
+                isReturningFromDetail = true,
+                isSharedTransitionActive = true,
+                transitionBackgroundProgress = 0.7f,
+            ),
+            0.001f,
+        )
+        // morph 结束后即使仍标记 returning / 景深未 IDLE，也要立刻恢复标题，避免相关推荐空白。
         assertEquals(
             1f,
             resolveHomeCardChromeAlphaDuringShellReturnMorph(
@@ -321,8 +332,9 @@ class VideoCardScrollLiteVisualPolicyTest {
                 isSharedMorphSourceCard = true,
                 isReturningFromDetail = true,
                 transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.RETURNING,
-                isSharedTransitionActive = true,
-                transitionBackgroundProgress = 1f,
+                isSharedTransitionActive = false,
+                isVideoCardReturnGestureInProgress = false,
+                transitionBackgroundProgress = 0.4f,
             ),
             0.001f,
         )
@@ -331,13 +343,14 @@ class VideoCardScrollLiteVisualPolicyTest {
             resolveHomeCardChromeAlphaDuringShellReturnMorph(
                 useCardContainerSharedBounds = true,
                 isSharedMorphSourceCard = true,
-                isReturningFromDetail = true,
-                isSharedTransitionActive = true,
-                isVideoCardReturnGestureInProgress = true,
-                transitionBackgroundProgress = 0.7f,
+                isReturningFromDetail = false,
+                isSharedTransitionActive = false,
+                transitionBackgroundProgress = 0f,
             ),
             0.001f,
         )
+        assertEquals(0f, resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 0.2f), 0.001f)
+        assertEquals(1f, resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 1f), 0.001f)
         assertTrue(
             isVideoCardSharedReturnTarget(
                 bvid = "BV1xx",

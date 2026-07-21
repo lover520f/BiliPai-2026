@@ -92,14 +92,6 @@ internal fun shouldHideHomeCardCoverDuringShellMorph(
 internal const val HOME_CARD_CHROME_EARLY_REVEAL_SETTLE_START =
     VIDEO_CARD_RETURN_CHROME_REVEAL_START
 
-/** @see com.android.purebilibili.core.ui.transition.VIDEO_CARD_ENTER_CHROME_YIELD_START */
-internal const val HOME_CARD_CHROME_OPEN_FADE_START =
-    com.android.purebilibili.core.ui.transition.VIDEO_CARD_ENTER_CHROME_YIELD_START
-
-/** @see com.android.purebilibili.core.ui.transition.VIDEO_CARD_ENTER_CHROME_YIELD_END */
-internal const val HOME_CARD_CHROME_OPEN_FADE_END =
-    com.android.purebilibili.core.ui.transition.VIDEO_CARD_ENTER_CHROME_YIELD_END
-
 /**
  * 源卡 chrome 在返回落位进度上的淡入曲线。
  * [settleProgress] 0=刚开始缩回，1=完全落位；[revealStart] 之前保持 0。
@@ -110,56 +102,18 @@ internal fun resolveHomeCardChromeEarlyRevealAlpha(
 ): Float {
     val clampedSettle = settleProgress.coerceIn(0f, 1f)
     val start = revealStart.coerceIn(0f, 1f)
-    // revealStart=0：与壳同步，始终满显（禁止按 settle 渐显造成晚一拍）
-    if (start <= 0f) return 1f
-    if (clampedSettle < start) return 0f
+    if (clampedSettle <= start) return 0f
     if (start >= 1f) return if (clampedSettle >= 1f) 1f else 0f
     return ((clampedSettle - start) / (1f - start)).coerceIn(0f, 1f)
 }
 
 /**
- * 进场时源卡标题/UP 的淡出曲线。
+ * 返回 shell morph 期间源卡 **chrome**（标题/UP/信息区）的 alpha。
  *
- * [openProgress] 0=刚点开（景深/morph 起点），1=进场结束。
- * 前段保持可读，中段 smoothstep 收干净，避免硬切成黑块。
- */
-internal fun resolveHomeCardChromeOpenFadeAlpha(
-    openProgress: Float,
-    fadeStart: Float = HOME_CARD_CHROME_OPEN_FADE_START,
-    fadeEnd: Float = HOME_CARD_CHROME_OPEN_FADE_END,
-): Float {
-    return com.android.purebilibili.core.ui.transition.resolveVideoCardEnterChromeAlpha(
-        openProgress = openProgress,
-        yieldStart = fadeStart,
-        yieldEnd = fadeEnd,
-    )
-}
-
-/**
- * 进场 OPENING 进度 → 用于 chrome 淡出的 openProgress。
- * HELD 视为已完全进场（字应收干净，直到 morph 结束再恢复）。
- */
-internal fun resolveHomeCardChromeOpenProgress(
-    transitionBackgroundPhase: VideoCardTransitionBackgroundPhase,
-    transitionBackgroundProgress: Float,
-): Float {
-    return when (transitionBackgroundPhase) {
-        VideoCardTransitionBackgroundPhase.HELD -> 1f
-        VideoCardTransitionBackgroundPhase.OPENING ->
-            transitionBackgroundProgress.coerceIn(0f, 1f)
-        // IDLE / RETURNING 不走进场淡出；由上层分支处理
-        else -> transitionBackgroundProgress.coerceIn(0f, 1f)
-    }
-}
-
-/**
- * shell morph 期间源卡 **chrome**（标题/UP/信息区）的 alpha。
- *
- * 整卡 shell（封面+标题）一起飞/一起落：
- * - morph 未进行：1
- * - 进场：标题随进度让位给详情元素（整卡先飞，中段收干净）
- * - 返回：1（与封面同拍）；详情侧 yield，禁止叠层
- * - 快速返回：1
+ * - morph 未进行：始终 1，避免相关推荐等落位后标题空白
+ * - 进场飞向详情：保持 0，避免字叠在播放器上
+ * - 返回落位：按 settle 进度在末段淡入，与封面同步出现，且中段不盖住实时画面
+ * - 快速返回：直接 1
  */
 internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
     useCardContainerSharedBounds: Boolean,
@@ -176,21 +130,22 @@ internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
     if (isQuickReturnFromDetail) return 1f
 
     val morphActive = isSharedTransitionActive || isVideoCardReturnGestureInProgress
+    // morph 已结束：立刻恢复（哪怕景深 phase 仍短暂停留在 RETURNING）
     if (!morphActive) return 1f
 
     val isReturnMorph = isReturningFromDetail ||
         isVideoCardReturnGestureInProgress ||
         transitionBackgroundPhase == VideoCardTransitionBackgroundPhase.RETURNING
-    if (isReturnMorph) {
-        return 1f
+    if (!isReturnMorph) {
+        // 进场：藏字，避免标题飞过实时播放器
+        return 0f
     }
 
-    return resolveHomeCardChromeOpenFadeAlpha(
-        openProgress = resolveHomeCardChromeOpenProgress(
-            transitionBackgroundPhase = transitionBackgroundPhase,
-            transitionBackgroundProgress = transitionBackgroundProgress,
-        )
+    // 返回：与详情 content yield 共用 settle 解析（景深 1→0 → settle 0→1）。
+    val settleProgress = resolveVideoCardReturnSettleProgress(
+        depthBlurProgress = transitionBackgroundProgress,
     )
+    return resolveHomeCardChromeEarlyRevealAlpha(settleProgress = settleProgress)
 }
 
 /**

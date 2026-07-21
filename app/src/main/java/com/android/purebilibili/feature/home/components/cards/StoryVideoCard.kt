@@ -290,7 +290,7 @@ fun StoryVideoCard(
                  } else Modifier
             )
     ) {
-        // 整卡 shell 含封面+标题，一起飞一起落。
+        // 卡片容器 (封面)
         Box(
             modifier = Modifier
                 .fillMaxWidth()

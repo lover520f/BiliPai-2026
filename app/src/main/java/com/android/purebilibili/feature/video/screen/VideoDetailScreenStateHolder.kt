@@ -1038,11 +1038,6 @@ internal fun VideoDetailScreenStateHolder(
         RoundedCornerShape(sharedTransitionSourceCornerDp.dp)
     }
     val isSharedTransitionActive = rootSharedTransitionScope?.isTransitionActive == true
-    val suppressDetailSkeletonDuringShellEnter = shouldSuppressDetailSkeletonDuringShellEnterMorph(
-        detailShellSharedBoundsEnabled = detailShellSharedBoundsEnabled,
-        isSharedTransitionActive = isSharedTransitionActive,
-        isExitTransitionInProgress = isExitTransitionInProgress,
-    )
     val suppressDetailShellForRelatedChild = shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
         detailBvid = bvid,
         lastClickedVideoSourceKey = CardPositionManager.lastClickedVideoSourceKey,
@@ -2929,10 +2924,6 @@ internal fun VideoDetailScreenStateHolder(
                                         liveReturnMorph = liveReturnMorph,
                                         depthBlurProgress =
                                             videoCardDepthBackgroundState.progressProvider(),
-                                        // 进场 shell：详情元素等列表标题让位后再出，禁止叠层
-                                        enterShellMorphHandoff = detailShellSharedBoundsEnabled &&
-                                            !isLeaving &&
-                                            !liveReturnMorph,
                                     )
                                 }
                                 // .nestedScroll(nestedScrollConnection) // [Remove] 移除嵌套滚动，确保 Tabs 正常滑动
@@ -2944,22 +2935,9 @@ internal fun VideoDetailScreenStateHolder(
                                     uiState !is VideoPlaybackUiState.Error -> Unit
                                 uiState is VideoPlaybackUiState.Loading -> {
                                     val loadingState = uiState as VideoPlaybackUiState.Loading
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black)
-                                    ) {
-                                        // shell 进场 morph 中：用封面/黑底承接，不画骨架，避免与封面 morph 抢时序闪烁。
-                                        if (suppressDetailSkeletonDuringShellEnter) {
-                                            if (coverUrl.isNotBlank()) {
-                                                AsyncImage(
-                                                    model = coverUrl,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    contentScale = ContentScale.Crop,
-                                                )
-                                            }
-                                        } else if (loadingState.retryAttempt > 0) {
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        //  显示重试进度
+                                        if (loadingState.retryAttempt > 0) {
                                             Box(
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentAlignment = Alignment.Center

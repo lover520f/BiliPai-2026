@@ -15,37 +15,23 @@ package com.android.purebilibili.core.ui.transition
 
 /**
  * 源卡 sharedBounds Enter 延后淡入起点（占 morph 总时长）。
- * 整卡（封面+标题）同步落位：不再延后 Enter，否则封面/壳先到位、字晚一拍。
- * 预测返回松手后景深与 morph 结束不同步时，延后 Enter 会放大「字后出」偶发。
+ * 略延后避免封面一上来盖住 live 画面，但不宜过晚——过大会像「壳先落位、封面再弹一下」。
+ * 与 [VIDEO_CARD_RETURN_CHROME_REVEAL_START] 对齐：字略晚于壳出现。
  */
-internal const val VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO = 0f
+internal const val VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO = 0.16f
 
 /**
- * 源卡 chrome 与壳同拍（返回不再单独晚淡入）。
- * 叠层靠详情次要内容让位，而不是藏标题。
+ * 源卡 chrome（标题/UP）在返回 settle 进度上的淡入起点。
+ * 略高于 source enter delay；live 正文在此点起让位，避免字叠实时画面。
  */
-internal const val VIDEO_CARD_RETURN_CHROME_REVEAL_START = 0f
+internal const val VIDEO_CARD_RETURN_CHROME_REVEAL_START = 0.22f
 
 /**
- * 返回时详情次要内容（简介/UP/操作栏）让位窗口。
- * settle 0→[yieldEnd] 线性收到 0，给整卡标题腾位置，禁止与列表 chrome 叠层。
+ * live morph 详情次要内容（简介/推荐等）开始让位的 settle 进度。
+ * 与 chrome 同源，保证标题出现时下方已不是叠层实时页。
  */
-internal const val VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START = 0f
-internal const val VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_END = 0.38f
-
-/**
- * 进场：源卡标题让位窗口（openProgress）。
- * 前段仍随整卡飞行，中段收干净，给详情元素腾位。
- */
-internal const val VIDEO_CARD_ENTER_CHROME_YIELD_START = 0.06f
-internal const val VIDEO_CARD_ENTER_CHROME_YIELD_END = 0.42f
-
-/**
- * 进场：详情次要内容显现窗口。
- * 略晚于 chrome 收完，中间留空档，避免「标题还在 + 详情已出」叠层。
- */
-internal const val VIDEO_CARD_ENTER_DETAIL_REVEAL_START = 0.48f
-internal const val VIDEO_CARD_ENTER_DETAIL_REVEAL_END = 0.92f
+internal const val VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START =
+    VIDEO_CARD_RETURN_CHROME_REVEAL_START
 
 /**
  * 详情侧返回时封面视觉主导权。
@@ -120,12 +106,11 @@ internal fun resolveVideoCardReturnTimeline(
 }
 
 /**
- * 源卡 Enter 是否延后。整卡同步落位后恒为 false（封面+标题与 bounds 同拍）。
+ * 快速返回：源卡 Enter 不延后，标题/UP 与封面同步落位，避免「先占位后出字」。
  */
-@Suppress("UNUSED_PARAMETER")
 internal fun shouldDelaySourceCardEnterOnReturn(
     isQuickReturnFromDetail: Boolean,
-): Boolean = false
+): Boolean = !isQuickReturnFromDetail
 
 /**
  * 统一返回 settle 进度 0→1（刚开始缩回 → 完全落位）。
@@ -153,87 +138,24 @@ internal fun resolveVideoCardReturnSettleProgress(
 }
 
 /**
- * live morph 详情次要内容 alpha：返回时尽快让位，给源卡整卡标题腾空。
+ * live morph 详情次要内容 alpha：settle 过 [yieldStart] 后淡出，给源卡标题让位。
  *
  * @param transitionProgress 根过渡进度，Visible=1、PostExit=0
- * @param depthBlurProgress 可选景深进度，与 transition 取较晚 settle
+ * @param depthBlurProgress 可选景深进度，与 transition 取较晚 settle，和源卡 chrome 对齐
  */
 internal fun resolveVideoCardLiveMorphSecondaryContentAlpha(
     transitionProgress: Float,
     depthBlurProgress: Float? = null,
     yieldStart: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START,
-    yieldEnd: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_END,
 ): Float {
     val settle = resolveVideoCardReturnSettleProgress(
         transitionProgress = transitionProgress,
         depthBlurProgress = depthBlurProgress,
     )
-    return resolveVideoCardLayerHandoffAlpha(
-        progress = settle,
-        appear = false,
-        windowStart = yieldStart,
-        windowEnd = yieldEnd,
-    )
-}
-
-/**
- * 进场时详情次要内容 alpha：等源卡标题让位后再显现。
- * [openProgress] 0=刚点开，1=进场结束（可用 transitionProgress 或景深进度）。
- */
-internal fun resolveVideoCardEnterDetailSecondaryContentAlpha(
-    openProgress: Float,
-    revealStart: Float = VIDEO_CARD_ENTER_DETAIL_REVEAL_START,
-    revealEnd: Float = VIDEO_CARD_ENTER_DETAIL_REVEAL_END,
-): Float {
-    return resolveVideoCardLayerHandoffAlpha(
-        progress = openProgress,
-        appear = true,
-        windowStart = revealStart,
-        windowEnd = revealEnd,
-    )
-}
-
-/**
- * 进场时源卡 chrome alpha：随整卡飞行后让位给详情元素。
- */
-internal fun resolveVideoCardEnterChromeAlpha(
-    openProgress: Float,
-    yieldStart: Float = VIDEO_CARD_ENTER_CHROME_YIELD_START,
-    yieldEnd: Float = VIDEO_CARD_ENTER_CHROME_YIELD_END,
-): Float {
-    return resolveVideoCardLayerHandoffAlpha(
-        progress = openProgress,
-        appear = false,
-        windowStart = yieldStart,
-        windowEnd = yieldEnd,
-    )
-}
-
-/**
- * 通用层间让位曲线。
- * @param appear true=进度中从 0→1 显现；false=从 1→0 让位
- * @param windowStart/windowEnd 完成区间，两端外钳制
- */
-internal fun resolveVideoCardLayerHandoffAlpha(
-    progress: Float,
-    appear: Boolean,
-    windowStart: Float,
-    windowEnd: Float,
-): Float {
-    val p = progress.coerceIn(0f, 1f)
-    val start = windowStart.coerceIn(0f, 1f)
-    val end = windowEnd.coerceIn(start, 1f)
-    val t = when {
-        p <= start -> 0f
-        p >= end -> 1f
-        end <= start -> 1f
-        else -> {
-            val linear = ((p - start) / (end - start)).coerceIn(0f, 1f)
-            // smoothstep，避免硬切叠层
-            linear * linear * (3f - 2f * linear)
-        }
-    }
-    return if (appear) t else (1f - t)
+    val start = yieldStart.coerceIn(0f, 1f)
+    if (settle <= start) return 1f
+    if (start >= 1f) return if (settle >= 1f) 0f else 1f
+    return (1f - (settle - start) / (1f - start)).coerceIn(0f, 1f)
 }
 
 /**

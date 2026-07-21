@@ -259,42 +259,26 @@ class VideoCardReturnTimelineTest {
         assertEquals(0f, quick.chromeRevealStart)
         assertEquals(0f, quick.sourceEnterFadeDelayRatio)
         assertFalse(shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail = true))
-        assertFalse(shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail = false))
+        assertTrue(shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail = false))
     }
 
     @Test
-    fun liveMorphSecondaryContent_yieldsBeforeCardChromeToAvoidStack() {
-        // settle≈0.2（progress=0.8）：仍在让位窗口内，详情未满消
-        val early = resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.8f)
-        assertTrue(early in 0.01f..0.99f)
-        // settle=1：完全让位
+    fun liveMorphSecondaryContent_yieldsNearSettleForTitle() {
+        // settle 0.2：尚未到 yield
+        assertEquals(
+            1f,
+            resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.8f),
+            0.001f,
+        )
+        // settle 1：完全让位
         assertEquals(
             0f,
             resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0f),
             0.001f,
         )
-        // settle≈0.7 > yieldEnd(0.38)：详情已让干净
-        assertEquals(
-            0f,
-            resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.3f),
-            0.001f,
-        )
-    }
-
-    @Test
-    fun enterHandoff_chromeYieldsBeforeDetailReveals() {
-        // 进场 0.25：标题还在让位中
-        val chromeMid = resolveVideoCardEnterChromeAlpha(openProgress = 0.25f)
-        assertTrue(chromeMid in 0.01f..0.99f)
-        // 进场 0.25：详情尚未开始显现（revealStart=0.48）
-        assertEquals(0f, resolveVideoCardEnterDetailSecondaryContentAlpha(0.25f), 0.001f)
-        // 进场 0.45：标题已收干净
-        assertEquals(0f, resolveVideoCardEnterChromeAlpha(openProgress = 0.45f), 0.001f)
-        // 进场 0.55：详情开始显现
-        val detailMid = resolveVideoCardEnterDetailSecondaryContentAlpha(0.55f)
-        assertTrue(detailMid in 0.01f..0.99f)
-        // 进场结束：详情满显
-        assertEquals(1f, resolveVideoCardEnterDetailSecondaryContentAlpha(1f), 0.001f)
+        // settle 0.7：让位中
+        val mid = resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.3f)
+        assertTrue(mid in 0.01f..0.99f)
     }
 
     @Test

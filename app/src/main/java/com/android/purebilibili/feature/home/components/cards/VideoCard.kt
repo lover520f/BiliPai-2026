@@ -645,10 +645,23 @@ fun ElegantVideoCard(
         }
         val requestCoverUrl = pinnedSharedReturnCover?.first ?: coverUrl
         val requestCoverCacheKey = pinnedSharedReturnCover?.second ?: coverCacheKey
-        // 整卡 shell（封面+标题）一起飞、一起落，与详情 DetailShell 容器变换对齐。
         val cardShellShape = remember(cardCornerRadius) {
             RoundedCornerShape(cardCornerRadius)
         }
+        val cardContainerModifier = Modifier
+            .fillMaxWidth()
+            .videoCardShellSharedBoundsOrEmpty(
+                enabled = useCardShellSharedBounds,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
+                bvid = video.bvid,
+                sourceRoute = effectiveSharedElementSourceRoute,
+                motionSpec = homeSharedTransitionMotionSpec,
+                clipShape = cardShellShape
+            )
+        Column(
+            modifier = cardContainerModifier
+        ) {
         //  [性能优化] 封面圆角形状缓存（避免重组时重复创建）
         val coverShape = remember(
             cardCornerRadius,
@@ -666,19 +679,7 @@ fun ElegantVideoCard(
                 RoundedCornerShape(homeSharedTransitionVisualSpec.sourceCornerDp.dp)
             }
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .videoCardShellSharedBoundsOrEmpty(
-                    enabled = useCardShellSharedBounds,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    bvid = video.bvid,
-                    sourceRoute = effectiveSharedElementSourceRoute,
-                    motionSpec = homeSharedTransitionMotionSpec,
-                    clipShape = cardShellShape
-                )
-        ) {
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()

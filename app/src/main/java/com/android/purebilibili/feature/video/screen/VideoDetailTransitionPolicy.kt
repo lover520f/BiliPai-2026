@@ -3,7 +3,6 @@ package com.android.purebilibili.feature.video.screen
 import androidx.compose.animation.core.Easing
 import com.android.purebilibili.core.ui.transition.VideoSharedTransitionPlaybackIntent
 import com.android.purebilibili.core.ui.transition.isVideoCardLiveReturnMorphOwnership
-import com.android.purebilibili.core.ui.transition.resolveVideoCardEnterDetailSecondaryContentAlpha
 import com.android.purebilibili.core.ui.transition.resolveVideoCardLiveMorphSecondaryContentAlpha
 import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnCoverOwnership
 import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedTransitionEnterEasing
@@ -146,13 +145,9 @@ internal fun resolveVideoDetailReturnContentAlpha(
     holdFullyOpaqueAfterBackPreview: Boolean = false,
     liveReturnMorph: Boolean = false,
     depthBlurProgress: Float? = null,
-    /**
-     * 进场 shell morph：详情次要内容需等源卡标题让位后再显现。
-     * 为 true 时用 enter reveal 曲线，而不是 raw transitionProgress（避免与列表标题叠层）。
-     */
-    enterShellMorphHandoff: Boolean = false,
 ): Float {
-    // 返回 live morph：尽快让位，给源卡整卡标题腾空。
+    // live morph：中段正文仍参与壳收缩；末段 settle 过 yield 点后淡出，给源卡标题/UP 让位。
+    // settle 与源卡 chrome 同源（transition + 景深取较晚），避免叠字。
     if (liveReturnMorph) {
         return resolveVideoCardLiveMorphSecondaryContentAlpha(
             transitionProgress = transitionProgress,
@@ -161,14 +156,6 @@ internal fun resolveVideoDetailReturnContentAlpha(
     }
     if (isCommittedCardReturn) return 0f
     if (holdFullyOpaqueAfterBackPreview) return 1f
-    // 进场：标题让位后再显现详情元素（progress 与景深取较晚，避免详情抢先叠在列表标题上）
-    if (enterShellMorphHandoff) {
-        val openProgress = maxOf(
-            transitionProgress.coerceIn(0f, 1f),
-            depthBlurProgress?.coerceIn(0f, 1f) ?: 0f,
-        )
-        return resolveVideoCardEnterDetailSecondaryContentAlpha(openProgress = openProgress)
-    }
     return transitionProgress.coerceIn(0f, 1f)
 }
 
@@ -208,20 +195,6 @@ internal fun shouldUseVideoDetailRootTransitionProgress(
     return detailShellSharedBoundsEnabled &&
         hasAnimatedVisibilityScope &&
         !keepLoadedContentForBackPreview
-}
-
-/**
- * 详情 shell 进场 morph 进行中时，不要绘制 Loading 骨架。
- * 骨架闪动/shimmer 会与封面→详情 sharedBounds 抢时序，造成「标题挖空 + 骨架抢位」。
- */
-internal fun shouldSuppressDetailSkeletonDuringShellEnterMorph(
-    detailShellSharedBoundsEnabled: Boolean,
-    isSharedTransitionActive: Boolean,
-    isExitTransitionInProgress: Boolean,
-): Boolean {
-    return detailShellSharedBoundsEnabled &&
-        isSharedTransitionActive &&
-        !isExitTransitionInProgress
 }
 
 internal fun shouldShowVideoDetailContent(

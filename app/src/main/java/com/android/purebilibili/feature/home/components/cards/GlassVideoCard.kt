@@ -315,7 +315,7 @@ fun GlassVideoCard(
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                //  封面区域（整卡 shell 在外层，封面不再单独绑 sharedBounds）
+                //  封面区域
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
