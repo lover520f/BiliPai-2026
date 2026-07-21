@@ -322,7 +322,7 @@ class VideoDetailReturnCoverPolicyTest {
             ),
             0.0001f,
         )
-        // 预测返回未提交：快速返回也不立刻掐正文，保证可取消。
+        // 预测返回未提交：快速返回跟 morphDepth 线性让位（yieldStart=0），可取消。
         assertEquals(
             0.9f,
             resolveVideoDetailReturnContentAlpha(
@@ -330,8 +330,71 @@ class VideoDetailReturnCoverPolicyTest {
                 isCommittedCardReturn = false,
                 liveReturnMorph = true,
                 isQuickReturn = true,
+                morphDepthProgress = 0.9f,
             ),
             0.0001f,
+        )
+    }
+
+    @Test
+    fun `live morph content settle follows single morphDepth clock only`() {
+        // 即使 AVS progress 与 depth 不一致，只认 morphDepth，避免与源卡 chrome 叠字。
+        val content = resolveVideoDetailReturnContentAlpha(
+            transitionProgress = 0.95f,
+            isCommittedCardReturn = true,
+            liveReturnMorph = true,
+            depthBlurProgress = 0.95f,
+            morphDepthProgress = 0.2f,
+        )
+        // settle = 1 - 0.2 = 0.8 > 0.18 → 正文已让位
+        assertTrue(content < 0.3f)
+        assertEquals(
+            resolveVideoDetailReturnContentAlpha(
+                transitionProgress = 0.2f,
+                isCommittedCardReturn = true,
+                liveReturnMorph = true,
+                morphDepthProgress = 0.2f,
+            ),
+            content,
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun `return session locks ownership so first-frame cannot flip LIVE to RESIDENT mid-return`() {
+        val lockedLive = resolveVideoDetailReturnSessionLockedOwnership(
+            lockedOwnership = null,
+            isReturnSessionActive = true,
+            candidateOwnership = com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.LIVE_SURFACE,
+        )
+        assertEquals(
+            com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.LIVE_SURFACE,
+            lockedLive.first,
+        )
+        assertEquals(
+            com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.LIVE_SURFACE,
+            lockedLive.second,
+        )
+        // 中途 candidate 变 RESIDENT：仍用 lock
+        val stillLive = resolveVideoDetailReturnSessionLockedOwnership(
+            lockedOwnership = lockedLive.first,
+            isReturnSessionActive = true,
+            candidateOwnership = com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.RESIDENT_COVER,
+        )
+        assertEquals(
+            com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.LIVE_SURFACE,
+            stillLive.second,
+        )
+        // 会话结束清 lock
+        val cleared = resolveVideoDetailReturnSessionLockedOwnership(
+            lockedOwnership = stillLive.first,
+            isReturnSessionActive = false,
+            candidateOwnership = com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.RESIDENT_COVER,
+        )
+        assertEquals(null, cleared.first)
+        assertEquals(
+            com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership.RESIDENT_COVER,
+            cleared.second,
         )
     }
 

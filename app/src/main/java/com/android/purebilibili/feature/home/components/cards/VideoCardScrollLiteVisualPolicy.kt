@@ -4,7 +4,7 @@ import com.android.purebilibili.core.ui.transition.VIDEO_CARD_RETURN_CHROME_REVE
 import com.android.purebilibili.core.ui.transition.VideoCardTransitionBackgroundPhase
 import com.android.purebilibili.core.ui.transition.normalizeSharedElementSourceRoute
 import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnListCoverContract
-import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnSettleProgress
+import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnSettleFromMorphDepth
 
 internal data class VideoCardScrollLiteVisualPolicy(
     val coverShadowElevationDp: Float,
@@ -110,10 +110,14 @@ internal fun resolveHomeCardChromeEarlyRevealAlpha(
 /**
  * 返回 shell morph 期间源卡 **chrome**（标题/UP/信息区）的 alpha。
  *
- * - morph 未进行：始终 1，避免相关推荐等落位后标题空白
- * - 进场飞向详情：保持 0，避免字叠在播放器上
- * - 返回落位：按 settle 进度在末段淡入，与封面同步出现，且中段不盖住实时画面
- * - 快速返回：直接 1
+ * 规则（以代码为准，不依赖「morph 结束硬切 1」）：
+ * - 非源卡 / 无 shell：恒 1
+ * - 进场（OPENING 或 shared 进行中且非返回）：0，避免字叠播放器
+ * - 返回上下文：只跟 [transitionBackgroundProgress]（= clock.depthProgress）做 settle 淡入
+ * - 快速返回：恒 1（详情正文必须同步立刻让位，见 resolveVideoDetailReturnContentAlpha）
+ * - settle≥1 或 depth≈0：恒 1
+ *
+ * 禁止：shared 一停就 `return 1f`——那会在 depth 仍为 0.4 时把标题从半透明弹满。
  */
 internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
     useCardContainerSharedBounds: Boolean,
@@ -127,26 +131,28 @@ internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
     isQuickReturnFromDetail: Boolean = false,
 ): Float {
     if (!useCardContainerSharedBounds || !isSharedMorphSourceCard) return 1f
-    if (isQuickReturnFromDetail) return 1f
 
-    val morphActive = isSharedTransitionActive || isVideoCardReturnGestureInProgress
-    // morph 已结束：立刻恢复（哪怕景深 phase 仍短暂停留在 RETURNING）
-    if (!morphActive) return 1f
-
-    val isReturnMorph = isReturningFromDetail ||
+    val isReturnContext = isReturningFromDetail ||
         isVideoCardReturnGestureInProgress ||
         transitionBackgroundPhase == VideoCardTransitionBackgroundPhase.RETURNING
-    if (!isReturnMorph) {
-        // 进场：藏字，避免标题飞过实时播放器
-        return 0f
+
+    if (isReturnContext) {
+        if (isQuickReturnFromDetail) return 1f
+        val settleProgress = resolveVideoCardReturnSettleFromMorphDepth(
+            morphDepthProgress = transitionBackgroundProgress,
+        )
+        if (settleProgress >= 0.999f) return 1f
+        return resolveHomeCardChromeEarlyRevealAlpha(settleProgress = settleProgress)
     }
 
-    // 返回：单时钟 depth == morphFraction（1 详情→0 卡），settle = 1 - depth。
-    val settleProgress = resolveVideoCardReturnSettleProgress(
-        depthBlurProgress = transitionBackgroundProgress,
-        transitionProgress = transitionBackgroundProgress,
-    )
-    return resolveHomeCardChromeEarlyRevealAlpha(settleProgress = settleProgress)
+    // 进场：shared 飞行或 OPENING 时藏字
+    if (
+        isSharedTransitionActive ||
+        transitionBackgroundPhase == VideoCardTransitionBackgroundPhase.OPENING
+    ) {
+        return 0f
+    }
+    return 1f
 }
 
 /**

@@ -1434,7 +1434,7 @@ internal fun VideoDetailScreenStateHolder(
         hasRenderedFirstFrame = hasRenderedFirstFrameForReturn,
         forceCoverUi = forceCoverOnlyForReturn,
     )
-    val returnCoverOwnership = resolveVideoDetailReturnCoverOwnership(
+    val candidateReturnCoverOwnership = resolveVideoDetailReturnCoverOwnership(
         transitionEnabled = transitionEnabled,
         sharedBoundsActive = sharedBoundsActive,
         keepLoadedContentForBackPreview = keepLoadedContentForBackPreview,
@@ -1443,6 +1443,23 @@ internal fun VideoDetailScreenStateHolder(
         hasResidentCover = hasResidentReturnCover,
         hasRenderableLiveFrame = hasRenderableLiveFrameForReturn,
     )
+    // 返回会话锁定 ownership：中途首帧到达不得 LIVE↔RESIDENT 对切闪封面。
+    var lockedReturnCoverOwnership by remember(bvid) {
+        mutableStateOf<com.android.purebilibili.core.ui.transition.VideoCardReturnCoverOwnership?>(null)
+    }
+    val isReturnCoverOwnershipSessionActive =
+        useReturningVideoDetailVisualState || isCardReturnExitInProgress
+    val (nextLockedReturnCoverOwnership, returnCoverOwnership) =
+        resolveVideoDetailReturnSessionLockedOwnership(
+            lockedOwnership = lockedReturnCoverOwnership,
+            isReturnSessionActive = isReturnCoverOwnershipSessionActive,
+            candidateOwnership = candidateReturnCoverOwnership,
+        )
+    SideEffect {
+        if (lockedReturnCoverOwnership != nextLockedReturnCoverOwnership) {
+            lockedReturnCoverOwnership = nextLockedReturnCoverOwnership
+        }
+    }
     val liveReturnMorph = isLiveReturnMorphFromOwnership(returnCoverOwnership)
     val useResidentCoverForCommittedReturn = shouldHandResidentCoverFromOwnership(
         ownership = returnCoverOwnership,
@@ -2934,7 +2951,8 @@ internal fun VideoDetailScreenStateHolder(
                                         holdFullyOpaqueAfterBackPreview =
                                             suppressEnterFadeAfterBackPreview && !isLeaving,
                                         liveReturnMorph = liveReturnMorph,
-                                        depthBlurProgress =
+                                        // 与源卡 chrome 同一 clock.depthProgress，禁止双源 max 叠字。
+                                        morphDepthProgress =
                                             videoCardDepthBackgroundState.progressProvider(),
                                         isQuickReturn = isQuickReturningFromDetail,
                                     )

@@ -129,17 +129,33 @@ internal fun shouldDelaySourceCardEnterOnReturn(
 internal fun canCoexistLiveSurfaceStableCoverAndChromeOnReturn(): Boolean = true
 
 /**
+ * 单时钟 morph 深度 → settle。
+ *
+ * [morphDepthProgress] 与 [VideoCardTransitionClock.depthProgress] 同语义：
+ * - 1 = 详情全屏
+ * - 0 = 列表落位
+ *
+ * settle = 1 - depth：0 刚开始缩回，1 完全落位。
+ * chrome / 详情正文 / 景深 **只读这一路**，禁止再 max(AVS, depth)。
+ */
+internal fun resolveVideoCardReturnSettleFromMorphDepth(morphDepthProgress: Float): Float {
+    return (1f - morphDepthProgress.coerceIn(0f, 1f)).coerceIn(0f, 1f)
+}
+
+/**
  * 统一返回 settle 进度 0→1（刚开始缩回 → 完全落位）。
  *
- * - [transitionProgress]：详情 AnimatedVisibility，Visible=1、PostExit=0
- * - [depthBlurProgress]：景深 blur，HELD=1、清完=0
- *
- * 多源时取 **更靠后** 的 settle，避免正文让位慢于标题淡入（叠字）或反过来。
+ * 优先使用 [morphDepthProgress]（单时钟）。若未提供则回退旧双源 max 语义，
+ * 仅供遗留调用；新接线应只传 morphDepth。
  */
 internal fun resolveVideoCardReturnSettleProgress(
     transitionProgress: Float? = null,
     depthBlurProgress: Float? = null,
+    morphDepthProgress: Float? = null,
 ): Float {
+    if (morphDepthProgress != null) {
+        return resolveVideoCardReturnSettleFromMorphDepth(morphDepthProgress)
+    }
     var settle = 0f
     var hasSource = false
     if (transitionProgress != null) {
@@ -156,22 +172,56 @@ internal fun resolveVideoCardReturnSettleProgress(
 /**
  * live morph 详情次要内容 alpha：settle 过 [yieldStart] 后淡出，给源卡标题让位。
  *
- * @param transitionProgress 根过渡进度，Visible=1、PostExit=0
- * @param depthBlurProgress 可选景深进度，与 transition 取较晚 settle，和源卡 chrome 对齐
+ * 优先 [morphDepthProgress] 单时钟；与源卡 chrome 的 settle 同源。
  */
 internal fun resolveVideoCardLiveMorphSecondaryContentAlpha(
-    transitionProgress: Float,
+    transitionProgress: Float = 1f,
     depthBlurProgress: Float? = null,
     yieldStart: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START,
+    morphDepthProgress: Float? = null,
 ): Float {
     val settle = resolveVideoCardReturnSettleProgress(
-        transitionProgress = transitionProgress,
-        depthBlurProgress = depthBlurProgress,
+        transitionProgress = if (morphDepthProgress == null) transitionProgress else null,
+        depthBlurProgress = if (morphDepthProgress == null) depthBlurProgress else null,
+        morphDepthProgress = morphDepthProgress,
     )
+    return resolveVideoCardLiveMorphSecondaryContentAlphaFromSettle(
+        settleProgress = settle,
+        yieldStart = yieldStart,
+    )
+}
+
+/**
+ * 由 settle 直接算详情正文 alpha（可单测）。
+ * settle≤yieldStart → 1；settle=1 → 0；中间线性让位。
+ */
+internal fun resolveVideoCardLiveMorphSecondaryContentAlphaFromSettle(
+    settleProgress: Float,
+    yieldStart: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START,
+): Float {
+    val settle = settleProgress.coerceIn(0f, 1f)
     val start = yieldStart.coerceIn(0f, 1f)
     if (settle <= start) return 1f
     if (start >= 1f) return if (settle >= 1f) 0f else 1f
     return (1f - (settle - start) / (1f - start)).coerceIn(0f, 1f)
+}
+
+/**
+ * 返回会话 ownership 锁定：进入离开态时采样一次，会话结束前不变。
+ * 防止中途首帧到达导致 LIVE↔RESIDENT 对切闪封面。
+ *
+ * @return first = 写入 state 的 lock（非返回中为 null），second = 本帧生效 ownership
+ */
+internal fun resolveReturnSessionLockedCoverOwnership(
+    lockedOwnership: VideoCardReturnCoverOwnership?,
+    isReturnSessionActive: Boolean,
+    candidateOwnership: VideoCardReturnCoverOwnership,
+): Pair<VideoCardReturnCoverOwnership?, VideoCardReturnCoverOwnership> {
+    if (!isReturnSessionActive) {
+        return null to candidateOwnership
+    }
+    val locked = lockedOwnership ?: candidateOwnership
+    return locked to locked
 }
 
 /**
