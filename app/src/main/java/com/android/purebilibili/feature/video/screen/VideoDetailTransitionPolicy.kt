@@ -3,6 +3,7 @@ package com.android.purebilibili.feature.video.screen
 import androidx.compose.animation.core.Easing
 import com.android.purebilibili.core.ui.transition.VideoSharedTransitionPlaybackIntent
 import com.android.purebilibili.core.ui.transition.isVideoCardLiveReturnMorphOwnership
+import com.android.purebilibili.core.ui.transition.resolveVideoCardLiveMorphSecondaryContentAlpha
 import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnCoverOwnership
 import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedTransitionEnterEasing
 import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedTransitionReturnEasing
@@ -140,9 +141,13 @@ internal fun resolveVideoDetailReturnContentAlpha(
     holdFullyOpaqueAfterBackPreview: Boolean = false,
     liveReturnMorph: Boolean = false,
 ): Float {
-    // live morph：详情正文保持不透明，整页参与 shell 收缩（与快速返回观感一致）。
-    // 与首页卡标题叠字改由返回 morph 期间隐藏源卡 chrome 消化，而不是先把正文打成 0。
-    if (liveReturnMorph) return 1f
+    // live morph：中段正文仍参与壳收缩；末段 settle 过 yield 点后淡出，给源卡标题/UP 让位，
+    // 避免实时页叠在卡片信息区上（见 VideoCardReturnTimeline live content yield）。
+    if (liveReturnMorph) {
+        return resolveVideoCardLiveMorphSecondaryContentAlpha(
+            transitionProgress = transitionProgress,
+        )
+    }
     if (isCommittedCardReturn) return 0f
     if (holdFullyOpaqueAfterBackPreview) return 1f
     return transitionProgress.coerceIn(0f, 1f)

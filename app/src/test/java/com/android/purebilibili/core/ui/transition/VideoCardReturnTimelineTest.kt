@@ -250,9 +250,34 @@ class VideoCardReturnTimelineTest {
         assertEquals(360, timeline.morphDurationMillis)
         assertEquals(48L, timeline.settleBufferMillis)
         assertEquals(VIDEO_CARD_RETURN_CHROME_REVEAL_START, timeline.chromeRevealStart)
-        assertEquals(VIDEO_CARD_SHELL_SOURCE_ENTER_FADE_DELAY_RATIO, timeline.sourceEnterFadeDelayRatio)
+        assertEquals(VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO, timeline.sourceEnterFadeDelayRatio)
         assertEquals(408L, timeline.suppressionWindowMillis)
         assertTrue(shouldUseSeekableLinearReturnBoundsTransform())
+
+        val quick = resolveVideoCardReturnTimeline(morphDurationMillis = 360, isQuickReturn = true)
+        assertEquals(0f, quick.chromeRevealStart)
+        assertEquals(0f, quick.sourceEnterFadeDelayRatio)
+        assertFalse(shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail = true))
+        assertTrue(shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail = false))
+    }
+
+    @Test
+    fun liveMorphSecondaryContent_yieldsNearSettleForTitle() {
+        // settle 0.2：尚未到 yield
+        assertEquals(
+            1f,
+            resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.8f),
+            0.001f,
+        )
+        // settle 1：完全让位
+        assertEquals(
+            0f,
+            resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0f),
+            0.001f,
+        )
+        // settle 0.7：让位中
+        val mid = resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.3f)
+        assertTrue(mid in 0.01f..0.99f)
     }
 
     @Test

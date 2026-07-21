@@ -13,8 +13,25 @@ package com.android.purebilibili.core.ui.transition
  * - [VideoCardReturnCoverOwnership.FALLBACK_NO_SHARED]：无 shared 配对，依赖路由层动画
  */
 
-/** 源卡 chrome（标题/UP）在返回 settle 进度上的淡入起点。 */
-internal const val VIDEO_CARD_RETURN_CHROME_REVEAL_START = 0.62f
+/**
+ * 源卡 sharedBounds Enter 延后淡入起点（占 morph 总时长）。
+ * 低于此值源卡（含标题结构）仍不可见；过大会导致快速返回「先封面后字」。
+ * 与 [VIDEO_CARD_RETURN_CHROME_REVEAL_START] 对齐：字略晚于壳出现、早于旧 0.62 末段。
+ */
+internal const val VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO = 0.38f
+
+/**
+ * 源卡 chrome（标题/UP）在返回 settle 进度上的淡入起点。
+ * 略高于 source enter delay，让壳/封面先露一拍；live 正文在此点起让位，避免字叠实时画面。
+ */
+internal const val VIDEO_CARD_RETURN_CHROME_REVEAL_START = 0.42f
+
+/**
+ * live morph 详情次要内容（简介/推荐等）开始让位的 settle 进度。
+ * 与 chrome 同源，保证标题出现时下方已不是叠层实时页。
+ */
+internal const val VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START =
+    VIDEO_CARD_RETURN_CHROME_REVEAL_START
 
 /**
  * 详情侧返回时封面视觉主导权。
@@ -70,13 +87,45 @@ internal enum class VideoCardReturnSessionPhase {
 
 internal fun resolveVideoCardReturnTimeline(
     morphDurationMillis: Int,
+    isQuickReturn: Boolean = false,
 ): VideoCardReturnTimeline {
     return VideoCardReturnTimeline(
         morphDurationMillis = morphDurationMillis.coerceAtLeast(0),
         settleBufferMillis = resolveVideoCardReturnSpringSettleBufferMs(),
-        chromeRevealStart = VIDEO_CARD_RETURN_CHROME_REVEAL_START,
-        sourceEnterFadeDelayRatio = VIDEO_CARD_SHELL_SOURCE_ENTER_FADE_DELAY_RATIO,
+        chromeRevealStart = if (isQuickReturn) {
+            0f
+        } else {
+            VIDEO_CARD_RETURN_CHROME_REVEAL_START
+        },
+        sourceEnterFadeDelayRatio = if (isQuickReturn) {
+            0f
+        } else {
+            VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO
+        },
     )
+}
+
+/**
+ * 快速返回：源卡 Enter 不延后，标题/UP 与封面同步落位，避免「先占位后出字」。
+ */
+internal fun shouldDelaySourceCardEnterOnReturn(
+    isQuickReturnFromDetail: Boolean,
+): Boolean = !isQuickReturnFromDetail
+
+/**
+ * live morph 详情次要内容 alpha：settle 过 [yieldStart] 后淡出，给源卡标题让位。
+ *
+ * @param transitionProgress 根过渡进度，Visible=1、PostExit=0
+ */
+internal fun resolveVideoCardLiveMorphSecondaryContentAlpha(
+    transitionProgress: Float,
+    yieldStart: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START,
+): Float {
+    val settle = 1f - transitionProgress.coerceIn(0f, 1f)
+    val start = yieldStart.coerceIn(0f, 1f)
+    if (settle <= start) return 1f
+    if (start >= 1f) return if (settle >= 1f) 0f else 1f
+    return (1f - (settle - start) / (1f - start)).coerceIn(0f, 1f)
 }
 
 /**

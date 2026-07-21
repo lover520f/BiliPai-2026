@@ -68,6 +68,15 @@ class BiliPaiNavDisplayHostStructureTest {
     }
 
     @Test
+    fun navDisplayHostAlignsDepthReturnDurationWithSharedMorphRemaining() {
+        val source = navDisplayHostSource()
+        assertTrue(source.contains("resolveVideoCardSharedMorphRemainingDurationMs("))
+        assertTrue(source.contains("gestureFractionAtCommit"))
+        assertTrue(source.contains("morphRemainingMs"))
+        assertTrue(source.contains("morphAlignedFullMs"))
+    }
+
+    @Test
     fun navDisplayHostPreservesApplicationExtrasForEntryViewModels() {
         val source = navDisplayHostSource()
 

@@ -34,19 +34,27 @@ internal enum class VideoCardShellSharedBoundsRole {
     DetailShell,
 }
 
-/** 返回时源卡封面延后淡入的起点（占 morph 总时长比例）。 */
-internal const val VIDEO_CARD_SHELL_SOURCE_ENTER_FADE_DELAY_RATIO = 0.55f
+/**
+ * 返回时源卡延后淡入的起点（占 morph 总时长比例）。
+ * 与 [VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO] 同源。
+ */
+internal const val VIDEO_CARD_SHELL_SOURCE_ENTER_FADE_DELAY_RATIO =
+    VIDEO_CARD_RETURN_SOURCE_ENTER_FADE_DELAY_RATIO
 
 /** 横条卡进场源卡淡出时长（占 morph 总时长比例）。 */
 internal const val VIDEO_CARD_SHELL_SOURCE_EXIT_FADE_RATIO = 0.28f
 
 /**
- * 首页与相关/分区竖卡返回延后淡入源卡。
+ * 普通返回：延后淡入源卡，避免封面过早盖住 live 画面。
+ * 快速返回：不延后（见 [shouldDelaySourceCardEnterOnReturn]）。
  */
-internal fun shouldDelaySourceCardEnterForLiveReturnMorph(sourceRoute: String?): Boolean {
+internal fun shouldDelaySourceCardEnterForLiveReturnMorph(
+    sourceRoute: String?,
+    isQuickReturnFromDetail: Boolean = false,
+): Boolean {
     @Suppress("UNUSED_PARAMETER")
     val ignored = sourceRoute
-    return true
+    return shouldDelaySourceCardEnterOnReturn(isQuickReturnFromDetail)
 }
 
 /**
@@ -133,9 +141,13 @@ internal fun Modifier.videoCardShellSharedBoundsOrEmpty(
     if (!enabled || sharedTransitionScope == null || animatedVisibilityScope == null || bvid.isBlank()) {
         return this
     }
-    val delaySourceCardEnter = remember(sourceRoute) {
-        shouldDelaySourceCardEnterForLiveReturnMorph(sourceRoute)
-    }
+    val bgState = LocalVideoCardTransitionBackgroundState.current
+    // 快速返回：源卡 Enter.None，标题/UP 与封面同步落位，避免先占位后出字。
+    val isQuickReturnFromDetail = bgState.isQuickReturnFromDetailProvider()
+    val delaySourceCardEnter = shouldDelaySourceCardEnterForLiveReturnMorph(
+        sourceRoute = sourceRoute,
+        isQuickReturnFromDetail = isQuickReturnFromDetail,
+    )
     val fadeOutSourceOnOpen = remember(sourceRoute) {
         shouldFadeOutShellSourceCardOnOpen(sourceRoute)
     }

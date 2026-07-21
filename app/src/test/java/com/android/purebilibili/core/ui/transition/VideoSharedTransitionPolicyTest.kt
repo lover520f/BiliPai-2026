@@ -400,6 +400,21 @@ class VideoSharedTransitionPolicyTest {
         assertTrue(shouldDelaySourceCardEnterForLiveReturnMorph("partition"))
         // 相关推荐竖卡与首页一样：返回延后淡入源卡。
         assertTrue(shouldDelaySourceCardEnterForLiveReturnMorph("video/BV_A"))
+        // 快速返回：不延后，标题/UP 与封面同步落位。
+        assertFalse(
+            shouldDelaySourceCardEnterForLiveReturnMorph(
+                sourceRoute = "home",
+                isQuickReturnFromDetail = true,
+            )
+        )
+        assertEquals(
+            EnterTransition.None,
+            resolveVideoCardShellSharedBoundsEnter(
+                role = VideoCardShellSharedBoundsRole.SourceCard,
+                transitionDurationMillis = 360,
+                delaySourceCardEnterForLiveReturn = false,
+            ),
+        )
         // 竖卡：源卡返回 Enter 延后淡入，避免封面盖住实时画面。
         assertTrue(
             resolveVideoCardShellSharedBoundsEnter(
@@ -408,7 +423,8 @@ class VideoSharedTransitionPolicyTest {
                 delaySourceCardEnterForLiveReturn = true,
             ) != EnterTransition.None
         )
-        assertEquals(198, resolveVideoCardShellSourceEnterFadeDelayMillis(360))
+        // 360 * 0.38 = 136.8 → 136
+        assertEquals(136, resolveVideoCardShellSourceEnterFadeDelayMillis(360))
         assertEquals(
             ExitTransition.None,
             resolveVideoCardShellSharedBoundsExit(
@@ -455,7 +471,8 @@ class VideoSharedTransitionPolicyTest {
         val shellHelper = File(
             "src/main/java/com/android/purebilibili/core/ui/transition/VideoCardShellSharedBounds.kt"
         ).readText()
-        assertTrue(shellHelper.contains("shouldDelaySourceCardEnterForLiveReturnMorph(sourceRoute)"))
+        assertTrue(shellHelper.contains("shouldDelaySourceCardEnterForLiveReturnMorph("))
+        assertTrue(shellHelper.contains("isQuickReturnFromDetail"))
     }
 
     @Test

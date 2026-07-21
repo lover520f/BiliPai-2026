@@ -60,6 +60,7 @@ import com.android.purebilibili.core.ui.transition.resolvePredictiveBackGestureB
 import com.android.purebilibili.core.ui.transition.resolveVideoCardTransitionBackgroundGestureBlurProgress
 import com.android.purebilibili.core.ui.transition.resolveVideoCardTransitionBackgroundReturnDurationMs
 import com.android.purebilibili.core.ui.transition.resolveVideoCardTransitionReturnFullDurationMillis
+import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedMorphRemainingDurationMs
 import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedTransitionEnterEasing
 import com.android.purebilibili.core.ui.transition.resolveVideoCardTransitionBackgroundReturnClearEasing
 import com.android.purebilibili.core.ui.transition.isVideoCardTransitionBackgroundGesturePhase
@@ -67,6 +68,7 @@ import com.android.purebilibili.core.ui.transition.shouldApplyPredictiveBackGest
 import com.android.purebilibili.core.ui.transition.shouldShowVideoCardTransitionNavBackdrop
 import com.android.purebilibili.core.ui.transition.shouldSnapClearVideoCardDepthBlurOnQuickReturn
 import com.android.purebilibili.core.ui.transition.VideoCardTransitionNavBackdrop
+import com.android.purebilibili.core.ui.transition.VIDEO_CARD_TRANSITION_BACKGROUND_CANCEL_DURATION_MS
 import com.android.purebilibili.feature.settings.isSettingsSubtreeNavKey
 import com.android.purebilibili.navigation.isVideoCardReturnTargetRoute
 import com.android.purebilibili.navigation3.predictiveback.BiliPaiPredictiveBackAnimationHandler
@@ -298,13 +300,18 @@ internal fun BiliPaiNavDisplayHost(
                         val fullDurationMs = resolveVideoCardTransitionReturnFullDurationMillis(
                             baseDurationMillis = videoSharedTransitionDurationMillis,
                         )
+                        // 与 shared morph 满时长契约对齐（无手势 fraction 时 seek=0 → 全长）
+                        val morphAlignedFullMs = resolveVideoCardSharedMorphRemainingDurationMs(
+                            seekFraction = 0f,
+                            fullDurationMs = fullDurationMs,
+                        )
                         launchVideoCardDepthAnimation {
                             videoCardTransitionBackgroundProgress.animateTo(
                                 targetValue = 0f,
                                 animationSpec = tween(
                                     durationMillis = resolveVideoCardTransitionBackgroundReturnDurationMs(
                                         startProgress = remainingBlur,
-                                        fullDurationMs = fullDurationMs,
+                                        fullDurationMs = morphAlignedFullMs,
                                     ),
                                     easing = resolveVideoCardTransitionBackgroundReturnClearEasing(),
                                 ),
@@ -471,21 +478,25 @@ internal fun BiliPaiNavDisplayHost(
                     videoCardTransitionBackgroundPhase = VideoCardTransitionBackgroundPhase.IDLE
                     null
                 } else {
+                    // 必须在清 gesture 前进：与 NavDisplay seek complete remaining 同源。
+                    val gestureFractionAtCommit = videoCardGestureProgress
                     val blurAtCommit = videoCardBackgroundProgressProvider()
                     videoCardTransitionBackgroundProgress.snapTo(blurAtCommit)
                     videoCardTransitionBackgroundPhase = VideoCardTransitionBackgroundPhase.RETURNING
                     val fullDurationMs = resolveVideoCardTransitionReturnFullDurationMillis(
                         baseDurationMillis = videoSharedTransitionDurationMillis,
                     )
+                    val morphRemainingMs = resolveVideoCardSharedMorphRemainingDurationMs(
+                        seekFraction = gestureFractionAtCommit ?: 0f,
+                        fullDurationMs = fullDurationMs,
+                    ).coerceAtLeast(VIDEO_CARD_TRANSITION_BACKGROUND_CANCEL_DURATION_MS)
                     // 用统一 Job：栈变化触发的 LaunchedEffect 返回路径见 phase==RETURNING 会跳过。
+                    // 景深收尾时长 = morph 后半段，避免 blur 先/后于 shell 落位。
                     launchVideoCardDepthAnimation {
                         videoCardTransitionBackgroundProgress.animateTo(
                             targetValue = 0f,
                             animationSpec = tween(
-                                durationMillis = resolveVideoCardTransitionBackgroundReturnDurationMs(
-                                    startProgress = blurAtCommit,
-                                    fullDurationMs = fullDurationMs,
-                                ),
+                                durationMillis = morphRemainingMs,
                                 easing = resolveVideoCardTransitionBackgroundReturnClearEasing(),
                             ),
                         )

@@ -255,12 +255,15 @@ class VideoDetailReturnCoverPolicyTest {
             resolveVideoDetailReturnPlayerAlpha(0.8f, true, true, liveReturnMorph = true),
             0.0001f,
         )
-        // 整页收缩：提交后正文仍保持可见，随 shell bounds 形变
+        // 中段（settle=0.2 < yield）：正文仍可见随壳收缩
         assertEquals(
             1f,
             resolveVideoDetailReturnContentAlpha(0.8f, true, liveReturnMorph = true),
             0.0001f,
         )
+        // 末段（settle=0.7 > yield）：正文让位给源卡标题，alpha 下降
+        val lateContent = resolveVideoDetailReturnContentAlpha(0.3f, true, liveReturnMorph = true)
+        assertTrue(lateContent < 1f && lateContent > 0f)
     }
 
     @Test

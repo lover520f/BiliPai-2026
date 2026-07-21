@@ -297,7 +297,7 @@ class VideoCardScrollLiteVisualPolicyTest {
             ),
             0.001f,
         )
-        // 末段落位：settle=0.8 → 开始淡入（revealStart=0.62）
+        // 末段落位：settle=0.8 → 已过 revealStart(0.42)，开始淡入
         val midReveal = resolveHomeCardChromeAlphaDuringShellReturnMorph(
             useCardContainerSharedBounds = true,
             isSharedMorphSourceCard = true,
@@ -310,6 +310,18 @@ class VideoCardScrollLiteVisualPolicyTest {
         assertEquals(
             resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 0.8f),
             midReveal,
+            0.001f,
+        )
+        // 中段 settle=0.3 < 0.42：标题仍藏，避免叠 live
+        assertEquals(
+            0f,
+            resolveHomeCardChromeAlphaDuringShellReturnMorph(
+                useCardContainerSharedBounds = true,
+                isSharedMorphSourceCard = true,
+                isReturningFromDetail = true,
+                isSharedTransitionActive = true,
+                transitionBackgroundProgress = 0.7f,
+            ),
             0.001f,
         )
         // morph 结束后即使仍标记 returning / 景深未 IDLE，也要立刻恢复标题，避免相关推荐空白。
