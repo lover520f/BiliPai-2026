@@ -48,12 +48,14 @@ internal fun shouldUseLiveReturnMorph(
     keepLoadedContentForBackPreview: Boolean,
     playbackIntent: VideoSharedTransitionPlaybackIntent,
     detailContentReady: Boolean = true,
+    hasRenderableLiveFrame: Boolean = true,
 ): Boolean = shouldUseVideoCardLiveReturnMorph(
     transitionEnabled = transitionEnabled,
     sharedBoundsActive = sharedBoundsActive,
     keepLoadedContentForBackPreview = keepLoadedContentForBackPreview,
     playbackIntent = playbackIntent,
     detailContentReady = detailContentReady,
+    hasRenderableLiveFrame = hasRenderableLiveFrame,
 )
 
 /**
@@ -89,6 +91,7 @@ internal fun resolveVideoDetailReturnCoverOwnership(
     playbackIntent: VideoSharedTransitionPlaybackIntent,
     detailContentReady: Boolean,
     hasResidentCover: Boolean,
+    hasRenderableLiveFrame: Boolean = true,
 ) = resolveVideoCardReturnCoverOwnership(
     transitionEnabled = transitionEnabled,
     sharedBoundsActive = sharedBoundsActive,
@@ -96,6 +99,7 @@ internal fun resolveVideoDetailReturnCoverOwnership(
     playbackIntent = playbackIntent,
     detailContentReady = detailContentReady,
     hasResidentCover = hasResidentCover,
+    hasRenderableLiveFrame = hasRenderableLiveFrame,
 )
 
 internal fun isLiveReturnMorphFromOwnership(
@@ -140,12 +144,14 @@ internal fun resolveVideoDetailReturnContentAlpha(
     isCommittedCardReturn: Boolean,
     holdFullyOpaqueAfterBackPreview: Boolean = false,
     liveReturnMorph: Boolean = false,
+    depthBlurProgress: Float? = null,
 ): Float {
-    // live morph：中段正文仍参与壳收缩；末段 settle 过 yield 点后淡出，给源卡标题/UP 让位，
-    // 避免实时页叠在卡片信息区上（见 VideoCardReturnTimeline live content yield）。
+    // live morph：中段正文仍参与壳收缩；末段 settle 过 yield 点后淡出，给源卡标题/UP 让位。
+    // settle 与源卡 chrome 同源（transition + 景深取较晚），避免叠字。
     if (liveReturnMorph) {
         return resolveVideoCardLiveMorphSecondaryContentAlpha(
             transitionProgress = transitionProgress,
+            depthBlurProgress = depthBlurProgress,
         )
     }
     if (isCommittedCardReturn) return 0f

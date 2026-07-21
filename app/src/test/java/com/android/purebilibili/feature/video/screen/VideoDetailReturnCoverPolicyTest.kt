@@ -420,6 +420,7 @@ class VideoDetailReturnCoverPolicyTest {
             playbackIntent = VideoSharedTransitionPlaybackIntent.ImmediatePlayback,
             detailContentReady = true,
             hasResidentCover = true,
+            hasRenderableLiveFrame = true,
         )
         assertTrue(isLiveReturnMorphFromOwnership(live))
         assertFalse(
@@ -442,6 +443,24 @@ class VideoDetailReturnCoverPolicyTest {
         assertTrue(
             shouldHandResidentCoverFromOwnership(
                 ownership = coverFirst,
+                useReturningVisualState = true,
+                hasResidentCover = true,
+            )
+        )
+
+        val noFrame = resolveVideoDetailReturnCoverOwnership(
+            transitionEnabled = true,
+            sharedBoundsActive = true,
+            keepLoadedContentForBackPreview = false,
+            playbackIntent = VideoSharedTransitionPlaybackIntent.ImmediatePlayback,
+            detailContentReady = true,
+            hasResidentCover = true,
+            hasRenderableLiveFrame = false,
+        )
+        assertFalse(isLiveReturnMorphFromOwnership(noFrame))
+        assertTrue(
+            shouldHandResidentCoverFromOwnership(
+                ownership = noFrame,
                 useReturningVisualState = true,
                 hasResidentCover = true,
             )

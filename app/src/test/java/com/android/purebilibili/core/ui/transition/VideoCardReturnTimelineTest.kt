@@ -129,6 +129,7 @@ class VideoCardReturnTimelineTest {
                 playbackIntent = case.playbackIntent,
                 detailContentReady = case.detailContentReady,
                 hasResidentCover = case.hasResidentCover,
+                hasRenderableLiveFrame = true,
             )
             assertEquals(case.expected, ownership, case.name)
 
@@ -278,6 +279,82 @@ class VideoCardReturnTimelineTest {
         // settle 0.7：让位中
         val mid = resolveVideoCardLiveMorphSecondaryContentAlpha(transitionProgress = 0.3f)
         assertTrue(mid in 0.01f..0.99f)
+    }
+
+    @Test
+    fun liveMorph_withoutFirstFrameFallsBackToResidentCover() {
+        assertFalse(
+            shouldTreatLiveSurfaceRenderableForReturnMorph(
+                hasRenderedFirstFrame = false,
+            )
+        )
+        assertFalse(
+            shouldTreatLiveSurfaceRenderableForReturnMorph(
+                hasRenderedFirstFrame = true,
+                forceCoverUi = true,
+            )
+        )
+        assertTrue(
+            shouldTreatLiveSurfaceRenderableForReturnMorph(
+                hasRenderedFirstFrame = true,
+                forceCoverUi = false,
+            )
+        )
+
+        val ownership = resolveVideoCardReturnCoverOwnership(
+            transitionEnabled = true,
+            sharedBoundsActive = true,
+            keepLoadedContentForBackPreview = false,
+            playbackIntent = VideoSharedTransitionPlaybackIntent.ImmediatePlayback,
+            detailContentReady = true,
+            hasResidentCover = true,
+            hasRenderableLiveFrame = false,
+        )
+        assertEquals(VideoCardReturnCoverOwnership.RESIDENT_COVER, ownership)
+        assertTrue(
+            shouldHandVisualOwnershipToResidentCoverForOwnership(
+                ownership = ownership,
+                useReturningVisualState = true,
+                hasResidentCover = true,
+            )
+        )
+        assertFalse(
+            shouldUseVideoCardLiveReturnMorph(
+                transitionEnabled = true,
+                sharedBoundsActive = true,
+                keepLoadedContentForBackPreview = false,
+                playbackIntent = VideoSharedTransitionPlaybackIntent.ImmediatePlayback,
+                detailContentReady = true,
+                hasRenderableLiveFrame = false,
+            )
+        )
+    }
+
+    @Test
+    fun settleProgress_takesLaterOfTransitionAndDepth() {
+        // transition 0.8 → settle 0.2；depth 0.3 → settle 0.7 → max 0.7
+        assertEquals(
+            0.7f,
+            resolveVideoCardReturnSettleProgress(
+                transitionProgress = 0.8f,
+                depthBlurProgress = 0.3f,
+            ),
+            0.001f,
+        )
+        assertEquals(
+            0.2f,
+            resolveVideoCardReturnSettleProgress(transitionProgress = 0.8f),
+            0.001f,
+        )
+        // 景深更靠后时 content 应更早让位
+        val withDepth = resolveVideoCardLiveMorphSecondaryContentAlpha(
+            transitionProgress = 0.8f,
+            depthBlurProgress = 0.3f,
+        )
+        val withoutDepth = resolveVideoCardLiveMorphSecondaryContentAlpha(
+            transitionProgress = 0.8f,
+        )
+        assertTrue(withDepth < withoutDepth)
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.android.purebilibili.core.ui.transition.VIDEO_CARD_RETURN_CHROME_REVE
 import com.android.purebilibili.core.ui.transition.VideoCardTransitionBackgroundPhase
 import com.android.purebilibili.core.ui.transition.normalizeSharedElementSourceRoute
 import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnListCoverContract
+import com.android.purebilibili.core.ui.transition.resolveVideoCardReturnSettleProgress
 
 internal data class VideoCardScrollLiteVisualPolicy(
     val coverShadowElevationDp: Float,
@@ -140,8 +141,10 @@ internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
         return 0f
     }
 
-    // 返回：景深 progress 1→0；settle 0→1。末段再露字，与延后淡入的封面对齐。
-    val settleProgress = 1f - transitionBackgroundProgress.coerceIn(0f, 1f)
+    // 返回：与详情 content yield 共用 settle 解析（景深 1→0 → settle 0→1）。
+    val settleProgress = resolveVideoCardReturnSettleProgress(
+        depthBlurProgress = transitionBackgroundProgress,
+    )
     return resolveHomeCardChromeEarlyRevealAlpha(settleProgress = settleProgress)
 }
 

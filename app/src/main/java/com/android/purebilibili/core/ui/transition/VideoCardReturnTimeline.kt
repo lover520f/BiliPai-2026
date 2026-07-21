@@ -113,19 +113,61 @@ internal fun shouldDelaySourceCardEnterOnReturn(
 ): Boolean = !isQuickReturnFromDetail
 
 /**
+ * 统一返回 settle 进度 0→1（刚开始缩回 → 完全落位）。
+ *
+ * - [transitionProgress]：详情 AnimatedVisibility，Visible=1、PostExit=0
+ * - [depthBlurProgress]：景深 blur，HELD=1、清完=0
+ *
+ * 多源时取 **更靠后** 的 settle，避免正文让位慢于标题淡入（叠字）或反过来。
+ */
+internal fun resolveVideoCardReturnSettleProgress(
+    transitionProgress: Float? = null,
+    depthBlurProgress: Float? = null,
+): Float {
+    var settle = 0f
+    var hasSource = false
+    if (transitionProgress != null) {
+        settle = maxOf(settle, 1f - transitionProgress.coerceIn(0f, 1f))
+        hasSource = true
+    }
+    if (depthBlurProgress != null) {
+        settle = maxOf(settle, 1f - depthBlurProgress.coerceIn(0f, 1f))
+        hasSource = true
+    }
+    return if (hasSource) settle.coerceIn(0f, 1f) else 0f
+}
+
+/**
  * live morph 详情次要内容 alpha：settle 过 [yieldStart] 后淡出，给源卡标题让位。
  *
  * @param transitionProgress 根过渡进度，Visible=1、PostExit=0
+ * @param depthBlurProgress 可选景深进度，与 transition 取较晚 settle，和源卡 chrome 对齐
  */
 internal fun resolveVideoCardLiveMorphSecondaryContentAlpha(
     transitionProgress: Float,
+    depthBlurProgress: Float? = null,
     yieldStart: Float = VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START,
 ): Float {
-    val settle = 1f - transitionProgress.coerceIn(0f, 1f)
+    val settle = resolveVideoCardReturnSettleProgress(
+        transitionProgress = transitionProgress,
+        depthBlurProgress = depthBlurProgress,
+    )
     val start = yieldStart.coerceIn(0f, 1f)
     if (settle <= start) return 1f
     if (start >= 1f) return if (settle >= 1f) 0f else 1f
     return (1f - (settle - start) / (1f - start)).coerceIn(0f, 1f)
+}
+
+/**
+ * 首帧是否已渲染，足以作为 live morph 的可绘帧。
+ * 未出首帧时走 RESIDENT 封面接管，避免黑壳缩回。
+ */
+internal fun shouldTreatLiveSurfaceRenderableForReturnMorph(
+    hasRenderedFirstFrame: Boolean,
+    forceCoverUi: Boolean = false,
+): Boolean {
+    if (forceCoverUi) return false
+    return hasRenderedFirstFrame
 }
 
 /**
@@ -168,7 +210,8 @@ internal fun resolveVideoCardReturnDepthBlurRemainingDurationMs(
 /**
  * 是否允许 live morph（实时 surface 跟壳缩）。
  *
- * 详情正文未就绪时关闭，避免 Loading 骨架被缩进卡片位。
+ * - 详情正文未就绪时关闭，避免 Loading 骨架被缩进卡片位
+ * - 无首帧 / 强制封面 UI 时关闭，避免黑壳缩回（回落 RESIDENT handoff）
  */
 internal fun shouldUseVideoCardLiveReturnMorph(
     transitionEnabled: Boolean,
@@ -176,19 +219,21 @@ internal fun shouldUseVideoCardLiveReturnMorph(
     keepLoadedContentForBackPreview: Boolean,
     playbackIntent: VideoSharedTransitionPlaybackIntent,
     detailContentReady: Boolean,
+    hasRenderableLiveFrame: Boolean = true,
 ): Boolean {
     return transitionEnabled &&
         sharedBoundsActive &&
         !keepLoadedContentForBackPreview &&
         playbackIntent == VideoSharedTransitionPlaybackIntent.ImmediatePlayback &&
-        detailContentReady
+        detailContentReady &&
+        hasRenderableLiveFrame
 }
 
 /**
  * 解析详情返回时的封面路径类型（与「当前是否正在离开」无关）。
  *
- * - LIVE_SURFACE：满足 live morph 门闩 → 离开时 player 主导
- * - RESIDENT_COVER：有 shared，但不走 live（Loading/CoverFirst 等）→ 离开时封面主导
+ * - LIVE_SURFACE：满足 live morph 门闩（含可绘帧）→ 离开时 player 主导
+ * - RESIDENT_COVER：有 shared，但不走 live（Loading/CoverFirst/无首帧 等）→ 离开时封面主导
  * - FALLBACK_NO_SHARED：无配对 → 不得假设 shell morph
  *
  * 「现在是否把视觉交给封面」还要乘 [useReturningVisualState]，见
@@ -202,6 +247,7 @@ internal fun resolveVideoCardReturnCoverOwnership(
     playbackIntent: VideoSharedTransitionPlaybackIntent,
     detailContentReady: Boolean,
     hasResidentCover: Boolean,
+    hasRenderableLiveFrame: Boolean = true,
 ): VideoCardReturnCoverOwnership {
     if (!transitionEnabled || !sharedBoundsActive) {
         return VideoCardReturnCoverOwnership.FALLBACK_NO_SHARED
@@ -212,6 +258,7 @@ internal fun resolveVideoCardReturnCoverOwnership(
         keepLoadedContentForBackPreview = keepLoadedContentForBackPreview,
         playbackIntent = playbackIntent,
         detailContentReady = detailContentReady,
+        hasRenderableLiveFrame = hasRenderableLiveFrame,
     )
     if (live) {
         return VideoCardReturnCoverOwnership.LIVE_SURFACE

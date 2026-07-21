@@ -169,6 +169,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.android.purebilibili.core.ui.LocalPredictiveBackGestureEnabled
 import com.android.purebilibili.core.ui.LocalSharedTransitionScope
 import com.android.purebilibili.core.ui.LocalAnimatedVisibilityScope
+import com.android.purebilibili.core.ui.transition.LocalVideoCardTransitionBackgroundState
 import com.android.purebilibili.core.ui.transition.LocalVideoSharedTransitionSpeedSettings
 import com.android.purebilibili.core.ui.transition.VideoSharedTransitionPlaybackIntent
 import com.android.purebilibili.core.ui.transition.resolveVideoCardSharedTransitionMotionSpec
@@ -179,6 +180,7 @@ import com.android.purebilibili.core.ui.transition.resolveVideoSharedTransitionP
 import com.android.purebilibili.core.ui.transition.resolveVideoSharedTransitionSourceCornerDp
 import com.android.purebilibili.core.ui.transition.resolveVideoSharedTransitionVisualSpec
 import com.android.purebilibili.core.ui.transition.shouldEnableVideoCoverSharedTransition
+import com.android.purebilibili.core.ui.transition.shouldTreatLiveSurfaceRenderableForReturnMorph
 import com.android.purebilibili.core.ui.transition.shouldUseVideoCardShellContainerTransform
 import com.android.purebilibili.core.ui.transition.VideoCardShellSharedBoundsRole
 import com.android.purebilibili.core.ui.transition.videoCardShellSharedBoundsOrEmpty
@@ -1096,21 +1098,7 @@ internal fun VideoDetailScreenStateHolder(
     val detailContentReadyForLiveReturnMorph = shouldTreatVideoDetailContentReadyForLiveReturnMorph(
         hasSuccessfulDetailContent = uiState is VideoPlaybackUiState.Success,
     )
-    // 封面路径类型（LIVE / RESIDENT / FALLBACK）由 VideoCardReturnTimeline 单一真相解析。
-    val returnCoverOwnership = resolveVideoDetailReturnCoverOwnership(
-        transitionEnabled = transitionEnabled,
-        sharedBoundsActive = sharedBoundsActive,
-        keepLoadedContentForBackPreview = keepLoadedContentForBackPreview,
-        playbackIntent = videoSharedPlaybackIntent,
-        detailContentReady = detailContentReadyForLiveReturnMorph,
-        hasResidentCover = hasResidentReturnCover,
-    )
-    val liveReturnMorph = isLiveReturnMorphFromOwnership(returnCoverOwnership)
-    val useResidentCoverForCommittedReturn = shouldHandResidentCoverFromOwnership(
-        ownership = returnCoverOwnership,
-        useReturningVisualState = useReturningVideoDetailVisualState,
-        hasResidentCover = hasResidentReturnCover,
-    )
+    // liveReturnMorph / ownership 依赖 player 首帧，见 playerState 定义之后。
 
     val handleTopBarAction = remember(
         miniPlayerManager,
@@ -1424,6 +1412,31 @@ internal fun VideoDetailScreenStateHolder(
             player.removeListener(listener)
         }
     }
+    val playerDebugInfo by playerState.debugInfo.collectAsStateWithLifecycle()
+    val hasRenderedFirstFrameForReturn = remember(playerDebugInfo.firstFrame) {
+        playerDebugInfo.firstFrame.equals("rendered", ignoreCase = true)
+    }
+    // 全量 Success 但无首帧 / 强制封面 UI 时禁止 LIVE，避免黑壳缩回。
+    val hasRenderableLiveFrameForReturn = shouldTreatLiveSurfaceRenderableForReturnMorph(
+        hasRenderedFirstFrame = hasRenderedFirstFrameForReturn,
+        forceCoverUi = forceCoverOnlyForReturn,
+    )
+    val returnCoverOwnership = resolveVideoDetailReturnCoverOwnership(
+        transitionEnabled = transitionEnabled,
+        sharedBoundsActive = sharedBoundsActive,
+        keepLoadedContentForBackPreview = keepLoadedContentForBackPreview,
+        playbackIntent = videoSharedPlaybackIntent,
+        detailContentReady = detailContentReadyForLiveReturnMorph,
+        hasResidentCover = hasResidentReturnCover,
+        hasRenderableLiveFrame = hasRenderableLiveFrameForReturn,
+    )
+    val liveReturnMorph = isLiveReturnMorphFromOwnership(returnCoverOwnership)
+    val useResidentCoverForCommittedReturn = shouldHandResidentCoverFromOwnership(
+        ownership = returnCoverOwnership,
+        useReturningVisualState = useReturningVideoDetailVisualState,
+        hasResidentCover = hasResidentReturnCover,
+    )
+    val videoCardDepthBackgroundState = LocalVideoCardTransitionBackgroundState.current
     val routedCommentInteractionActive =
         openCommentRootRpidFromRoute > 0L &&
             (subReplyState.visible || subReplyState.isLoading)
@@ -2871,6 +2884,8 @@ internal fun VideoDetailScreenStateHolder(
                                         holdFullyOpaqueAfterBackPreview =
                                             suppressEnterFadeAfterBackPreview && !isLeaving,
                                         liveReturnMorph = liveReturnMorph,
+                                        depthBlurProgress =
+                                            videoCardDepthBackgroundState.progressProvider(),
                                     )
                                 }
                                 // .nestedScroll(nestedScrollConnection) // [Remove] 移除嵌套滚动，确保 Tabs 正常滑动
