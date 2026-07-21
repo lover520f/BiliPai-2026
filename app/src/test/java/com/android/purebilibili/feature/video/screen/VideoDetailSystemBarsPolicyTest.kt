@@ -91,6 +91,35 @@ class VideoDetailSystemBarsPolicyTest {
     }
 
     @Test
+    fun visibilityPolicy_portraitFullscreenHidesAllSystemBarsForImmersion() {
+        val policy = resolveVideoDetailSystemBarsVisibilityPolicy(
+            isFullscreenMode = false,
+            hideVideoPageStatusBar = false,
+            isInPipMode = false,
+            isScreenActive = true,
+            isPortraitFullscreen = true
+        )
+
+        assertEquals(true, policy.hideStatusBars)
+        assertEquals(true, policy.hideNavigationBars)
+    }
+
+    @Test
+    fun visibilityPolicy_portraitFullscreenCanForceShowBars() {
+        val policy = resolveVideoDetailSystemBarsVisibilityPolicy(
+            isFullscreenMode = false,
+            hideVideoPageStatusBar = false,
+            isInPipMode = false,
+            isScreenActive = true,
+            isPortraitFullscreen = true,
+            forceShowSystemBarsInPortrait = true
+        )
+
+        assertEquals(false, policy.hideStatusBars)
+        assertEquals(false, policy.hideNavigationBars)
+    }
+
+    @Test
     fun visibilityPolicy_pipRestoresSystemBarsEvenWhenSettingEnabled() {
         val policy = resolveVideoDetailSystemBarsVisibilityPolicy(
             isFullscreenMode = false,

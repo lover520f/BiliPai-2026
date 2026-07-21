@@ -48,6 +48,18 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.android.purebilibili.feature.video.screen.VideoDetailHiddenSystemBars
+import com.android.purebilibili.feature.video.screen.VideoDetailSystemBarsApplySpec
+import com.android.purebilibili.feature.video.screen.applyVideoDetailSystemBarsSpec
+import com.android.purebilibili.feature.video.screen.findActivity
+import com.android.purebilibili.feature.video.screen.resolveVideoDetailSystemBarsApplySpec
+import com.android.purebilibili.feature.video.screen.resolveVideoDetailSystemBarsVisibilityPolicy
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -216,6 +228,49 @@ fun PortraitVideoPager(
     onRotateToLandscape: () -> Unit
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
+    val activity = remember(context) { context.findActivity() }
+    val window = activity?.window
+    val insetsController = remember(window, view) {
+        if (window != null) WindowInsetsControllerCompat(window, view) else null
+    }
+    // Immersive: hide status + nav bars while portrait pager is active (Story + detail overlay).
+    LaunchedEffect(isActive, window, insetsController) {
+        if (!isActive || window == null || insetsController == null) return@LaunchedEffect
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val immersiveSpec = resolveVideoDetailSystemBarsApplySpec(
+            visibilityPolicy = resolveVideoDetailSystemBarsVisibilityPolicy(
+                isFullscreenMode = false,
+                hideVideoPageStatusBar = false,
+                isInPipMode = false,
+                isScreenActive = true,
+                isPortraitFullscreen = true
+            ),
+            useTabletLayout = false,
+            isLightBackground = false,
+            backgroundColor = ComposeColor.Black.toArgb(),
+            transparentColor = ComposeColor.Transparent.toArgb(),
+            blackColor = ComposeColor.Black.toArgb(),
+            transientBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        )
+        applyVideoDetailSystemBarsSpec(window, insetsController, immersiveSpec)
+    }
+    DisposableEffect(isActive, window, insetsController) {
+        onDispose {
+            if (window == null || insetsController == null) return@onDispose
+            // Restore bars when leaving portrait immersive (detail returns to inline / Story pops).
+            val restoreSpec = VideoDetailSystemBarsApplySpec(
+                hiddenBars = VideoDetailHiddenSystemBars.NONE,
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT,
+                statusBarColor = ComposeColor.Transparent.toArgb(),
+                navigationBarColor = ComposeColor.Transparent.toArgb(),
+                lightStatusBars = false,
+                lightNavigationBars = false
+            )
+            applyVideoDetailSystemBarsSpec(window, insetsController, restoreSpec)
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
     val composerViewModel: VideoComposerViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(key = "portrait_composer_$initialBvid")
     val supplementViewModel: VideoSupplementViewModel =
@@ -355,6 +410,12 @@ fun PortraitVideoPager(
     var isLoadingMoreRecommendations by remember { mutableStateOf(false) }
     val appendedRecommendationSeeds = remember { mutableStateListOf<String>() }
     var recommendationFeedCursor by rememberSaveable(initialInfo.bvid) { mutableIntStateOf(0) }
+    var lastLoadedCollectionInfo by remember(initialInfo.bvid) {
+        mutableStateOf<ViewInfo?>(null)
+    }
+    var lastLoadedCollectionInfoBvid by remember(initialInfo.bvid) {
+        mutableStateOf(initialInfo.bvid)
+    }
 
     LaunchedEffect(initialInfo.bvid, recommendations) {
         if (!seededInitialRecommendations) {
@@ -683,12 +744,22 @@ fun PortraitVideoPager(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (!isPortraitPlaybackAllowed) return
                 if (playbackState != Player.STATE_ENDED) return
+                val currentPage = pagerState.currentPage
+                val nextItem = pageItems.getOrNull(currentPage + 1)
+                val currentItem = pageItems.getOrNull(currentPage)
+                val collectionInfo = lastLoadedCollectionInfo
+                    ?.takeIf { it.bvid == lastLoadedCollectionInfoBvid }
+                val hasCollectionFollowUp = shouldPortraitAutoContinueToNextItem(
+                    currentItem = currentItem,
+                    nextItem = nextItem,
+                    currentLoadedInfo = collectionInfo
+                )
                 val playbackEndAction = resolvePlaybackEndAction(
                     behavior = playbackCompletionBehavior,
                     autoPlayEnabled = autoPlayEnabled,
                     isExternalPlaylist = isExternalPlaylist,
                     externalPlaylistAutoContinueEnabled = externalPlaylistAutoContinueEnabled,
-                    hasNextPageOrSeasonTarget = false
+                    hasNextPageOrSeasonTarget = hasCollectionFollowUp
                 )
                 when (playbackEndAction) {
                     PlaybackEndAction.STOP -> return
@@ -700,12 +771,13 @@ fun PortraitVideoPager(
                     PlaybackEndAction.PLAY_NEXT_IN_PLAYLIST,
                     PlaybackEndAction.AUTO_CONTINUE -> {
                         val playingBvid = currentPlayingBvid ?: return
-                        if (lastAutoAdvancedBvid == playingBvid) return
-                        lastAutoAdvancedBvid = playingBvid
+                        val advanceKey = "$playingBvid#$currentPlayingCid"
+                        if (lastAutoAdvancedBvid == advanceKey) return
+                        lastAutoAdvancedBvid = advanceKey
 
                         val nextPage = resolveNextPortraitPageAfterPlaybackEnd(
                             action = playbackEndAction,
-                            currentPage = pagerState.currentPage,
+                            currentPage = currentPage,
                             lastPage = pageItems.lastIndex
                         ) ?: return
 
@@ -715,8 +787,9 @@ fun PortraitVideoPager(
                     }
                     PlaybackEndAction.PLAY_NEXT_IN_PLAYLIST_LOOP -> {
                         val playingBvid = currentPlayingBvid ?: return
-                        if (lastAutoAdvancedBvid == playingBvid) return
-                        lastAutoAdvancedBvid = playingBvid
+                        val advanceKey = "$playingBvid#$currentPlayingCid"
+                        if (lastAutoAdvancedBvid == advanceKey) return
+                        lastAutoAdvancedBvid = advanceKey
 
                         val nextPage = resolveNextPortraitPageAfterPlaybackEnd(
                             action = PlaybackEndAction.PLAY_NEXT_IN_PLAYLIST_LOOP,
@@ -760,7 +833,9 @@ fun PortraitVideoPager(
             shouldSkipPortraitReloadForCurrentMedia(
                 currentPlayingBvid = currentPlayingBvid,
                 targetBvid = bvid,
-                currentPlayerMediaId = exoPlayer.currentMediaItem?.mediaId
+                currentPlayerMediaId = exoPlayer.currentMediaItem?.mediaId,
+                targetCid = requestedCid,
+                currentPlayingCid = currentPlayingCid
             )
         ) {
             isLoading = false
@@ -832,15 +907,17 @@ fun PortraitVideoPager(
                             dashVideoIds = dashVideoIds
                         )
 
+                        val resolvedCid = info.cid.takeIf { it > 0L } ?: requestedCid
+                        val mediaId = resolvePortraitMediaId(bvid, resolvedCid)
                         val videoItem = MediaItem.Builder()
                             .setUri(resolvedUrls.videoUrl)
-                            .setMediaId(bvid)
+                            .setMediaId(mediaId)
                             .build()
                         val videoSource = portraitMediaSourceFactory.createMediaSource(videoItem)
                         val finalSource = resolvedUrls.audioUrl?.takeIf { it.isNotEmpty() }?.let { audioUrl ->
                             val audioItem = MediaItem.Builder()
                                 .setUri(audioUrl)
-                                .setMediaId("audio_$bvid")
+                                .setMediaId("audio_$mediaId")
                                 .build()
                             val audioSource = portraitMediaSourceFactory.createMediaSource(audioItem)
                             MergingMediaSource(videoSource, audioSource)
@@ -863,8 +940,40 @@ fun PortraitVideoPager(
                         resolveAspectRatioFromDimension(info.dimension)?.let { aspectRatio ->
                             knownVideoAspectRatios[bvid] = aspectRatio
                         }
-                        currentPlayingCid = info.cid
+                        currentPlayingCid = resolvedCid
                         currentPlayingAid = info.aid
+
+                        // Inject multi-P / season follow-ups right after this page so immersive
+                        // swipe (and auto-continue) stays in-collection before related feed.
+                        val currentPageIndex = pageItems.indexOfFirst { candidate ->
+                            val identity = resolvePortraitPagePlaybackIdentity(candidate)
+                            identity?.bvid == bvid &&
+                                (requestedCid <= 0L || identity.cid == requestedCid || identity.cid <= 0L)
+                        }.takeIf { it >= 0 } ?: pagerState.currentPage
+                        val followUps = resolvePortraitCollectionFollowUps(
+                            info = info,
+                            currentCid = resolvedCid
+                        )
+                        val injectItems = resolvePortraitCollectionInjectionPlan(
+                            pageItems = pageItems.toList(),
+                            currentPage = currentPageIndex,
+                            followUps = followUps
+                        )
+                        if (injectItems.isNotEmpty()) {
+                            val insertAt = (currentPageIndex + 1).coerceIn(0, pageItems.size)
+                            pageItems.addAll(insertAt, injectItems)
+                            recommendationItems.addAll(
+                                0,
+                                injectItems.filter { item ->
+                                    recommendationItems.none { existing ->
+                                        existing.bvid == item.bvid && existing.cid == item.cid
+                                    }
+                                }
+                            )
+                        }
+                        lastLoadedCollectionInfoBvid = info.bvid
+                        lastLoadedCollectionInfo = info
+
                         exoPlayer.playWhenReady = isPortraitPlaybackAllowed
                         exoPlayer.setMediaSource(finalSource)
                         exoPlayer.prepare()

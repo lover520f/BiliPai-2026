@@ -48,11 +48,26 @@ internal fun shouldApplyLoadResult(
 internal fun shouldSkipPortraitReloadForCurrentMedia(
     currentPlayingBvid: String?,
     targetBvid: String,
-    currentPlayerMediaId: String?
+    currentPlayerMediaId: String?,
+    targetCid: Long = 0L,
+    currentPlayingCid: Long = 0L
 ): Boolean {
     val normalizedMediaId = currentPlayerMediaId?.trim().orEmpty()
     if (normalizedMediaId.isBlank()) return false
-    return currentPlayingBvid == targetBvid && normalizedMediaId == targetBvid
+    if (currentPlayingBvid != targetBvid) return false
+    // Multi-P shares bvid; media id encodes cid so part switches still reload.
+    val expectedMediaId = resolvePortraitMediaId(targetBvid, targetCid)
+    if (normalizedMediaId == expectedMediaId) return true
+    // Legacy media ids were plain bvid (cid-less). Only skip when cid is also unchanged.
+    if (normalizedMediaId == targetBvid && targetCid <= 0L && currentPlayingCid <= 0L) {
+        return true
+    }
+    return false
+}
+
+internal fun resolvePortraitMediaId(bvid: String, cid: Long = 0L): String {
+    val normalized = bvid.trim()
+    return if (cid > 0L) "$normalized#$cid" else normalized
 }
 
 internal fun shouldShowPortraitCover(

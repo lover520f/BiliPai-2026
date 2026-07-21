@@ -80,12 +80,28 @@ internal fun resolveVideoDetailSystemBarsVisibilityPolicy(
     isFullscreenMode: Boolean,
     hideVideoPageStatusBar: Boolean,
     isInPipMode: Boolean,
-    isScreenActive: Boolean
+    isScreenActive: Boolean,
+    isPortraitFullscreen: Boolean = false,
+    forceShowSystemBarsInPortrait: Boolean = false
 ): VideoDetailSystemBarsVisibilityPolicy {
     if (!isScreenActive || isInPipMode) {
         return VideoDetailSystemBarsVisibilityPolicy(
             hideStatusBars = false,
             hideNavigationBars = false
+        )
+    }
+    // Portrait immersive pager: hide status + nav bars for full-bleed playback.
+    // forceShow allows the portrait chrome toggle to temporarily restore bars.
+    if (isPortraitFullscreen) {
+        if (forceShowSystemBarsInPortrait) {
+            return VideoDetailSystemBarsVisibilityPolicy(
+                hideStatusBars = false,
+                hideNavigationBars = false
+            )
+        }
+        return VideoDetailSystemBarsVisibilityPolicy(
+            hideStatusBars = true,
+            hideNavigationBars = true
         )
     }
     if (isFullscreenMode) {

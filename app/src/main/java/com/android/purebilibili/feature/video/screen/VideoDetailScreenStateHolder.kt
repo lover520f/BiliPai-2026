@@ -2149,6 +2149,7 @@ internal fun VideoDetailScreenStateHolder(
     val isLightBackground = remember(backgroundColor) { backgroundColor.luminance() > 0.5f }
     val systemBarsVisibilityPolicy = remember(
         isFullscreenMode,
+        isPortraitFullscreen,
         hideVideoPageStatusBar,
         isPipMode,
         isScreenActive
@@ -2157,7 +2158,8 @@ internal fun VideoDetailScreenStateHolder(
             isFullscreenMode = isFullscreenMode,
             hideVideoPageStatusBar = hideVideoPageStatusBar,
             isInPipMode = isPipMode,
-            isScreenActive = isScreenActive
+            isScreenActive = isScreenActive,
+            isPortraitFullscreen = isPortraitFullscreen
         )
     }
     val systemBarsApplySpec = remember(

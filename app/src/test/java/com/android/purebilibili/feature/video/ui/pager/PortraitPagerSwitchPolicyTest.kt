@@ -228,6 +228,16 @@ class PortraitPagerSwitchPolicyTest {
                 currentPlayerMediaId = " "
             )
         )
+        // Multi-P: same bvid, different cid must reload.
+        assertFalse(
+            shouldSkipPortraitReloadForCurrentMedia(
+                currentPlayingBvid = "BV1xx411c7mD",
+                targetBvid = "BV1xx411c7mD",
+                currentPlayerMediaId = "BV1xx411c7mD#1",
+                targetCid = 2L,
+                currentPlayingCid = 1L
+            )
+        )
     }
 
     @Test
