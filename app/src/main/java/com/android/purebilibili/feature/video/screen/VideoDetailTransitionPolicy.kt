@@ -1,6 +1,7 @@
 package com.android.purebilibili.feature.video.screen
 
 import androidx.compose.animation.core.Easing
+import com.android.purebilibili.core.ui.transition.VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START
 import com.android.purebilibili.core.ui.transition.VideoSharedTransitionPlaybackIntent
 import com.android.purebilibili.core.ui.transition.isVideoCardLiveReturnMorphOwnership
 import com.android.purebilibili.core.ui.transition.resolveVideoCardLiveMorphSecondaryContentAlpha
@@ -145,13 +146,24 @@ internal fun resolveVideoDetailReturnContentAlpha(
     holdFullyOpaqueAfterBackPreview: Boolean = false,
     liveReturnMorph: Boolean = false,
     depthBlurProgress: Float? = null,
+    isQuickReturn: Boolean = false,
 ): Float {
     // live morph：中段正文仍参与壳收缩；末段 settle 过 yield 点后淡出，给源卡标题/UP 让位。
     // settle 与源卡 chrome 同源（transition + 景深取较晚），避免叠字。
     if (liveReturnMorph) {
+        // 快速返回：源卡 chrome 立刻全显（见 resolveHomeCardChromeAlphaDuringShellReturnMorph）。
+        // 若详情标题仍按 yieldStart=0.18 才让位，会短暂双标题叠字，卸层时标题闪一下。
+        if (isCommittedCardReturn && isQuickReturn) {
+            return 0f
+        }
         return resolveVideoCardLiveMorphSecondaryContentAlpha(
             transitionProgress = transitionProgress,
             depthBlurProgress = depthBlurProgress,
+            yieldStart = if (isQuickReturn) {
+                0f
+            } else {
+                VIDEO_CARD_RETURN_LIVE_CONTENT_YIELD_START
+            },
         )
     }
     if (isCommittedCardReturn) return 0f

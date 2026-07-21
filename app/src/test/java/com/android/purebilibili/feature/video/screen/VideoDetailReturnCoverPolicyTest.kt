@@ -300,6 +300,42 @@ class VideoDetailReturnCoverPolicyTest {
     }
 
     @Test
+    fun `quick committed live return hides detail content immediately to avoid dual title flash`() {
+        // 源卡 chrome 快速返回立刻全显；详情标题必须马上让位，否则卸层时标题闪一下。
+        assertEquals(
+            0f,
+            resolveVideoDetailReturnContentAlpha(
+                transitionProgress = 0.9f,
+                isCommittedCardReturn = true,
+                liveReturnMorph = true,
+                isQuickReturn = true,
+            ),
+            0.0001f,
+        )
+        assertEquals(
+            0f,
+            resolveVideoDetailReturnContentAlpha(
+                transitionProgress = 0.2f,
+                isCommittedCardReturn = true,
+                liveReturnMorph = true,
+                isQuickReturn = true,
+            ),
+            0.0001f,
+        )
+        // 预测返回未提交：快速返回也不立刻掐正文，保证可取消。
+        assertEquals(
+            0.9f,
+            resolveVideoDetailReturnContentAlpha(
+                transitionProgress = 0.9f,
+                isCommittedCardReturn = false,
+                liveReturnMorph = true,
+                isQuickReturn = true,
+            ),
+            0.0001f,
+        )
+    }
+
+    @Test
     fun `cover-first committed return still hands visual ownership to resident cover`() {
         assertEquals(
             1f,

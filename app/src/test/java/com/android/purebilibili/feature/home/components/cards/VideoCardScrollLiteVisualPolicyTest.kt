@@ -352,6 +352,19 @@ class VideoCardScrollLiteVisualPolicyTest {
         // revealStart=0.18：0.15 仍藏字，1.0 全显
         assertEquals(0f, resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 0.15f), 0.001f)
         assertEquals(1f, resolveHomeCardChromeEarlyRevealAlpha(settleProgress = 1f), 0.001f)
+        // 快速返回：源卡标题立刻全显（详情正文须同步让位，见 resolveVideoDetailReturnContentAlpha）
+        assertEquals(
+            1f,
+            resolveHomeCardChromeAlphaDuringShellReturnMorph(
+                useCardContainerSharedBounds = true,
+                isSharedMorphSourceCard = true,
+                isReturningFromDetail = true,
+                isSharedTransitionActive = true,
+                transitionBackgroundProgress = 1f,
+                isQuickReturnFromDetail = true,
+            ),
+            0.001f,
+        )
         assertTrue(
             isVideoCardSharedReturnTarget(
                 bvid = "BV1xx",

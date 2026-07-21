@@ -2936,6 +2936,7 @@ internal fun VideoDetailScreenStateHolder(
                                         liveReturnMorph = liveReturnMorph,
                                         depthBlurProgress =
                                             videoCardDepthBackgroundState.progressProvider(),
+                                        isQuickReturn = isQuickReturningFromDetail,
                                     )
                                 }
                                 // .nestedScroll(nestedScrollConnection) // [Remove] 移除嵌套滚动，确保 Tabs 正常滑动
