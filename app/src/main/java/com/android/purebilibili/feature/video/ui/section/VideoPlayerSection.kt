@@ -692,32 +692,18 @@ fun VideoPlayerSection(
             )
         )
     }
-    // Player 的 playWhenReady/isPlaying 不是 Snapshot 状态：必须镜像进 Compose，封面揭开才能跟着变。
-    var observedPlayWhenReady by remember(playerState.player) {
-        mutableStateOf(playerState.player.playWhenReady)
-    }
-    var observedIsPlaying by remember(playerState.player) {
-        mutableStateOf(playerState.player.isPlaying)
-    }
-    var observedPlaybackState by remember(playerState.player) {
-        mutableIntStateOf(playerState.player.playbackState)
-    }
     DisposableEffect(playerState.player) {
-        fun syncPlayerObservation() {
-            val player = playerState.player
-            observedPlayWhenReady = player.playWhenReady
-            observedIsPlaying = player.isPlaying
-            observedPlaybackState = player.playbackState
+        fun updateKeepScreenAwake() {
             keepVideoPlaybackAwake = shouldKeepVideoPlaybackAwake(
-                playWhenReady = player.playWhenReady,
-                isPlaying = player.isPlaying,
-                playbackState = player.playbackState
+                playWhenReady = playerState.player.playWhenReady,
+                isPlaying = playerState.player.isPlaying,
+                playbackState = playerState.player.playbackState
             )
         }
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 isBuffering = playbackState == Player.STATE_BUFFERING
-                syncPlayerObservation()
+                updateKeepScreenAwake()
                 val now = android.os.SystemClock.elapsedRealtime()
                 if (playbackState == Player.STATE_BUFFERING) {
                     if (bufferingStartedAtMs == 0L) {
@@ -751,18 +737,18 @@ fun VideoPlayerSection(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                syncPlayerObservation()
+                updateKeepScreenAwake()
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                syncPlayerObservation()
+                updateKeepScreenAwake()
             }
         }
         playerState.player.addListener(listener)
         // 初始化状态
         isBuffering = playerState.player.playbackState == Player.STATE_BUFFERING
         observedPlaybackSpeed = playerState.player.playbackParameters.speed
-        syncPlayerObservation()
+        updateKeepScreenAwake()
         onDispose {
             playerState.player.removeListener(listener)
         }
@@ -2601,7 +2587,7 @@ fun VideoPlayerSection(
             playPlayerFromUserAction(playerState.player)
         }
         val keepCoverForManualStart = shouldKeepCoverForManualStart(
-            playWhenReady = observedPlayWhenReady,
+            playWhenReady = playerState.player.playWhenReady,
             currentPositionMs = playerState.player.currentPosition,
             autoPlayEnabled = autoPlayOnOpenEnabled,
             hasManualStartPlaybackIntent = hasManualStartPlaybackIntent
@@ -2794,33 +2780,13 @@ fun VideoPlayerSection(
         
         playerState.player.addListener(listener)
         
-        // 初始化检查：重进详情时常错过 onRenderedFirstFrame，用就绪态 / 持久首帧立刻抬升。
-        val player = playerState.player
-        if (
-            shouldPromoteFirstFrameByPlaybackFallback(
-                isFirstFrameRendered = isFirstFrameRendered,
-                forceCoverDuringReturnAnimation = forceCoverDuringReturnAnimation,
-                playbackState = player.playbackState,
-                playWhenReady = player.playWhenReady,
-                currentPositionMs = player.currentPosition,
-                videoWidth = player.videoSize.width,
-                videoHeight = player.videoSize.height,
-                isPlaying = player.isPlaying,
-                hasPersistedRenderedFirstFrame = persistedRenderedFirstFrame,
-            )
-        ) {
-            android.util.Log.d(
-                "VideoPlayerCover",
-                "⚠️ Initial check promoted first-frame: playing=${player.isPlaying}, " +
-                    "pos=${player.currentPosition}, state=${player.playbackState}, " +
-                    "persisted=$persistedRenderedFirstFrame"
-            )
-            isFirstFrameRendered = true
+        // 初始化检查：如果播放器已经开始播放且有进度，可能错过了事件
+        // [Debug] Log initial check
+        if (playerState.player.isPlaying && playerState.player.currentPosition > 0) {
+             android.util.Log.d("VideoPlayerCover", "⚠️ Initial check: Already playing at ${playerState.player.currentPosition}, hiding cover. (Might be previous video?)")
+             isFirstFrameRendered = true
         } else {
-            android.util.Log.d(
-                "VideoPlayerCover",
-                "✅ Initial check: waiting first frame (playing=${player.isPlaying}, pos=${player.currentPosition})"
-            )
+             android.util.Log.d("VideoPlayerCover", "✅ Initial check: Not playing or at start. Keeping cover.")
         }
 
         onDispose {
@@ -2852,15 +2818,7 @@ fun VideoPlayerSection(
     // [Fix] 使用 FormatUtils 统一处理 URL (支持无协议头 URL)
     val currentCoverUrl = FormatUtils.fixImageUrl(rawCoverUrl)
     
-    LaunchedEffect(
-        playerState.player,
-        bvid,
-        forceCoverDuringReturnAnimation,
-        observedPlayWhenReady,
-        observedIsPlaying,
-        observedPlaybackState,
-        persistedRenderedFirstFrame,
-    ) {
+    LaunchedEffect(playerState.player, bvid, forceCoverDuringReturnAnimation) {
         if (forceCoverDuringReturnAnimation || isFirstFrameRendered) return@LaunchedEffect
         while (isActive && !isFirstFrameRendered) {
             val player = playerState.player
@@ -2871,14 +2829,12 @@ fun VideoPlayerSection(
                     playWhenReady = player.playWhenReady,
                     currentPositionMs = player.currentPosition,
                     videoWidth = player.videoSize.width,
-                    videoHeight = player.videoSize.height,
-                    isPlaying = player.isPlaying,
-                    hasPersistedRenderedFirstFrame = persistedRenderedFirstFrame,
+                    videoHeight = player.videoSize.height
                 )
             ) {
                 android.util.Log.d(
                     "VideoPlayerCover",
-                    "🎬 Fallback promoted first-frame state by playback readiness"
+                    "🎬 Fallback promoted first-frame state by playback progress"
                 )
                 isFirstFrameRendered = true
                 break
@@ -2908,9 +2864,8 @@ fun VideoPlayerSection(
         }
         if (hasStartedSmoothReveal) return@LaunchedEffect
         delay(revealMotionSpec.coverRevealHoldDelayMillis.toLong())
-        // hold 后再读一次门闩，避免 delay 期间 force/manual 仍生效时误揭。
         if (
-            shouldForceRevealCoverAfterHold(
+            shouldCommitSmoothCoverReveal(
                 isFirstFrameRendered = isFirstFrameRendered,
                 forceCoverDuringReturnAnimation = forceCoverDuringReturnAnimation,
                 shouldKeepCoverForManualStart = keepCoverForManualStart,

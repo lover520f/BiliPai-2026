@@ -1026,23 +1026,13 @@ internal fun shouldCommitSmoothCoverReveal(
     shouldKeepCoverForManualStart = shouldKeepCoverForManualStart,
 )
 
-/**
- * 是否处于「CoverFirst 手动起播」垫封面。
- *
- * - **自动播放开启时永远 false**：进场封面只靠首帧 / smooth reveal，不得用 manual-start 逻辑
- *   把 PlayerView 藏掉；否则重进详情时 `playWhenReady` 尚未为 true 会永久卡住封面。
- * - 关闭自动播放且用户尚未点播：整段 CoverFirst。
- * - 用户已点播：仅在尚未真正起播（!playWhenReady 且进度仍在片头）时继续垫封面。
- */
 internal fun shouldKeepCoverForManualStart(
     playWhenReady: Boolean,
     currentPositionMs: Long,
     autoPlayEnabled: Boolean = true,
     hasManualStartPlaybackIntent: Boolean = false
 ): Boolean {
-    // 自动连播：禁止 manual-start 垫封面与 INVISIBLE surface，否则首帧事件永不来。
-    if (autoPlayEnabled) return false
-    if (!hasManualStartPlaybackIntent) return true
+    if (!autoPlayEnabled && !hasManualStartPlaybackIntent) return true
     if (playWhenReady) return false
     return currentPositionMs <= 0L
 }
@@ -1207,20 +1197,14 @@ internal fun shouldKeepInlinePlayerContentOnReset(
     return !isPortraitFullscreen && !forceCoverDuringReturnAnimation
 }
 
-/**
- * 是否展示内联 PlayerView。
- *
- * 注意：**不要**因 CoverFirst 垫封面而 INVISIBLE。封面叠层 + surface alpha=0 已能挡住画面；
- * 把 View 设为 INVISIBLE 会导致 Surface 不产出 [Player.EVENT_RENDERED_FIRST_FRAME]，
- * 揭开状态机永远等不到首帧（重进详情「整页一直封面」）。
- */
 internal fun shouldShowInlinePlayerView(
     isPortraitFullscreen: Boolean,
     forceCoverDuringReturnAnimation: Boolean,
     shouldKeepCoverForManualStart: Boolean = false
 ): Boolean {
-    // shouldKeepCoverForManualStart 仅影响封面叠层 / surface alpha，不再隐藏 PlayerView。
-    return !isPortraitFullscreen && !forceCoverDuringReturnAnimation
+    return !isPortraitFullscreen &&
+        !forceCoverDuringReturnAnimation &&
+        !shouldKeepCoverForManualStart
 }
 
 internal fun shouldEnableCoverImageCrossfade(
@@ -1310,35 +1294,16 @@ internal fun shouldPromoteFirstFrameByPlaybackFallback(
     playWhenReady: Boolean,
     currentPositionMs: Long,
     videoWidth: Int,
-    videoHeight: Int,
-    isPlaying: Boolean = false,
-    hasPersistedRenderedFirstFrame: Boolean = false,
+    videoHeight: Int
 ): Boolean {
     if (isFirstFrameRendered || forceCoverDuringReturnAnimation) return false
-    // 会话内已出过首帧（debugInfo / 复用 player）：重进时事件可能不再回调，直接提升。
-    if (hasPersistedRenderedFirstFrame) return true
     val hasVideoTrack = videoWidth > 0 && videoHeight > 0
-    if (!hasVideoTrack) return false
-    // 正在播或已 READY 且意图播放：不必再等 RENDERED_FIRST_FRAME。
-    if (isPlaying) return true
-    return playWhenReady &&
+    // READY + 有画面尺寸即可提升，避免重进时迟迟等不到 RENDERED_FIRST_FRAME 卡封面。
+    return hasVideoTrack &&
+        playWhenReady &&
         playbackState == Player.STATE_READY &&
         currentPositionMs >= 0L
 }
-
-/**
- * 首帧已具备且非强制/手动垫底时，hold 结束后必须提交揭开。
- * 与 [shouldCommitSmoothCoverReveal] 一致；单独导出便于「超时强制揭开」单测。
- */
-internal fun shouldForceRevealCoverAfterHold(
-    isFirstFrameRendered: Boolean,
-    forceCoverDuringReturnAnimation: Boolean,
-    shouldKeepCoverForManualStart: Boolean,
-): Boolean = shouldCommitSmoothCoverReveal(
-    isFirstFrameRendered = isFirstFrameRendered,
-    forceCoverDuringReturnAnimation = forceCoverDuringReturnAnimation,
-    shouldKeepCoverForManualStart = shouldKeepCoverForManualStart,
-)
 
 internal fun shouldAutoHidePlayerChromeOnPlaybackStart(
     showControls: Boolean,
