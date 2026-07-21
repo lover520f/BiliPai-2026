@@ -72,6 +72,37 @@ internal fun resolvePortraitQualityLabel(qualityId: Int): String {
     }
 }
 
+/**
+ * Qualities shown in the portrait quality menu.
+ * Prefer DASH track ids (switchable now); union accept_quality so higher tiers remain requestable.
+ */
+internal fun resolvePortraitAvailableQualityIds(
+    acceptQualities: List<Int>,
+    dashVideoIds: List<Int>
+): List<Int> {
+    return (dashVideoIds + acceptQualities)
+        .filter { it > 0 }
+        .distinct()
+        .sortedDescending()
+}
+
+internal fun resolvePortraitQualityMenuLabels(qualityIds: List<Int>): List<String> {
+    return qualityIds.map(::resolvePortraitQualityLabel)
+}
+
+/**
+ * After a quality switch or reload, pick the label to show from the actual track when possible.
+ */
+internal fun resolvePortraitDisplayedQualityId(
+    requestedQuality: Int,
+    returnedQuality: Int,
+    dashVideoIds: List<Int>
+): Int {
+    if (requestedQuality > 0 && requestedQuality in dashVideoIds) return requestedQuality
+    if (returnedQuality > 0) return returnedQuality
+    return dashVideoIds.maxOrNull() ?: requestedQuality.takeIf { it > 0 } ?: PORTRAIT_PLAYBACK_TARGET_QUALITY
+}
+
 internal fun shouldUsePortraitParallelPlaybackBootstrap(
     bvid: String,
     requestedCid: Long

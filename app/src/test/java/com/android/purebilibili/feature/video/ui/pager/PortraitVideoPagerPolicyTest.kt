@@ -7,6 +7,7 @@ import com.android.purebilibili.data.model.response.Stat
 import com.android.purebilibili.data.model.response.ViewInfo
 import androidx.media3.common.Player
 import androidx.media3.ui.AspectRatioFrameLayout
+import com.android.purebilibili.feature.video.ui.components.VideoAspectRatio
 import com.android.purebilibili.feature.video.viewmodel.VideoPlaybackUiState
 import java.io.File
 import kotlin.test.Test
@@ -176,6 +177,25 @@ class PortraitVideoPagerPolicyTest {
     @Test
     fun portraitPager_defaultViewportPolicy_doesNotForceFillContainer() {
         assertFalse(resolvePortraitPagerFillContainer())
+        assertFalse(
+            resolvePortraitPagerFillContainer(
+                aspectRatio = VideoAspectRatio.FIT,
+                isVerticalContent = true
+            )
+        )
+        assertTrue(
+            resolvePortraitPagerFillContainer(
+                aspectRatio = VideoAspectRatio.FILL,
+                isVerticalContent = true
+            )
+        )
+        // Stretch is coerced to Fit for vertical content, so do not fill-deform.
+        assertFalse(
+            resolvePortraitPagerFillContainer(
+                aspectRatio = VideoAspectRatio.STRETCH,
+                isVerticalContent = true
+            )
+        )
     }
 
     @Test
@@ -183,6 +203,20 @@ class PortraitVideoPagerPolicyTest {
         assertEquals(
             AspectRatioFrameLayout.RESIZE_MODE_FIT,
             resolvePortraitPagerResizeMode()
+        )
+        assertEquals(
+            AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+            resolvePortraitPagerResizeMode(
+                aspectRatio = VideoAspectRatio.FILL,
+                isVerticalContent = true
+            )
+        )
+        assertEquals(
+            AspectRatioFrameLayout.RESIZE_MODE_FIT,
+            resolvePortraitPagerResizeMode(
+                aspectRatio = VideoAspectRatio.STRETCH,
+                isVerticalContent = true
+            )
         )
     }
 

@@ -253,7 +253,11 @@ fun PortraitFullscreenOverlay(
                     PortraitProgressControlStrip(
                         timeLabel = progressTimeLabel,
                         currentSpeed = currentSpeed,
+                        currentQualityLabel = currentQualityLabel,
+                        currentRatioLabel = currentRatio.displayName,
                         onSpeedClick = onSpeedClick,
+                        onQualityClick = onQualityClick,
+                        onRatioClick = onRatioClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = progressLayoutPolicy.horizontalPaddingDp.dp)
@@ -395,7 +399,11 @@ private fun PortraitReadableTextScrims(
 private fun PortraitProgressControlStrip(
     timeLabel: String,
     currentSpeed: Float,
+    currentQualityLabel: String,
+    currentRatioLabel: String,
     onSpeedClick: () -> Unit,
+    onQualityClick: () -> Unit,
+    onRatioClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -409,23 +417,52 @@ private fun PortraitProgressControlStrip(
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.weight(1f))
-        Surface(
-            onClick = onSpeedClick,
-            shape = RoundedCornerShape(999.dp),
-            color = Color.White.copy(alpha = 0.14f),
-            contentColor = if (currentSpeed == 1.0f) {
-                Color.White
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
-        ) {
-            Text(
-                text = PlaybackSpeed.formatSpeed(currentSpeed),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            )
+        PortraitChromeChip(
+            label = currentQualityLabel,
+            highlighted = false,
+            onClick = onQualityClick
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        PortraitChromeChip(
+            label = currentRatioLabel,
+            highlighted = false,
+            onClick = onRatioClick
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        PortraitChromeChip(
+            label = PlaybackSpeed.formatSpeed(currentSpeed),
+            highlighted = currentSpeed != 1.0f,
+            onClick = onSpeedClick
+        )
+    }
+}
+
+@Composable
+private fun PortraitChromeChip(
+    label: String,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.14f),
+        contentColor = if (highlighted) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            Color.White
         }
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        )
     }
 }
 

@@ -152,6 +152,13 @@ internal fun resolveInlinePortraitPlayerCommentCollapseDurationMillis(
     return tabSwitchAnimationSpec.durationMs
 }
 
+/**
+ * Inline portrait detail player size.
+ *
+ * PiliPlus parity for phone: expanded ≈ max(longestSide * 0.65, shortestSide),
+ * so vertical videos get a tall preview without becoming full-screen cards.
+ * Wide foldable portrait windows stay capped so intro/comment remain reachable.
+ */
 internal fun resolvePortraitInlinePlayerLayoutSpec(
     screenWidthDp: Float,
     screenHeightDp: Float,
@@ -166,12 +173,14 @@ internal fun resolvePortraitInlinePlayerLayoutSpec(
         )
     }
 
+    val shortestSide = min(screenWidthDp, screenHeightDp)
+    val longestSide = max(screenWidthDp, screenHeightDp)
     val isWidePortraitWindow = screenWidthDp >= 600f && screenHeightDp > screenWidthDp
     val expandedHeight = if (isWidePortraitWindow) {
         // 折叠屏内屏竖屏窗口不能按手机竖屏体验撑满首屏，否则详情区入口会被播放器挤出。
         min(max(screenHeightDp * 0.52f, collapsedHeight), screenWidthDp)
     } else {
-        max(screenHeightDp * 0.65f, screenWidthDp)
+        max(longestSide * 0.65f, shortestSide)
     }
     return PortraitInlinePlayerLayoutSpec(
         widthDp = width,

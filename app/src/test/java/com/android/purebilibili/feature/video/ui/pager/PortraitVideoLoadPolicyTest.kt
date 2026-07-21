@@ -35,6 +35,37 @@ class PortraitVideoLoadPolicyTest {
     }
 
     @Test
+    fun availableQualityIds_unionsDashAndAcceptSortedDesc() {
+        assertEquals(
+            listOf(125, 120, 80, 64, 32),
+            resolvePortraitAvailableQualityIds(
+                acceptQualities = listOf(125, 120, 80, 64, 32),
+                dashVideoIds = listOf(80, 64)
+            )
+        )
+    }
+
+    @Test
+    fun displayedQualityId_prefersExactRequestedDashTrack() {
+        assertEquals(
+            80,
+            resolvePortraitDisplayedQualityId(
+                requestedQuality = 80,
+                returnedQuality = 64,
+                dashVideoIds = listOf(80, 64)
+            )
+        )
+        assertEquals(
+            64,
+            resolvePortraitDisplayedQualityId(
+                requestedQuality = 125,
+                returnedQuality = 64,
+                dashVideoIds = listOf(64, 32)
+            )
+        )
+    }
+
+    @Test
     fun parallelBootstrap_enablesWhenFeedProvidesCid() {
         assertTrue(
             shouldUsePortraitParallelPlaybackBootstrap(
