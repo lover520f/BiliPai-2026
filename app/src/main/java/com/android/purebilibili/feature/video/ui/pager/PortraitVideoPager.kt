@@ -1383,6 +1383,37 @@ fun PortraitVideoPager(
                             pagerState.animateScrollToPage(targetIndex)
                         }
                     }
+                },
+                onRequestCollectionItem = { targetBvid, targetCid ->
+                    val targetIndex = resolvePortraitCollectionPageIndex(
+                        pageItems = pageItems,
+                        targetBvid = targetBvid,
+                        targetCid = targetCid
+                    )
+                    if (targetIndex >= 0) {
+                        scope.launch {
+                            pagerState.animateScrollToPage(targetIndex)
+                        }
+                        return@VideoPageItem
+                    }
+                    // Not yet in the pager list: insert as a dedicated page after current, then jump.
+                    val insertAt = (pagerState.currentPage + 1).coerceIn(0, pageItems.size)
+                    val item = RelatedVideo(
+                        bvid = targetBvid.trim(),
+                        cid = targetCid.coerceAtLeast(0L),
+                        title = targetBvid
+                    )
+                    val key = portraitCollectionIdentityKey(item.bvid, item.cid)
+                    val exists = pageItems.any { candidate ->
+                        val identity = resolvePortraitPagePlaybackIdentity(candidate) ?: return@any false
+                        portraitCollectionIdentityKey(identity.bvid, identity.cid) == key
+                    }
+                    if (!exists && item.bvid.isNotBlank()) {
+                        pageItems.add(insertAt, item)
+                        scope.launch {
+                            pagerState.animateScrollToPage(insertAt)
+                        }
+                    }
                 }
             )
         }
@@ -1445,7 +1476,8 @@ private fun VideoPageItem(
     onCommentOverlayActiveChange: (Boolean) -> Unit = {},
     portraitOverlayVisible: Boolean,
     onPortraitOverlayVisibleChange: (Boolean) -> Unit,
-    onRequestVideoChange: (String) -> Unit
+    onRequestVideoChange: (String) -> Unit,
+    onRequestCollectionItem: (bvid: String, cid: Long) -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -2814,12 +2846,18 @@ private fun VideoPageItem(
                 detailSheetUpOnlyMode = false
             },
             info = portraitDetailInfo,
+            currentCid = currentPlayingCid.takeIf { isCurrentPage } ?: portraitDetailInfo?.cid ?: 0L,
             recommendationTitle = detailSheetTitle,
             recommendations = detailSheetVideos,
             onRecommendationClick = { targetBvid ->
                 showDetailSheet = false
                 detailSheetUpOnlyMode = false
                 onRequestVideoChange(targetBvid)
+            },
+            onCollectionItemClick = { targetBvid, targetCid ->
+                showDetailSheet = false
+                detailSheetUpOnlyMode = false
+                onRequestCollectionItem(targetBvid, targetCid)
             },
             onAuthorClick = { mid ->
                 showDetailSheet = false

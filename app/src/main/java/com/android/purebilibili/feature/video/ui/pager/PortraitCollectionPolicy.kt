@@ -159,6 +159,30 @@ internal fun portraitCollectionIdentityKey(bvid: String, cid: Long): String {
     return if (cid > 0L) "$normalized#$cid" else normalized
 }
 
+/**
+ * Find a pager index for a multi-P / season selection from the detail sheet.
+ * Prefer exact bvid+cid; fall back to bvid-only when cid is unknown.
+ */
+internal fun resolvePortraitCollectionPageIndex(
+    pageItems: List<Any>,
+    targetBvid: String,
+    targetCid: Long
+): Int {
+    val normalizedBvid = targetBvid.trim()
+    if (normalizedBvid.isEmpty()) return -1
+    if (targetCid > 0L) {
+        val exact = pageItems.indexOfFirst { candidate ->
+            val identity = resolvePortraitPagePlaybackIdentity(candidate) ?: return@indexOfFirst false
+            identity.bvid == normalizedBvid && identity.cid == targetCid
+        }
+        if (exact >= 0) return exact
+    }
+    return pageItems.indexOfFirst { candidate ->
+        val identity = resolvePortraitPagePlaybackIdentity(candidate) ?: return@indexOfFirst false
+        identity.bvid == normalizedBvid
+    }
+}
+
 private fun toRelatedVideoFromUgcEpisode(
     episode: UgcEpisode,
     fallbackOwner: Owner,

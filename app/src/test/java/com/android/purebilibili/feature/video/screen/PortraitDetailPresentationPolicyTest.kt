@@ -25,12 +25,56 @@ class PortraitDetailPresentationPolicyTest {
     }
 
     @Test
+    fun officialInlinePortraitMode_disabledForDirectPortraitEntry() {
+        assertFalse(
+            shouldUseOfficialInlinePortraitDetailExperience(
+                useTabletLayout = false,
+                isVerticalVideo = true,
+                portraitExperienceEnabled = true,
+                directPortraitEntry = true
+            )
+        )
+    }
+
+    @Test
     fun officialInlinePortraitMode_disabledForTabletLayout() {
         assertFalse(
             shouldUseOfficialInlinePortraitDetailExperience(
                 useTabletLayout = true,
                 isVerticalVideo = true,
                 portraitExperienceEnabled = true
+            )
+        )
+    }
+
+    @Test
+    fun standalonePortraitPager_skipsEnterAnimationOnDirectPortraitMorph() {
+        assertFalse(
+            shouldAnimateStandalonePortraitPager(
+                useSharedPlayer = true,
+                directPortraitEntry = true
+            )
+        )
+        assertTrue(
+            shouldAnimateStandalonePortraitPager(
+                useSharedPlayer = true,
+                directPortraitEntry = false
+            )
+        )
+    }
+
+    @Test
+    fun directPortraitEntry_suppressesPhoneDetailBodyWhileFullscreen() {
+        assertTrue(
+            shouldSuppressPhoneDetailBodyForDirectPortraitEntry(
+                directPortraitEntry = true,
+                isPortraitFullscreen = true
+            )
+        )
+        assertFalse(
+            shouldSuppressPhoneDetailBodyForDirectPortraitEntry(
+                directPortraitEntry = true,
+                isPortraitFullscreen = false
             )
         )
     }

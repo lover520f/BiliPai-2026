@@ -25,8 +25,11 @@ internal enum class PortraitFullscreenButtonAction {
 internal fun shouldUseOfficialInlinePortraitDetailExperience(
     useTabletLayout: Boolean,
     isVerticalVideo: Boolean,
-    portraitExperienceEnabled: Boolean
+    portraitExperienceEnabled: Boolean,
+    directPortraitEntry: Boolean = false
 ): Boolean {
+    // 「竖屏直达」走 card→全屏 morph，不能先落官方内联详情再二次跳进 pager。
+    if (directPortraitEntry) return false
     return portraitExperienceEnabled && !useTabletLayout && isVerticalVideo
 }
 
@@ -77,8 +80,30 @@ internal fun shouldEnableInlinePortraitScrollTransform(
     }
 }
 
-internal fun shouldAnimateStandalonePortraitPager(useSharedPlayer: Boolean): Boolean {
-    return true
+/**
+ * Whether the standalone portrait pager should play enter/exit chrome animation.
+ *
+ * Direct-entry morph already animates the card shell to full-bleed; a second
+ * fadeIn on the pager reads as “先详情再跳转竖全屏”.
+ */
+internal fun shouldAnimateStandalonePortraitPager(
+    useSharedPlayer: Boolean,
+    directPortraitEntry: Boolean = false
+): Boolean {
+    @Suppress("UNUSED_PARAMETER")
+    val ignored = useSharedPlayer
+    return !directPortraitEntry
+}
+
+/**
+ * When true, keep the phone detail body fully suppressed from the first frame of a
+ * direct-portrait morph so only the full-bleed shell + entry cover are visible.
+ */
+internal fun shouldSuppressPhoneDetailBodyForDirectPortraitEntry(
+    directPortraitEntry: Boolean,
+    isPortraitFullscreen: Boolean
+): Boolean {
+    return directPortraitEntry && isPortraitFullscreen
 }
 
 internal fun resolvePortraitFullscreenButtonAction(

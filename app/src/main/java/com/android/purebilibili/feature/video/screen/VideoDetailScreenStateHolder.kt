@@ -1336,17 +1336,21 @@ internal fun VideoDetailScreenStateHolder(
     val portraitPagerMotionSpec = remember {
         resolveStandalonePortraitPagerMotionSpec()
     }
-    val shouldAnimatePortraitPager = remember(useSharedPortraitPlayer) {
-        shouldAnimateStandalonePortraitPager(useSharedPlayer = useSharedPortraitPlayer)
+    val shouldAnimatePortraitPager = remember(useSharedPortraitPlayer, directPortraitEntryFromRoute) {
+        shouldAnimateStandalonePortraitPager(
+            useSharedPlayer = useSharedPortraitPlayer,
+            directPortraitEntry = directPortraitEntryFromRoute
+        )
+    }
+    val inlineReturnAnimMs = if (shouldAnimatePortraitPager) {
+        portraitPagerMotionSpec.inlineReturnDurationMillis
+    } else {
+        0
     }
     val inlinePlayerAlpha = animateFloatAsState(
         targetValue = if (isPortraitFullscreen) 0f else 1f,
         animationSpec = tween(
-            durationMillis = if (shouldAnimatePortraitPager) {
-                portraitPagerMotionSpec.inlineReturnDurationMillis
-            } else {
-                0
-            },
+            durationMillis = inlineReturnAnimMs,
             easing = FastOutSlowInEasing
         ),
         label = "inline-player-alpha"
@@ -1358,11 +1362,7 @@ internal fun VideoDetailScreenStateHolder(
             1f
         },
         animationSpec = tween(
-            durationMillis = if (shouldAnimatePortraitPager) {
-                portraitPagerMotionSpec.inlineReturnDurationMillis
-            } else {
-                0
-            },
+            durationMillis = inlineReturnAnimMs,
             easing = FastOutSlowInEasing
         ),
         label = "inline-player-return-scale"
@@ -1787,10 +1787,17 @@ internal fun VideoDetailScreenStateHolder(
     val useOfficialInlinePortraitDetailExperience = shouldUseOfficialInlinePortraitDetailExperience(
         useTabletLayout = useTabletLayout,
         isVerticalVideo = isVerticalVideo,
-        portraitExperienceEnabled = portraitExperienceEnabled
+        portraitExperienceEnabled = portraitExperienceEnabled,
+        directPortraitEntry = directPortraitEntryFromRoute
     )
     val allowStandalonePortraitExperience = portraitExperienceEnabled &&
         !useOfficialInlinePortraitDetailExperience
+    // Direct morph: hide phone intro/comment body under the full-bleed shell so only
+    // card→fullscreen motion + entry cover / portrait pager are visible.
+    val suppressPhoneDetailBodyForDirectPortrait = shouldSuppressPhoneDetailBodyForDirectPortraitEntry(
+        directPortraitEntry = directPortraitEntryFromRoute,
+        isPortraitFullscreen = isPortraitFullscreen
+    )
     val isCurrentRouteVideoLoaded = remember(uiState, currentBvid) {
         val success = uiState as? VideoPlaybackUiState.Success
         success?.info?.bvid == currentBvid
@@ -2643,10 +2650,10 @@ internal fun VideoDetailScreenStateHolder(
                             compactForCommentTabProgress = commentTabCollapseProgress,
                             restoreRequested = inlinePlayerCollapseState.restoreRequested
                         )
-                        val expandedViewportHeight = if (useOfficialInlinePortraitDetailExperience) {
-                            expandedPortraitInlineSpec.heightDp.dp
-                        } else {
-                            videoHeight
+                        val expandedViewportHeight = when {
+                            suppressPhoneDetailBodyForDirectPortrait -> screenHeightDp
+                            useOfficialInlinePortraitDetailExperience -> expandedPortraitInlineSpec.heightDp.dp
+                            else -> videoHeight
                         }
                         val collapsedViewportHeight = if (useOfficialInlinePortraitDetailExperience) {
                             collapsedPortraitInlineSpec.heightDp.dp
@@ -2901,7 +2908,13 @@ internal fun VideoDetailScreenStateHolder(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background)
+                                .background(
+                                    if (suppressPhoneDetailBodyForDirectPortrait) {
+                                        Color.Black
+                                    } else {
+                                        MaterialTheme.colorScheme.background
+                                    }
+                                )
                                 .graphicsLayer {
                                     alpha = resolveVideoDetailReturnContentAlpha(
                                         transitionProgress = detailTransitionProgress.value,
@@ -2915,8 +2928,12 @@ internal fun VideoDetailScreenStateHolder(
                                 }
                                 // .nestedScroll(nestedScrollConnection) // [Remove] 移除嵌套滚动，确保 Tabs 正常滑动
                         ) {
-                            when (uiState) {
-                                is VideoPlaybackUiState.Loading -> {
+                            // 「竖屏直达」morph 期间不绘制详情 body，避免先露出简介/评论再跳竖全屏。
+                            // 错误态仍展示，避免黑屏无法重试。
+                            when {
+                                suppressPhoneDetailBodyForDirectPortrait &&
+                                    uiState !is VideoPlaybackUiState.Error -> Unit
+                                uiState is VideoPlaybackUiState.Loading -> {
                                     val loadingState = uiState as VideoPlaybackUiState.Loading
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         //  显示重试进度
@@ -2942,7 +2959,7 @@ internal fun VideoDetailScreenStateHolder(
                                     }
                                 }
 
-                                is VideoPlaybackUiState.Success -> {
+                                uiState is VideoPlaybackUiState.Success -> {
                                     val success = uiState as VideoPlaybackUiState.Success
                                     VideoDetailPhoneSuccessContentLayer(
                                         success = success,
@@ -3006,9 +3023,9 @@ internal fun VideoDetailScreenStateHolder(
                                             showExternalPlaylistQueueSheet = true
                                         }
                                     )
-                            } // End of Success block
+                                } // End of Success block
 
-                                is VideoPlaybackUiState.Error -> {
+                                uiState is VideoPlaybackUiState.Error -> {
                                     val errorState = uiState as VideoPlaybackUiState.Error
                                     Box(
                                         modifier = Modifier.fillMaxSize(),

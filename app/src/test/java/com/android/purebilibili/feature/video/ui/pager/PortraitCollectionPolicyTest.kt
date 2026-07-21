@@ -151,4 +151,29 @@ class PortraitCollectionPolicyTest {
             )
         )
     }
+
+    @Test
+    fun collectionPageIndex_prefersExactCidThenBvid() {
+        val pages = listOf(
+            RelatedVideo(bvid = "BV1", cid = 1L),
+            RelatedVideo(bvid = "BV1", cid = 2L),
+            RelatedVideo(bvid = "BV2", cid = 9L)
+        )
+        assertEquals(
+            1,
+            resolvePortraitCollectionPageIndex(
+                pageItems = pages,
+                targetBvid = "BV1",
+                targetCid = 2L
+            )
+        )
+        assertEquals(
+            0,
+            resolvePortraitCollectionPageIndex(
+                pageItems = pages,
+                targetBvid = "BV1",
+                targetCid = 0L
+            )
+        )
+    }
 }

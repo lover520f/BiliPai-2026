@@ -95,6 +95,25 @@ internal fun VideoDetailPortraitOverlayAdapter(
             )
         }
     }
+    // Enter: optional fade (disabled for direct-portrait morph so card shell is the only motion).
+    // Exit: always soft scale/slide so manual leave still feels polished.
+    val portraitExitTransition = remember(motionSpec) {
+        val exitSpec = tween<Float>(
+            durationMillis = motionSpec.exitDurationMillis,
+            easing = AppMotionEasing.EmphasizedExit,
+        )
+        fadeOut(exitSpec) + scaleOut(
+            targetScale = motionSpec.exitScaleTarget,
+            animationSpec = exitSpec,
+            transformOrigin = TransformOrigin(0.5f, 0f),
+        ) + slideOutVertically(
+            animationSpec = tween(
+                durationMillis = motionSpec.exitDurationMillis,
+                easing = AppMotionEasing.EmphasizedExit,
+            ),
+            targetOffsetY = { -(it * motionSpec.exitTranslateUpFraction).roundToInt() },
+        )
+    }
     AnimatedVisibility(
         visible = showPortraitFullscreen && success != null,
         enter = if (shouldAnimatePortraitPager) {
@@ -102,25 +121,7 @@ internal fun VideoDetailPortraitOverlayAdapter(
         } else {
             EnterTransition.None
         },
-        exit = if (shouldAnimatePortraitPager) {
-            val exitSpec = tween<Float>(
-                durationMillis = motionSpec.exitDurationMillis,
-                easing = AppMotionEasing.EmphasizedExit,
-            )
-            fadeOut(exitSpec) + scaleOut(
-                targetScale = motionSpec.exitScaleTarget,
-                animationSpec = exitSpec,
-                transformOrigin = TransformOrigin(0.5f, 0f),
-            ) + slideOutVertically(
-                animationSpec = tween(
-                    durationMillis = motionSpec.exitDurationMillis,
-                    easing = AppMotionEasing.EmphasizedExit,
-                ),
-                targetOffsetY = { -(it * motionSpec.exitTranslateUpFraction).roundToInt() },
-            )
-        } else {
-            ExitTransition.None
-        },
+        exit = portraitExitTransition,
         modifier = Modifier.fillMaxSize(),
     ) {
         success?.let { playableState ->

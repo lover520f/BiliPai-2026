@@ -38,6 +38,8 @@ import com.android.purebilibili.feature.video.ui.section.resolvePublishTimeRowTe
 import com.android.purebilibili.feature.video.ui.section.shouldEmphasizePrecisePublishTime
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 
 /**
  * 竖屏视频详情页 (简介)
@@ -48,9 +50,12 @@ fun PortraitDetailSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     info: ViewInfo?,
+    currentCid: Long = 0L,
     recommendationTitle: String = "推荐视频",
     recommendations: List<RelatedVideo> = emptyList(),
     onRecommendationClick: (String) -> Unit = {},
+    /** Select multi-P by cid (same bvid) or season episode by bvid+cid. */
+    onCollectionItemClick: (bvid: String, cid: Long) -> Unit = { _, _ -> },
     onAuthorClick: (Long) -> Unit = {},
     danmakuEnabled: Boolean = true,
     onDanmakuToggle: () -> Unit = {}
@@ -303,6 +308,59 @@ fun PortraitDetailSheet(
                                 modifier = Modifier.padding(bottom = 16.dp)
                             )
 
+                            val activeCid = currentCid.takeIf { it > 0L } ?: info.cid
+                            val multiPages = info.pages.filter { it.cid > 0L }
+                            if (multiPages.size > 1) {
+                                PortraitCollectionSection(
+                                    title = "分P（${multiPages.size}）",
+                                    items = multiPages.map { page ->
+                                        PortraitCollectionChip(
+                                            key = "p-${page.cid}",
+                                            label = page.part.ifBlank { "P${page.page.coerceAtLeast(1)}" },
+                                            selected = page.cid == activeCid,
+                                            onClick = {
+                                                onCollectionItemClick(info.bvid, page.cid)
+                                                onDismiss()
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+
+                            val season = info.ugc_season
+                            val seasonEpisodes = season?.sections
+                                ?.flatMap { it.episodes }
+                                ?.filter { ep -> ep.cid > 0L || ep.bvid.isNotBlank() }
+                                .orEmpty()
+                            if (season != null && seasonEpisodes.size > 1) {
+                                PortraitCollectionSection(
+                                    title = "合集 · ${season.title.ifBlank { "选集" }}（${seasonEpisodes.size}）",
+                                    items = seasonEpisodes.mapIndexed { index, episode ->
+                                        val epBvid = episode.bvid.trim().ifBlank {
+                                            if (episode.aid > 0L) "av${episode.aid}" else info.bvid
+                                        }
+                                        val epCid = episode.cid
+                                        val selected = when {
+                                            epCid > 0L && activeCid > 0L -> epCid == activeCid
+                                            epBvid.isNotEmpty() -> epBvid == info.bvid.trim()
+                                            else -> false
+                                        }
+                                        PortraitCollectionChip(
+                                            key = "ep-${episode.id.coerceAtLeast(0L)}-$epCid-$epBvid",
+                                            label = episode.title.ifBlank {
+                                                episode.arc?.title?.takeIf { it.isNotBlank() }
+                                                    ?: "第${index + 1}集"
+                                            },
+                                            selected = selected,
+                                            onClick = {
+                                                onCollectionItemClick(epBvid, epCid)
+                                                onDismiss()
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+
                             if (recommendations.isNotEmpty()) {
                                 Text(
                                     text = recommendationTitle,
@@ -356,6 +414,70 @@ fun PortraitDetailSheet(
                             // Currently ViewInfo usually has minimal info, might need separate tags fetch or check ViewInfo structure.
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+private data class PortraitCollectionChip(
+    val key: String,
+    val label: String,
+    val selected: Boolean,
+    val onClick: () -> Unit
+)
+
+@Composable
+private fun PortraitCollectionSection(
+    title: String,
+    items: List<PortraitCollectionChip>
+) {
+    if (items.isEmpty()) return
+    Text(
+        text = title,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(bottom = 10.dp)
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items.forEach { item ->
+            key(item.key) {
+                Surface(
+                    onClick = item.onClick,
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (item.selected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    },
+                    border = if (item.selected) {
+                        BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                        )
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = item.label,
+                        fontSize = 13.sp,
+                        fontWeight = if (item.selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (item.selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        maxLines = 2,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
                 }
             }
         }
