@@ -116,9 +116,10 @@ class VideoCardTransitionBackgroundPolicyTest {
 
         assertEquals(20f, frame.blurRadiusPx)
         assertEquals(0f, frame.blurRadiusPx % 1f)
-        assertEquals(0.22f, frame.scrimAlpha)
+        assertEquals(0.28f, frame.scrimAlpha)
         assertFalse(frame.useLightScrimTint)
-        assertEquals(0.978f, frame.contentScale, 0.0001f)
+        // 1 - 0.055 = 0.945
+        assertEquals(0.945f, frame.contentScale, 0.0001f)
     }
 
     @Test
@@ -169,7 +170,7 @@ class VideoCardTransitionBackgroundPolicyTest {
         )
 
         assertEquals(20f, frame.blurRadiusPx)
-        assertEquals(0.11f, frame.scrimAlpha)
+        assertEquals(0.14f, frame.scrimAlpha)
         assertTrue(frame.useLightScrimTint)
     }
 
@@ -184,7 +185,7 @@ class VideoCardTransitionBackgroundPolicyTest {
         )
 
         assertEquals(0f, frame.blurRadiusPx)
-        assertEquals(0.07f, frame.scrimAlpha)
+        assertEquals(0.08f, frame.scrimAlpha)
         assertTrue(frame.useLightScrimTint)
     }
 
@@ -289,9 +290,9 @@ class VideoCardTransitionBackgroundPolicyTest {
         assertTrue(start.scrimAlpha > middle.scrimAlpha)
         assertTrue(middle.scrimAlpha > 0f)
         assertEquals(0f, end.scrimAlpha)
-        assertEquals(0.978f, start.contentScale, 0.0001f)
-        // 线性：p=0.5 → scale = 1 - 0.022*0.5 = 0.989
-        assertEquals(0.989f, middle.contentScale, 0.0001f)
+        assertEquals(0.945f, start.contentScale, 0.0001f)
+        // 线性：p=0.5 → scale = 1 - 0.055*0.5 = 0.9725
+        assertEquals(0.9725f, middle.contentScale, 0.0001f)
         assertEquals(1f, end.contentScale)
     }
 
@@ -318,8 +319,8 @@ class VideoCardTransitionBackgroundPolicyTest {
 
         assertEquals(20f, frame.blurRadiusPx)
         // HELD 保留与满进度开场一致的压暗，避免详情停留时景深断裂。
-        assertEquals(0.22f, frame.scrimAlpha)
-        assertEquals(0.978f, frame.contentScale, 0.0001f)
+        assertEquals(0.28f, frame.scrimAlpha)
+        assertEquals(0.945f, frame.contentScale, 0.0001f)
     }
 
     @Test
@@ -337,8 +338,8 @@ class VideoCardTransitionBackgroundPolicyTest {
             isGestureRestoreInProgress = true,
         )
 
-        assertEquals(0.978f, openingScale, 0.0001f)
-        assertEquals(0.989f, restoreScale, 0.002f)
+        assertEquals(0.945f, openingScale, 0.0001f)
+        assertEquals(0.9725f, restoreScale, 0.002f)
     }
 
     @Test
@@ -383,8 +384,8 @@ class VideoCardTransitionBackgroundPolicyTest {
 
         assertTrue(frame.blurRadiusPx > 0f)
         assertTrue(frame.scrimAlpha > 0f)
-        // 线性：p=0.25 → scale = 1 - 0.022*0.25 = 0.9945
-        assertEquals(0.9945f, frame.contentScale, 0.0001f)
+        // 线性：p=0.25 → scale = 1 - 0.055*0.25 = 0.98625
+        assertEquals(0.98625f, frame.contentScale, 0.0001f)
     }
 
     @Test
@@ -701,9 +702,9 @@ class VideoCardTransitionBackgroundPolicyTest {
             isLightBackground = false,
         )
 
-        assertEquals(0.11f, heldFull.scrimAlpha)
+        assertEquals(0.14f, heldFull.scrimAlpha)
         assertTrue(heldHalf.scrimAlpha < heldFull.scrimAlpha)
-        assertEquals(0.22f, openingFull.scrimAlpha)
+        assertEquals(0.28f, openingFull.scrimAlpha)
         assertTrue(heldFull.useLightScrimTint)
         assertFalse(openingFull.useLightScrimTint)
     }
@@ -728,7 +729,7 @@ class VideoCardTransitionBackgroundPolicyTest {
     fun scaleGapFillKeepsOpaqueGrayFloorSoPredictiveBackEdgesDoNotReadAsWhiteBars() {
         val lightHeld = resolveVideoCardTransitionScaleGapFillColor(
             isLightBackground = true,
-            scrimAlpha = 0.11f,
+            scrimAlpha = 0.14f,
         )
         val lightMidGesture = resolveVideoCardTransitionScaleGapFillColor(
             isLightBackground = true,
@@ -736,7 +737,7 @@ class VideoCardTransitionBackgroundPolicyTest {
         )
         val darkHeld = resolveVideoCardTransitionScaleGapFillColor(
             isLightBackground = false,
-            scrimAlpha = 0.22f,
+            scrimAlpha = 0.28f,
         )
 
         assertEquals(1f, lightHeld.alpha)

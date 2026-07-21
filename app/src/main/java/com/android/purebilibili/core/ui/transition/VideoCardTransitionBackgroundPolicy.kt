@@ -20,22 +20,24 @@ import com.android.purebilibili.navigation.isVideoCardReturnTargetRoute
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-// 景深标定（Hero 氛围，非完整 App 开合）：
-// - 背景下沉约 2.2%，跟放大可读、又不抢 Hero；过大返回时像列表回弹
-// - 峰值 blur 固定 20px（不按机型降级）；仅系统减弱动画/API<31 走 scrim-only
-// - 冻结层：首帧 record 一次后只改 BlurEffect/scale，禁止 live 重录（稳帧，不伤观感）
+// 景深三层（与 Hero 卡片放大配合，progress 0→1 同源）：
+// 1) scale 下沉：列表「退后」；过小无感，过大返回像回弹 → 标定 ~5.5%
+// 2) blur：空间纵深（冻结层 + BlurEffect 20px）
+// 3) scrim 压暗：聚焦/可读；纯 blur 偏发灰发飘，压暗把注意力钉在飞卡上
+// - 冻结层：首帧 record 一次后只改 BlurEffect/scale，禁止 live 重录
 // - 压暗全程保留（含 HELD），避免打开完成后景深断裂
-// - 返回：景深 progress 与 shared morph 同墙钟、同 Linear，禁止 SoftClear 拖糊
+// - 返回：景深 progress 与 shared morph 同墙钟、同 Linear
 private const val VIDEO_CARD_TRANSITION_MAX_BLUR_RADIUS_PX = 20f
 private const val VIDEO_CARD_TRANSITION_BLUR_QUANTUM_PX = 1f
-private const val VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA_DARK = 0.22f
-private const val VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA_LIGHT = 0.11f
-private const val VIDEO_CARD_TRANSITION_LIGHT_REDUCED_OPENING_SCRIM_ALPHA = 0.07f
-// 返回落位时首页略缩再回 1.0 的幅度；过大 + 非线性消糊会像封面/列表「回弹」。
-private const val VIDEO_CARD_TRANSITION_MAX_CONTENT_SCALE_REDUCTION = 0.022f
+// 压暗：配合更大下沉仍要可读，略强于旧 0.22/0.11，但低于半透明模态（避免脏）。
+private const val VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA_DARK = 0.28f
+private const val VIDEO_CARD_TRANSITION_MAX_SCRIM_ALPHA_LIGHT = 0.14f
+private const val VIDEO_CARD_TRANSITION_LIGHT_REDUCED_OPENING_SCRIM_ALPHA = 0.08f
+// 列表下沉：0.022 几乎看不出；0.055 与卡片放大对仗清晰，返回 Linear 清回仍不「弹」。
+private const val VIDEO_CARD_TRANSITION_MAX_CONTENT_SCALE_REDUCTION = 0.055f
 /** 景深缩放露出的边缘：至少压到这个 tint 强度，避免浅色主题读成「白条」。 */
-private const val VIDEO_CARD_TRANSITION_SCALE_GAP_MIN_TINT_LIGHT = 0.34f
-private const val VIDEO_CARD_TRANSITION_SCALE_GAP_MIN_TINT_DARK = 0.42f
+private const val VIDEO_CARD_TRANSITION_SCALE_GAP_MIN_TINT_LIGHT = 0.36f
+private const val VIDEO_CARD_TRANSITION_SCALE_GAP_MIN_TINT_DARK = 0.44f
 private val VIDEO_CARD_TRANSITION_LIGHT_SCRIM_TINT = Color(0xFF8E8E93)
 private val VIDEO_CARD_TRANSITION_DARK_GAP_BASE = Color(0xFF121212)
 
