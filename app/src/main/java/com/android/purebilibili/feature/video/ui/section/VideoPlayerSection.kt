@@ -32,8 +32,12 @@ import com.android.purebilibili.feature.video.ui.components.resolveSafeVideoAspe
 import com.android.purebilibili.feature.video.ui.components.resolveVideoViewportLayout
 import com.android.purebilibili.feature.video.ui.components.toFullscreenAspectRatio
 import com.android.purebilibili.feature.video.ui.components.toVideoAspectRatio
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayHost
 import com.android.purebilibili.feature.video.ui.gesture.LockedTwoFingerSpeedAxis
 import com.android.purebilibili.feature.video.ui.gesture.TwoFingerSpeedGestureMode
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelKind
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelOverlayStyle
 import com.android.purebilibili.feature.video.ui.gesture.resolveLockedTwoFingerSpeedAxis
 import com.android.purebilibili.feature.video.ui.gesture.resolveTwoFingerGesturePlaybackSpeed
 import com.android.purebilibili.feature.video.ui.gesture.resolveTwoFingerSpeedGestureMode
@@ -872,8 +876,8 @@ fun VideoPlayerSection(
     val gestureMotionSpec = remember { resolveVideoGestureMotionSpec() }
     val uiPreset = LocalUiPreset.current
     val androidNativeVariant = LocalAndroidNativeVariant.current
-    val gestureLevelIconStyle = remember(uiPreset, androidNativeVariant) {
-        resolveGestureLevelIconStyle(
+    val gestureLevelOverlayStyle = remember(uiPreset, androidNativeVariant) {
+        resolveGestureLevelOverlayStyle(
             uiPreset = uiPreset,
             androidNativeVariant = androidNativeVariant
         )
@@ -1661,9 +1665,10 @@ fun VideoPlayerSection(
                                     when (gestureMode) {
                                         VideoGestureMode.Brightness -> {
                                             gesturePercent = startBrightness.coerceIn(0f, 1f)
-                                            gestureIcon = resolveBrightnessGestureIcon(
-                                                percent = gesturePercent,
-                                                iconStyle = gestureLevelIconStyle
+                                            gestureIcon = resolveGestureLevelIcon(
+                                                style = gestureLevelOverlayStyle,
+                                                kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Brightness,
+                                                percent = gesturePercent
                                             )
                                         }
                                         VideoGestureMode.Volume -> {
@@ -1673,9 +1678,10 @@ fun VideoPlayerSection(
                                             } else {
                                                 0f
                                             }
-                                            gestureIcon = resolveVolumeGestureIcon(
-                                                percent = gesturePercent,
-                                                iconStyle = gestureLevelIconStyle
+                                            gestureIcon = resolveGestureLevelIcon(
+                                                style = gestureLevelOverlayStyle,
+                                                kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Volume,
+                                                percent = gesturePercent
                                             )
                                         }
                                         else -> Unit
@@ -1756,9 +1762,10 @@ fun VideoPlayerSection(
                                         }
                                         gesturePercent = newBrightness
                                     }
-                                    gestureIcon = resolveBrightnessGestureIcon(
-                                        percent = gesturePercent,
-                                        iconStyle = gestureLevelIconStyle
+                                    gestureIcon = resolveGestureLevelIcon(
+                                        style = gestureLevelOverlayStyle,
+                                        kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Brightness,
+                                        percent = gesturePercent
                                     )
                                 }
                                 VideoGestureMode.Volume -> {
@@ -1780,9 +1787,10 @@ fun VideoPlayerSection(
                                     } else {
                                         0f
                                     }
-                                    gestureIcon = resolveVolumeGestureIcon(
-                                        percent = gesturePercent,
-                                        iconStyle = gestureLevelIconStyle
+                                    gestureIcon = resolveGestureLevelIcon(
+                                        style = gestureLevelOverlayStyle,
+                                        kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Volume,
+                                        percent = gesturePercent
                                     )
                                 }
                                 else -> {}
@@ -3619,185 +3627,12 @@ fun VideoPlayerSection(
             }
         }
 
-        AnimatedVisibility(
+        // Theme-native volume / brightness feedback (MD3 / iOS / MIUIX).
+        GestureLevelOverlayHost(
             visible = shouldShowLevelIndicator,
-            modifier = Modifier
-                .align(Alignment.Center)
-                // Keep above player chrome so volume/brightness feedback stays visible.
-                .zIndex(40f),
-            enter = fadeIn(animationSpec = tween(gestureMotionSpec.levelOverlayEnterFadeDurationMillis)) +
-                scaleIn(
-                    initialScale = 0.84f,
-                    animationSpec = tween(gestureMotionSpec.levelOverlayEnterTransformDurationMillis)
-                ) +
-                slideInVertically(
-                    initialOffsetY = { it / 8 },
-                    animationSpec = tween(gestureMotionSpec.levelOverlayEnterTransformDurationMillis)
-                ),
-            exit = fadeOut(animationSpec = tween(gestureMotionSpec.levelOverlayExitDurationMillis)) +
-                scaleOut(
-                    targetScale = 0.9f,
-                    animationSpec = tween(gestureMotionSpec.levelOverlayExitDurationMillis)
-                ) +
-                slideOutVertically(
-                    targetOffsetY = { -it / 10 },
-                    animationSpec = tween(gestureMotionSpec.levelOverlayExitDurationMillis)
-                )
-        ) {
-            val levelLabel = resolveGestureIndicatorLabel(gestureMode)
-            val dynamicGestureIcon = resolveGestureDisplayIcon(
-                mode = gestureMode,
-                percent = gesturePercent,
-                fallbackIcon = gestureIcon,
-                iconStyle = gestureLevelIconStyle
-            )
-            val visualPolicy = resolveGestureLevelOverlayVisualPolicy(
-                mode = gestureMode,
-                percent = gesturePercent
-            )
-            val renderProgress by animateFloatAsState(
-                targetValue = resolveGestureRenderProgress(gesturePercent),
-                animationSpec = tween(durationMillis = gestureMotionSpec.levelProgressDurationMillis),
-                label = "gesture-progress"
-            )
-            val iconScale by animateFloatAsState(
-                targetValue = 0.9f + gesturePercent.coerceIn(0f, 1f) * 0.35f,
-                animationSpec = tween(durationMillis = gestureMotionSpec.levelIconScaleDurationMillis),
-                label = "gesture-icon-scale"
-            )
-            val valueScale by animateFloatAsState(
-                targetValue = if (gesturePercentDisplay != previousGesturePercentDisplay) 1.06f else 1f,
-                animationSpec = tween(durationMillis = gestureMotionSpec.levelValueScaleDurationMillis),
-                label = "gesture-value-scale"
-            )
-            val overlayTextShadow = Shadow(
-                color = Color.Black.copy(alpha = 0.62f),
-                offset = Offset(0f, 2f),
-                blurRadius = 8f
-            )
-            val levelOverlayShape = RoundedCornerShape(18.dp)
-            Surface(
-                modifier = Modifier
-                    .wrapContentSize()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                shape = levelOverlayShape,
-                color = Color.Black.copy(alpha = visualPolicy.containerAlpha),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = visualPolicy.borderAlpha)
-                ),
-                shadowElevation = 6.dp,
-                tonalElevation = 0.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(min = 132.dp, max = 188.dp)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(9.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size((uiLayoutPolicy.gestureIconSizeDp + 20).dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(
-                                    visualPolicy.accentColor.copy(alpha = visualPolicy.glowAlpha),
-                                    CircleShape
-                                )
-                                .blur(
-                                    radius = 14.dp,
-                                    edgeTreatment = BlurredEdgeTreatment.Unbounded
-                                )
-                        )
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(Color.White.copy(alpha = 0.10f), CircleShape)
-                                .border(1.dp, Color.White.copy(alpha = 0.66f), CircleShape)
-                        )
-                        AnimatedContent(
-                            targetState = dynamicGestureIcon,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(gestureMotionSpec.levelIconEnterFadeDurationMillis)) +
-                                    scaleIn(
-                                        initialScale = 0.78f,
-                                        animationSpec = tween(gestureMotionSpec.levelIconContentScaleDurationMillis)
-                                    ))
-                                    .togetherWith(
-                                        fadeOut(animationSpec = tween(gestureMotionSpec.levelIconExitFadeDurationMillis)) +
-                                            scaleOut(
-                                                targetScale = 1.2f,
-                                                animationSpec = tween(gestureMotionSpec.levelIconContentScaleDurationMillis)
-                                            )
-                                    )
-                            },
-                            label = "gesture-icon-content"
-                        ) { icon ->
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = visualPolicy.accentColor,
-                                modifier = Modifier
-                                    .size(uiLayoutPolicy.gestureIconSizeDp.dp)
-                                    .graphicsLayer {
-                                        scaleX = iconScale
-                                        scaleY = iconScale
-                                    }
-                            )
-                        }
-                    }
-                    Text(
-                        text = levelLabel,
-                        color = Color.White.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            shadow = overlayTextShadow
-                        )
-                    )
-                    GesturePercentValue(
-                        percent = gesturePercentDisplay,
-                        previousPercent = previousGesturePercentDisplay,
-                        textStyle = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp
-                        ),
-                        textShadow = overlayTextShadow,
-                        motionSpec = gestureMotionSpec,
-                        modifier = Modifier
-                            .widthIn(min = 74.dp)
-                            .graphicsLayer {
-                                scaleX = valueScale
-                                scaleY = valueScale
-                            }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White.copy(alpha = 0.20f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(renderProgress)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(
-                                            visualPolicy.accentColor.copy(alpha = 0.68f),
-                                            visualPolicy.accentColor
-                                        )
-                                    )
-                                )
-                        )
-                    }
-                }
-            }
-        }
+            mode = gestureMode,
+            percent = gesturePercent
+        )
 
         AnimatedVisibility(
             visible = orientationHintVisible && !isInPipMode,

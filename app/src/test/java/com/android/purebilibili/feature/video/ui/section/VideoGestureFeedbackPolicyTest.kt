@@ -52,32 +52,21 @@ class VideoGestureFeedbackPolicyTest {
     }
 
     @Test
-    fun `resolveGestureLevelIconStyle shares material ladder for md3 and ios`() {
+    fun `resolveGestureLevelIconStyle maps three distinct themes`() {
         assertEquals(
-            GestureLevelIconStyle.SharedMaterial,
+            GestureLevelIconStyle.Md3,
             resolveGestureLevelIconStyle(
                 uiPreset = UiPreset.MD3,
                 androidNativeVariant = AndroidNativeVariant.MATERIAL3
             )
         )
         assertEquals(
-            GestureLevelIconStyle.SharedMaterial,
+            GestureLevelIconStyle.Ios,
             resolveGestureLevelIconStyle(
                 uiPreset = UiPreset.IOS,
                 androidNativeVariant = AndroidNativeVariant.MATERIAL3
             )
         )
-        assertEquals(
-            GestureLevelIconStyle.SharedMaterial,
-            resolveGestureLevelIconStyle(
-                uiPreset = UiPreset.IOS,
-                androidNativeVariant = AndroidNativeVariant.MIUIX
-            )
-        )
-    }
-
-    @Test
-    fun `resolveGestureLevelIconStyle uses miuix ladder only for native miuix`() {
         assertEquals(
             GestureLevelIconStyle.Miuix,
             resolveGestureLevelIconStyle(
@@ -88,14 +77,14 @@ class VideoGestureFeedbackPolicyTest {
     }
 
     @Test
-    fun `resolveGestureDisplayIcon maps brightness level for shared material`() {
+    fun `resolveGestureDisplayIcon maps brightness level for md3`() {
         assertEquals(
             Icons.Filled.BrightnessLow,
             resolveGestureDisplayIcon(
                 mode = VideoGestureMode.Brightness,
                 percent = 0.2f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
         assertEquals(
@@ -104,7 +93,7 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Brightness,
                 percent = 0.52f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
         assertEquals(
@@ -113,20 +102,20 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Brightness,
                 percent = 0.92f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
     }
 
     @Test
-    fun `resolveGestureDisplayIcon maps volume level for shared material`() {
+    fun `resolveGestureDisplayIcon maps volume level for md3`() {
         assertEquals(
             Icons.AutoMirrored.Filled.VolumeOff,
             resolveGestureDisplayIcon(
                 mode = VideoGestureMode.Volume,
                 percent = 0f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
         assertEquals(
@@ -135,7 +124,7 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Volume,
                 percent = 0.2f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
         assertEquals(
@@ -144,7 +133,7 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Volume,
                 percent = 0.5f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
         assertEquals(
@@ -153,7 +142,7 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Volume,
                 percent = 0.9f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
     }
@@ -198,7 +187,7 @@ class VideoGestureFeedbackPolicyTest {
                 mode = VideoGestureMode.Seek,
                 percent = 0.5f,
                 fallbackIcon = null,
-                iconStyle = GestureLevelIconStyle.SharedMaterial
+                iconStyle = GestureLevelIconStyle.Md3
             )
         )
     }

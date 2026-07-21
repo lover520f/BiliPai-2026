@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -30,9 +31,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.android.purebilibili.core.theme.LocalAndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalUiPreset
-import com.android.purebilibili.feature.video.ui.section.resolveBrightnessGestureIcon
-import com.android.purebilibili.feature.video.ui.section.resolveGestureLevelIconStyle
-import com.android.purebilibili.feature.video.ui.section.resolveVolumeGestureIcon
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayContent
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelOverlayStyle
+import com.android.purebilibili.feature.video.ui.section.VideoGestureMode
 import io.github.alexzhirkevich.cupertino.icons.CupertinoIcons
 import io.github.alexzhirkevich.cupertino.icons.outlined.ChevronBackward
 import io.github.alexzhirkevich.cupertino.icons.outlined.Pause
@@ -155,12 +159,14 @@ fun LivePlayerControls(
     val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager }
     val uiPreset = LocalUiPreset.current
     val androidNativeVariant = LocalAndroidNativeVariant.current
-    val gestureLevelIconStyle = remember(uiPreset, androidNativeVariant) {
-        resolveGestureLevelIconStyle(
+    val gestureLevelOverlayStyle = remember(uiPreset, androidNativeVariant) {
+        resolveGestureLevelOverlayStyle(
             uiPreset = uiPreset,
             androidNativeVariant = androidNativeVariant
         )
     }
+    var gestureKind by remember { mutableStateOf(GestureLevelKind.Volume) }
+    var gesturePercent by remember { mutableFloatStateOf(0f) }
     
     Box(
         modifier = modifier
@@ -225,9 +231,12 @@ fun LivePlayerControls(
                             lp?.screenBrightness = targetBrightness
                             activity?.window?.attributes = lp
                             
-                            gestureIcon = resolveBrightnessGestureIcon(
-                                percent = targetBrightness,
-                                iconStyle = gestureLevelIconStyle
+                            gestureKind = GestureLevelKind.Brightness
+                            gesturePercent = targetBrightness
+                            gestureIcon = resolveGestureLevelIcon(
+                                style = gestureLevelOverlayStyle,
+                                kind = GestureLevelKind.Brightness,
+                                percent = targetBrightness
                             )
                             gestureText = "${(targetBrightness * 100).toInt()}%"
                         } else {
@@ -250,9 +259,12 @@ fun LivePlayerControls(
                                 } else {
                                     0f
                                 }
-                                gestureIcon = resolveVolumeGestureIcon(
-                                    percent = volumePercent,
-                                    iconStyle = gestureLevelIconStyle
+                                gestureKind = GestureLevelKind.Volume
+                                gesturePercent = volumePercent
+                                gestureIcon = resolveGestureLevelIcon(
+                                    style = gestureLevelOverlayStyle,
+                                    kind = GestureLevelKind.Volume,
+                                    percent = volumePercent
                                 )
                                 gestureText = "${(newVolInt * 100 / maxVolume)}%"
                             }
@@ -261,31 +273,37 @@ fun LivePlayerControls(
                 )
             }
     ) {
-        // 1. 中间手势提示
-        androidx.compose.animation.AnimatedVisibility(
-            visible = isGestureVisible,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.Center)
-        ) {
-            Surface(
-                color = palette.scrim.copy(alpha = 0.68f),
-                shape = RoundedCornerShape(18.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    palette.border
+        // 主题原生音量/亮度反馈
+        if (isGestureVisible) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                GestureLevelOverlayContent(
+                    mode = if (gestureKind == GestureLevelKind.Brightness) {
+                        VideoGestureMode.Brightness
+                    } else {
+                        VideoGestureMode.Volume
+                    },
+                    percent = gesturePercent,
+                    style = gestureLevelOverlayStyle,
+                    modifier = Modifier
+                        .align(
+                            if (gestureLevelOverlayStyle == GestureLevelOverlayStyle.Miuix) {
+                                if (gestureKind == GestureLevelKind.Volume) {
+                                    Alignment.CenterEnd
+                                } else {
+                                    Alignment.CenterStart
+                                }
+                            } else {
+                                Alignment.Center
+                            }
+                        )
+                        .then(
+                            if (gestureLevelOverlayStyle == GestureLevelOverlayStyle.Miuix) {
+                                Modifier.padding(horizontal = 22.dp)
+                            } else {
+                                Modifier
+                            }
+                        )
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (gestureIcon != null) {
-                        Icon(gestureIcon!!, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(gestureText, color = Color.White, style = MaterialTheme.typography.titleMedium)
-                }
             }
         }
         

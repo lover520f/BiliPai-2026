@@ -2,35 +2,16 @@ package com.android.purebilibili.feature.video.ui.section
 
 import android.view.SurfaceView
 import android.view.TextureView
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeMute
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Brightness5
-import androidx.compose.material.icons.filled.Brightness6
-import androidx.compose.material.icons.filled.Brightness7
-import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.BrightnessLow
-import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.android.purebilibili.core.theme.AndroidNativeVariant
 import com.android.purebilibili.core.theme.UiPreset
-import com.android.purebilibili.core.ui.isNativeMiuixEnabled
 import com.android.purebilibili.feature.video.ui.components.GesturePercentMotionDefaults
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.android.purebilibili.feature.video.playback.session.PlaybackSeekSessionState
 import com.android.purebilibili.feature.video.playback.session.shouldUsePlaybackSeekSessionPosition
-import io.github.alexzhirkevich.cupertino.icons.CupertinoIcons
-import io.github.alexzhirkevich.cupertino.icons.filled.*
-import io.github.alexzhirkevich.cupertino.icons.outlined.*
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.VolumeOff
-import top.yukonga.miuix.kmp.icon.extended.VolumeUp
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -633,12 +614,13 @@ internal fun resolveGestureIndicatorLabel(mode: VideoGestureMode): String {
 }
 
 /**
- * Gesture level icons:
- * - MD3 + iOS share one Material-style ladder (native system volume/brightness feel).
- * - MIUIX uses its own ladder (Miuix volume glyphs + progressive brightness steps).
+ * @deprecated Prefer [com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle].
+ * Kept as a thin bridge for older call sites during the overlay redesign.
  */
 enum class GestureLevelIconStyle {
     SharedMaterial,
+    Md3,
+    Ios,
     Miuix
 }
 
@@ -646,10 +628,31 @@ internal fun resolveGestureLevelIconStyle(
     uiPreset: UiPreset,
     androidNativeVariant: AndroidNativeVariant = AndroidNativeVariant.MATERIAL3
 ): GestureLevelIconStyle {
-    return if (isNativeMiuixEnabled(uiPreset, androidNativeVariant)) {
-        GestureLevelIconStyle.Miuix
-    } else {
-        GestureLevelIconStyle.SharedMaterial
+    return when (
+        com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelOverlayStyle(
+            uiPreset = uiPreset,
+            androidNativeVariant = androidNativeVariant
+        )
+    ) {
+        com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Md3 ->
+            GestureLevelIconStyle.Md3
+        com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Ios ->
+            GestureLevelIconStyle.Ios
+        com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Miuix ->
+            GestureLevelIconStyle.Miuix
+    }
+}
+
+private fun GestureLevelIconStyle.toOverlayStyle():
+    com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle {
+    return when (this) {
+        GestureLevelIconStyle.SharedMaterial,
+        GestureLevelIconStyle.Md3 ->
+            com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Md3
+        GestureLevelIconStyle.Ios ->
+            com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Ios
+        GestureLevelIconStyle.Miuix ->
+            com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle.Miuix
     }
 }
 
@@ -657,68 +660,42 @@ internal fun resolveGestureDisplayIcon(
     mode: VideoGestureMode,
     percent: Float,
     fallbackIcon: ImageVector?,
-    iconStyle: GestureLevelIconStyle = GestureLevelIconStyle.SharedMaterial
+    iconStyle: GestureLevelIconStyle = GestureLevelIconStyle.Md3
 ): ImageVector {
-    val normalizedPercent = percent.coerceIn(0f, 1f)
-    return when (mode) {
-        VideoGestureMode.Brightness -> resolveBrightnessGestureIcon(
-            percent = normalizedPercent,
-            iconStyle = iconStyle
-        )
-        VideoGestureMode.Volume -> resolveVolumeGestureIcon(
-            percent = normalizedPercent,
-            iconStyle = iconStyle
-        )
-        else -> fallbackIcon ?: resolveBrightnessGestureIcon(
-            percent = 1f,
-            iconStyle = iconStyle
-        )
-    }
+    val kind = com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelKind(mode)
+        ?: return fallbackIcon
+            ?: com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon(
+                style = iconStyle.toOverlayStyle(),
+                kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Brightness,
+                percent = 1f
+            )
+    return com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon(
+        style = iconStyle.toOverlayStyle(),
+        kind = kind,
+        percent = percent
+    )
 }
 
 internal fun resolveVolumeGestureIcon(
     percent: Float,
     iconStyle: GestureLevelIconStyle
 ): ImageVector {
-    val normalizedPercent = percent.coerceIn(0f, 1f)
-    return when (iconStyle) {
-        // Material system volume ladder (shared by MD3 + iOS)
-        GestureLevelIconStyle.SharedMaterial -> when {
-            normalizedPercent < 0.01f -> Icons.AutoMirrored.Filled.VolumeOff
-            normalizedPercent < 0.34f -> Icons.AutoMirrored.Filled.VolumeMute
-            normalizedPercent < 0.67f -> Icons.AutoMirrored.Filled.VolumeDown
-            else -> Icons.AutoMirrored.Filled.VolumeUp
-        }
-        // MIUIX: native mute/up glyphs with progressive mid steps
-        GestureLevelIconStyle.Miuix -> when {
-            normalizedPercent < 0.01f -> MiuixIcons.VolumeOff
-            normalizedPercent < 0.34f -> Icons.AutoMirrored.Filled.VolumeMute
-            normalizedPercent < 0.67f -> Icons.AutoMirrored.Filled.VolumeDown
-            else -> MiuixIcons.VolumeUp
-        }
-    }
+    return com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon(
+        style = iconStyle.toOverlayStyle(),
+        kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Volume,
+        percent = percent
+    )
 }
 
 internal fun resolveBrightnessGestureIcon(
     percent: Float,
     iconStyle: GestureLevelIconStyle
 ): ImageVector {
-    val normalizedPercent = percent.coerceIn(0f, 1f)
-    return when (iconStyle) {
-        // Material Low / Medium / High (shared by MD3 + iOS)
-        GestureLevelIconStyle.SharedMaterial -> when {
-            normalizedPercent < 0.34f -> Icons.Filled.BrightnessLow
-            normalizedPercent < 0.67f -> Icons.Filled.BrightnessMedium
-            else -> Icons.Filled.BrightnessHigh
-        }
-        // MIUIX: denser brightness ladder for smoother native-feeling steps
-        GestureLevelIconStyle.Miuix -> when {
-            normalizedPercent < 0.20f -> Icons.Filled.Brightness4
-            normalizedPercent < 0.40f -> Icons.Filled.Brightness5
-            normalizedPercent < 0.70f -> Icons.Filled.Brightness6
-            else -> Icons.Filled.Brightness7
-        }
-    }
+    return com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelIcon(
+        style = iconStyle.toOverlayStyle(),
+        kind = com.android.purebilibili.feature.video.ui.gesture.GestureLevelKind.Brightness,
+        percent = percent
+    )
 }
 
 internal data class GestureLevelOverlayVisualPolicy(

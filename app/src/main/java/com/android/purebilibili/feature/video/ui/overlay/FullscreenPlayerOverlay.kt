@@ -66,9 +66,12 @@ import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.ui.blur.BlurSurfaceType
 import com.android.purebilibili.core.ui.blur.rememberRecoverableHazeState
 import com.android.purebilibili.core.ui.blur.unifiedBlur
-import com.android.purebilibili.feature.video.ui.section.resolveBrightnessGestureIcon
-import com.android.purebilibili.feature.video.ui.section.resolveGestureLevelIconStyle
-import com.android.purebilibili.feature.video.ui.section.resolveVolumeGestureIcon
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayContent
+import com.android.purebilibili.feature.video.ui.gesture.GestureLevelOverlayStyle
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelOverlaySpec
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelKind
+import com.android.purebilibili.feature.video.ui.gesture.resolveGestureLevelOverlayStyle
+import com.android.purebilibili.feature.video.ui.section.VideoGestureMode
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.android.purebilibili.core.util.FormatUtils
@@ -883,7 +886,12 @@ fun FullscreenPlayerOverlay(
                 seekTime = if (gestureMode == FullscreenGestureMode.Seek) seekPreviewPosition else null,
                 duration = duration,
                 hazeState = overlayHazeState,
-                modifier = Modifier.align(Alignment.Center)
+                // Level overlays (esp. MIUIX edge rails) need full-size host for side alignment.
+                modifier = if (gestureMode == FullscreenGestureMode.Seek) {
+                    Modifier.align(Alignment.Center)
+                } else {
+                    Modifier.fillMaxSize()
+                }
             )
         }
         
@@ -1287,23 +1295,13 @@ private fun GestureIndicator(
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
-    val renderProgress by animateFloatAsState(
-        targetValue = value.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 120),
-        label = "fullscreen-gesture-progress"
-    )
     val uiPreset = LocalUiPreset.current
     val androidNativeVariant = LocalAndroidNativeVariant.current
-    val gestureLevelIconStyle = remember(uiPreset, androidNativeVariant) {
-        resolveGestureLevelIconStyle(
+    val overlayStyle = remember(uiPreset, androidNativeVariant) {
+        resolveGestureLevelOverlayStyle(
             uiPreset = uiPreset,
             androidNativeVariant = androidNativeVariant
         )
-    }
-    val accentColor = when (mode) {
-        FullscreenGestureMode.Brightness -> Color(0xFFFFD54F)
-        FullscreenGestureMode.Volume -> Color(0xFF80DEEA)
-        else -> Color.White
     }
     val overlayShape = RoundedCornerShape(18.dp)
     if (mode == FullscreenGestureMode.Seek) {
@@ -1338,96 +1336,35 @@ private fun GestureIndicator(
             }
         }
     } else {
-        Surface(
-            modifier = modifier,
-            shape = overlayShape,
-            color = Color.Black.copy(alpha = 0.74f),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.58f)),
-            shadowElevation = 6.dp,
-            tonalElevation = 0.dp
+        val mappedMode = when (mode) {
+            FullscreenGestureMode.Brightness -> VideoGestureMode.Brightness
+            FullscreenGestureMode.Volume -> VideoGestureMode.Volume
+            else -> VideoGestureMode.None
+        }
+        val kind = resolveGestureLevelKind(mappedMode)
+        val sideAlignment = if (kind != null) {
+            resolveGestureLevelOverlaySpec(
+                style = overlayStyle,
+                kind = kind,
+                percent = value
+            ).alignment
+        } else {
+            Alignment.Center
+        }
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = sideAlignment
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .widthIn(min = 128.dp, max = 190.dp)
-                    .padding(horizontal = 18.dp, vertical = 14.dp)
-            ) {
-                when (mode) {
-                    FullscreenGestureMode.Brightness -> {
-                        val brightnessIcon = resolveBrightnessGestureIcon(
-                            percent = value,
-                            iconStyle = gestureLevelIconStyle
-                        )
-                        Icon(brightnessIcon, null, tint = accentColor, modifier = Modifier.size(36.dp))
-                        Spacer(Modifier.height(8.dp))
-                        Text("亮度", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
-                        Spacer(Modifier.height(4.dp))
-                        AnimatedGesturePercentText(
-                            percent = (value * 100).toInt(),
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            label = "fullscreen-brightness-percent"
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(Color.White.copy(alpha = 0.20f))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(renderProgress)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(accentColor.copy(alpha = 0.66f), accentColor)
-                                        )
-                                    )
-                            )
-                        }
-                    }
-                    FullscreenGestureMode.Volume -> {
-                        val volumeIcon = resolveVolumeGestureIcon(
-                            percent = value,
-                            iconStyle = gestureLevelIconStyle
-                        )
-                        Icon(volumeIcon, null, tint = accentColor, modifier = Modifier.size(36.dp))
-                        Spacer(Modifier.height(8.dp))
-                        Text("音量", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
-                        Spacer(Modifier.height(4.dp))
-                        AnimatedGesturePercentText(
-                            percent = (value * 100).toInt(),
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            label = "fullscreen-volume-percent"
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(Color.White.copy(alpha = 0.20f))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(renderProgress)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(accentColor.copy(alpha = 0.66f), accentColor)
-                                        )
-                                    )
-                            )
-                        }
-                    }
-                    else -> Unit
+            GestureLevelOverlayContent(
+                mode = mappedMode,
+                percent = value,
+                style = overlayStyle,
+                modifier = if (overlayStyle == GestureLevelOverlayStyle.Miuix) {
+                    Modifier.padding(horizontal = 22.dp)
+                } else {
+                    Modifier
                 }
-            }
+            )
         }
     }
 }

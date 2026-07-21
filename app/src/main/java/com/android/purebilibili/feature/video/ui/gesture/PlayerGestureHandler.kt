@@ -31,10 +31,9 @@ import androidx.compose.ui.unit.sp
 import com.android.purebilibili.core.theme.LocalAndroidNativeVariant
 import com.android.purebilibili.core.theme.LocalUiPreset
 import com.android.purebilibili.core.util.FormatUtils
-import com.android.purebilibili.feature.video.ui.section.resolveBrightnessGestureIcon
-import com.android.purebilibili.feature.video.ui.section.resolveGestureLevelIconStyle
-import com.android.purebilibili.feature.video.ui.section.resolveVolumeGestureIcon
+import com.android.purebilibili.feature.video.ui.section.VideoGestureMode
 import kotlin.math.abs
+// gesture level overlay helpers are in the same package
 
 /**
  * Player Gesture Handler
@@ -239,58 +238,37 @@ fun GestureIndicator(
                 }
             }
         }
-        GestureMode.Brightness -> {
+        GestureMode.Brightness, GestureMode.Volume -> {
             val uiPreset = LocalUiPreset.current
             val androidNativeVariant = LocalAndroidNativeVariant.current
-            val iconStyle = remember(uiPreset, androidNativeVariant) {
-                resolveGestureLevelIconStyle(uiPreset, androidNativeVariant)
+            val overlayStyle = remember(uiPreset, androidNativeVariant) {
+                resolveGestureLevelOverlayStyle(uiPreset, androidNativeVariant)
             }
-            val brightnessIcon = resolveBrightnessGestureIcon(
-                percent = value,
-                iconStyle = iconStyle
-            )
-            Surface(
-                modifier = modifier,
-                shape = RoundedCornerShape(12.dp),
-                color = Color.Transparent
+            val mappedMode = if (mode == GestureMode.Brightness) {
+                VideoGestureMode.Brightness
+            } else {
+                VideoGestureMode.Volume
+            }
+            val kind = resolveGestureLevelKind(mappedMode) ?: return
+            val alignment = resolveGestureLevelOverlaySpec(
+                style = overlayStyle,
+                kind = kind,
+                percent = value
+            ).alignment
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = alignment
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Icon(brightnessIcon, null, tint = Color.White, modifier = Modifier.size(36.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text("亮度", color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("${(value * 100).toInt()}%", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        GestureMode.Volume -> {
-            val uiPreset = LocalUiPreset.current
-            val androidNativeVariant = LocalAndroidNativeVariant.current
-            val iconStyle = remember(uiPreset, androidNativeVariant) {
-                resolveGestureLevelIconStyle(uiPreset, androidNativeVariant)
-            }
-            val volumeIcon = resolveVolumeGestureIcon(
-                percent = value,
-                iconStyle = iconStyle
-            )
-            Surface(
-                modifier = modifier,
-                shape = RoundedCornerShape(12.dp),
-                color = Color.Transparent
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Icon(volumeIcon, null, tint = Color.White, modifier = Modifier.size(36.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text("音量", color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("${(value * 100).toInt()}%", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                }
+                GestureLevelOverlayContent(
+                    mode = mappedMode,
+                    percent = value,
+                    style = overlayStyle,
+                    modifier = if (overlayStyle == GestureLevelOverlayStyle.Miuix) {
+                        Modifier.padding(horizontal = 22.dp)
+                    } else {
+                        Modifier
+                    }
+                )
             }
         }
         else -> {}
