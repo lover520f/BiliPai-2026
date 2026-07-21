@@ -276,8 +276,8 @@ class VideoCardScrollLiteVisualPolicyTest {
     }
 
     @Test
-    fun homeCardChrome_fadesSoftlyDuringOpenInsteadOfHardCut() {
-        // 刚点击：进度 0，标题仍满显
+    fun homeCardChrome_staysVisibleDuringOpenBecauseOnlyCoverMorphs() {
+        // 进场全程保留标题：shell 仅绑封面，信息区不再藏字。
         assertEquals(
             1f,
             resolveHomeCardChromeAlphaDuringShellReturnMorph(
@@ -290,23 +290,20 @@ class VideoCardScrollLiteVisualPolicyTest {
             ),
             0.001f,
         )
-        // 前 8% 仍满显
         assertEquals(
             1f,
-            resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.05f),
-            0.001f,
-        )
-        // 中段柔和淡出
-        val mid = resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.30f)
-        assertTrue(mid > 0f && mid < 1f)
-        // 过 fadeEnd 后收干净，避免字叠播放器
-        assertEquals(
-            0f,
-            resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.60f),
+            resolveHomeCardChromeAlphaDuringShellReturnMorph(
+                useCardContainerSharedBounds = true,
+                isSharedMorphSourceCard = true,
+                isReturningFromDetail = false,
+                transitionBackgroundPhase = VideoCardTransitionBackgroundPhase.OPENING,
+                isSharedTransitionActive = true,
+                transitionBackgroundProgress = 0.6f,
+            ),
             0.001f,
         )
         assertEquals(
-            0f,
+            1f,
             resolveHomeCardChromeAlphaDuringShellReturnMorph(
                 useCardContainerSharedBounds = true,
                 isSharedMorphSourceCard = true,
@@ -317,6 +314,10 @@ class VideoCardScrollLiteVisualPolicyTest {
             ),
             0.001f,
         )
+        // 工具曲线仍保留，供其它表面需要柔和淡出时使用
+        assertEquals(1f, resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.05f), 0.001f)
+        assertTrue(resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.30f) in 0.01f..0.99f)
+        assertEquals(0f, resolveHomeCardChromeOpenFadeAlpha(openProgress = 0.60f), 0.001f)
     }
 
     @Test

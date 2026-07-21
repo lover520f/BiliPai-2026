@@ -197,6 +197,20 @@ internal fun shouldUseVideoDetailRootTransitionProgress(
         !keepLoadedContentForBackPreview
 }
 
+/**
+ * 详情 shell 进场 morph 进行中时，不要绘制 Loading 骨架。
+ * 骨架闪动/shimmer 会与封面→详情 sharedBounds 抢时序，造成「标题挖空 + 骨架抢位」。
+ */
+internal fun shouldSuppressDetailSkeletonDuringShellEnterMorph(
+    detailShellSharedBoundsEnabled: Boolean,
+    isSharedTransitionActive: Boolean,
+    isExitTransitionInProgress: Boolean,
+): Boolean {
+    return detailShellSharedBoundsEnabled &&
+        isSharedTransitionActive &&
+        !isExitTransitionInProgress
+}
+
 internal fun shouldShowVideoDetailContent(
     isTransitionFinished: Boolean,
     isLeaving: Boolean,

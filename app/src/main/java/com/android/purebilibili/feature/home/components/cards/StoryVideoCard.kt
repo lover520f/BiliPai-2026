@@ -226,7 +226,6 @@ fun StoryVideoCard(
         )
     }
     
-    val cardShellShape = remember(cardCornerRadius) { RoundedCornerShape(cardCornerRadius) }
     val enterAnimationEnabledAtMount = remember(video.bvid) {
         resolveHomeCardEnterAnimationEnabledAtMount(
             baseAnimationEnabled = animationEnabled,
@@ -238,15 +237,6 @@ fun StoryVideoCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .videoCardShellSharedBoundsOrEmpty(
-                enabled = useCardShellSharedBounds,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                bvid = video.bvid,
-                sourceRoute = effectiveSharedElementSourceRoute,
-                motionSpec = cardSharedTransitionMotionSpec,
-                clipShape = cardShellShape
-            )
             .padding(horizontal = cardHorizontalPadding, vertical = 8.dp)
             //  [修复] 进场动画 - 使用 Unit 作为 key，避免分类切换时重新动画
             .animateEnter(
@@ -290,11 +280,20 @@ fun StoryVideoCard(
                  } else Modifier
             )
     ) {
-        // 卡片容器 (封面)
+        // shell 只绑封面，标题留在列表，避免点击挖空信息区。
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("home_story_video_cover")
+                .videoCardShellSharedBoundsOrEmpty(
+                    enabled = useCardShellSharedBounds,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    bvid = video.bvid,
+                    sourceRoute = effectiveSharedElementSourceRoute,
+                    motionSpec = cardSharedTransitionMotionSpec,
+                    clipShape = coverShape
+                )
                 .aspectRatio(coverAspectRatio)
                 .clip(coverShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant) // 封面占位色

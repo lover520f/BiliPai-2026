@@ -1038,6 +1038,11 @@ internal fun VideoDetailScreenStateHolder(
         RoundedCornerShape(sharedTransitionSourceCornerDp.dp)
     }
     val isSharedTransitionActive = rootSharedTransitionScope?.isTransitionActive == true
+    val suppressDetailSkeletonDuringShellEnter = shouldSuppressDetailSkeletonDuringShellEnterMorph(
+        detailShellSharedBoundsEnabled = detailShellSharedBoundsEnabled,
+        isSharedTransitionActive = isSharedTransitionActive,
+        isExitTransitionInProgress = isExitTransitionInProgress,
+    )
     val suppressDetailShellForRelatedChild = shouldSuppressDetailShellSharedBoundsForRelatedChildTransition(
         detailBvid = bvid,
         lastClickedVideoSourceKey = CardPositionManager.lastClickedVideoSourceKey,
@@ -2935,9 +2940,22 @@ internal fun VideoDetailScreenStateHolder(
                                     uiState !is VideoPlaybackUiState.Error -> Unit
                                 uiState is VideoPlaybackUiState.Loading -> {
                                     val loadingState = uiState as VideoPlaybackUiState.Loading
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        //  显示重试进度
-                                        if (loadingState.retryAttempt > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black)
+                                    ) {
+                                        // shell 进场 morph 中：用封面/黑底承接，不画骨架，避免与封面 morph 抢时序闪烁。
+                                        if (suppressDetailSkeletonDuringShellEnter) {
+                                            if (coverUrl.isNotBlank()) {
+                                                AsyncImage(
+                                                    model = coverUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop,
+                                                )
+                                            }
+                                        } else if (loadingState.retryAttempt > 0) {
                                             Box(
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentAlignment = Alignment.Center

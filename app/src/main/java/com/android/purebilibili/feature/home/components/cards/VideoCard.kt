@@ -645,24 +645,8 @@ fun ElegantVideoCard(
         }
         val requestCoverUrl = pinnedSharedReturnCover?.first ?: coverUrl
         val requestCoverCacheKey = pinnedSharedReturnCover?.second ?: coverCacheKey
-        val cardShellShape = remember(cardCornerRadius) {
-            RoundedCornerShape(cardCornerRadius)
-        }
-        val cardContainerModifier = Modifier
-            .fillMaxWidth()
-            .videoCardShellSharedBoundsOrEmpty(
-                enabled = useCardShellSharedBounds,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-                bvid = video.bvid,
-                sourceRoute = effectiveSharedElementSourceRoute,
-                motionSpec = homeSharedTransitionMotionSpec,
-                clipShape = cardShellShape
-            )
-        Column(
-            modifier = cardContainerModifier
-        ) {
         //  [性能优化] 封面圆角形状缓存（避免重组时重复创建）
+        // shell sharedBounds 只绑封面：标题/UP 留在列表原位，避免点击瞬间「整卡挖空」。
         val coverShape = remember(
             cardCornerRadius,
             infoSurfaceAppearance.useTintedSurface,
@@ -679,11 +663,22 @@ fun ElegantVideoCard(
                 RoundedCornerShape(homeSharedTransitionVisualSpec.sourceCornerDp.dp)
             }
         }
-
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("home_video_cover")
+                .videoCardShellSharedBoundsOrEmpty(
+                    enabled = useCardShellSharedBounds,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    bvid = video.bvid,
+                    sourceRoute = effectiveSharedElementSourceRoute,
+                    motionSpec = homeSharedTransitionMotionSpec,
+                    clipShape = coverShape
+                )
                 .aspectRatio(coverAspectRatio)
                 .clip(coverShape)
                 .onGloballyPositioned { coordinates ->

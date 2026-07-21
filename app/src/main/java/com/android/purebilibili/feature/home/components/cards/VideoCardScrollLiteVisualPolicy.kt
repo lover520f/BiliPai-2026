@@ -188,13 +188,9 @@ internal fun resolveHomeCardChromeAlphaDuringShellReturnMorph(
         isVideoCardReturnGestureInProgress ||
         transitionBackgroundPhase == VideoCardTransitionBackgroundPhase.RETURNING
     if (!isReturnMorph) {
-        // 进场：随进度淡出，避免点击瞬间信息区挖空成黑块
-        return resolveHomeCardChromeOpenFadeAlpha(
-            openProgress = resolveHomeCardChromeOpenProgress(
-                transitionBackgroundPhase = transitionBackgroundPhase,
-                transitionBackgroundProgress = transitionBackgroundProgress,
-            )
-        )
+        // 进场：标题已不在 shell 内（仅封面 morph），信息区全程保留，避免与详情骨架抢戏。
+        // 叠字问题由封面 sharedBounds 单独承担，不再藏标题。
+        return 1f
     }
 
     // 返回：与详情 content yield 共用 settle 解析（景深 1→0 → settle 0→1）。
