@@ -48,6 +48,7 @@ import com.android.purebilibili.core.util.animateEnter
 import com.android.purebilibili.core.util.CardPositionManager
 import com.android.purebilibili.data.model.response.VideoItem
 import com.android.purebilibili.core.theme.BiliPink
+import com.android.purebilibili.core.store.HomeCardBadgeEffectMode
 import com.android.purebilibili.core.store.HomeDurationStyle
 import com.android.purebilibili.core.theme.LocalCornerRadiusScale
 import com.android.purebilibili.core.theme.iOSCornerRadius
@@ -329,6 +330,7 @@ fun ElegantVideoCard(
     compactStatsOnCover: Boolean = true, // 播放量/评论数是否贴在封面底部
     showCoverGlassBadges: Boolean = true,
     showInfoGlassBadges: Boolean = true,
+    badgeEffectMode: HomeCardBadgeEffectMode = HomeCardBadgeEffectMode.SOFT_GLASS,
     wallpaperTintEnabled: Boolean = false,
     wallpaperEffectMode: HomeWallpaperEffectMode = HomeWallpaperEffectMode.SOFT_BLUR,
     showUpBadge: Boolean = true,
@@ -388,10 +390,18 @@ fun ElegantVideoCard(
     }
     val showDurationOutside = homeDurationStyle == HomeDurationStyle.OUTSIDE_COVER
     val inlinePillBaseColor = AppSurfaceTokens.cardContainer()
-    val pillColors = remember(glassEnabled, blurEnabled, inlinePillBaseColor) {
+    val badgeEffectVisual = remember(badgeEffectMode, scrollLiteModeEnabled) {
+        resolveHomeCardBadgeEffectVisual(
+            mode = badgeEffectMode,
+            scrollLiteModeEnabled = scrollLiteModeEnabled
+        )
+    }
+    val effectiveGlassEnabled = badgeEffectVisual.glassEnabled && glassEnabled
+    val effectiveBlurEnabled = badgeEffectVisual.blurEnabled && blurEnabled
+    val pillColors = remember(effectiveGlassEnabled, effectiveBlurEnabled, inlinePillBaseColor) {
         resolveVideoCardPillColors(
-            glassEnabled = glassEnabled,
-            blurEnabled = blurEnabled,
+            glassEnabled = effectiveGlassEnabled,
+            blurEnabled = effectiveBlurEnabled,
             inlineBaseColor = inlinePillBaseColor
         )
     }
@@ -412,10 +422,18 @@ fun ElegantVideoCard(
             compactStatsOnCover = compactStatsOnCover
         )
     }
-    val badgeStylePolicy = remember(showCoverGlassBadges, showInfoGlassBadges) {
-        resolveHomeVideoGlassBadgeStylePolicy(
-            showCoverGlassBadges = showCoverGlassBadges,
-            showInfoGlassBadges = showInfoGlassBadges
+    val badgeStylePolicy = remember(badgeEffectVisual, showCoverGlassBadges, showInfoGlassBadges) {
+        HomeVideoGlassBadgeStylePolicy(
+            coverStyle = if (showCoverGlassBadges) {
+                badgeEffectVisual.coverStyle
+            } else {
+                HomeVideoBadgeStyle.PLAIN
+            },
+            infoStyle = if (showInfoGlassBadges) {
+                badgeEffectVisual.infoStyle
+            } else {
+                HomeVideoBadgeStyle.PLAIN
+            }
         )
     }
     val historyProgressState = remember(video.bvid, video.cid, video.view_at, video.duration, video.progress, refreshKey) {

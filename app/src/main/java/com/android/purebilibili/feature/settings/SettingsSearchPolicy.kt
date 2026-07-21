@@ -542,7 +542,7 @@ private val SETTINGS_SEARCH_INDEX: List<SettingsSearchEntry> = listOf(
         title = "首页与列表",
         subtitle = "展示样式、列表顶部栏、首页壁纸效果、推荐流卡片宽度",
         section = "外观设置",
-        aliases = listOf("首页展示", "首页与列表", "展示样式", "列表顶部栏", "历史记录顶部栏", "收藏夹顶部栏", "折叠", "首页壁纸", "首页壁纸效果", "原图壁纸", "壁纸模糊", "强模糊", "推荐流卡片宽度", "首页卡片宽度", "卡片宽度", "统计信息贴封面", "UP主标识", "UP标识", "up主标识", "up标识"),
+        aliases = listOf("首页展示", "首页与列表", "展示样式", "列表顶部栏", "历史记录顶部栏", "收藏夹顶部栏", "折叠", "首页壁纸", "首页壁纸效果", "原图壁纸", "壁纸模糊", "强模糊", "推荐流卡片宽度", "首页卡片宽度", "卡片宽度", "统计信息贴封面", "卡片标签效果", "软玻璃", "轻模糊", "卡片玻璃", "UP主标识", "UP标识", "up主标识", "up标识"),
         focusId = SettingsSearchFocusIds.APPEARANCE_HOME
     ),
     SettingsSearchEntry(

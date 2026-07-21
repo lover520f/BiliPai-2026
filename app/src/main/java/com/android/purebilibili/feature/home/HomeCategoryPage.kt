@@ -136,6 +136,8 @@ internal fun HomeCategoryPageContent(
     compactStatsOnCover: Boolean = true,
     showCoverGlassBadges: Boolean = true,
     showInfoGlassBadges: Boolean = true,
+    badgeEffectMode: com.android.purebilibili.core.store.HomeCardBadgeEffectMode =
+        com.android.purebilibili.core.store.HomeCardBadgeEffectMode.SOFT_GLASS,
     wallpaperTintEnabled: Boolean = false,
     wallpaperEffectMode: HomeWallpaperEffectMode = HomeWallpaperEffectMode.SOFT_BLUR,
     showUpBadges: Boolean = true,
@@ -481,6 +483,7 @@ internal fun HomeCategoryPageContent(
                                         compactStatsOnCover = compactStatsOnCover,
                                         showCoverGlassBadges = showCoverGlassBadges,
                                         showInfoGlassBadges = showInfoGlassBadges,
+                                        badgeEffectMode = badgeEffectMode,
                                         wallpaperTintEnabled = wallpaperTintEnabled,
                                         wallpaperEffectMode = wallpaperEffectMode,
                                         showUpBadge = showUpBadges,

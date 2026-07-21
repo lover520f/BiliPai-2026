@@ -1707,6 +1707,7 @@ fun HomeScreen(
                                      compactStatsOnCover = homeSettings.compactVideoStatsOnCover,
                                      showCoverGlassBadges = homeSettings.showHomeCoverGlassBadges,
                                      showInfoGlassBadges = homeSettings.showHomeInfoGlassBadges,
+                                     badgeEffectMode = homeSettings.homeCardBadgeEffectMode,
                                      wallpaperTintEnabled = homeWallpaperBackdropAppearance.visible,
                                      wallpaperEffectMode = homeSettings.homeWallpaperEffectMode,
                                      showUpBadges = homeSettings.showHomeUpBadges,

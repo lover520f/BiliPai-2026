@@ -389,6 +389,25 @@ enum class HomeDurationStyle(val value: Int, val label: String) {
     }
 }
 
+/**
+ * 首页/列表视频卡片标签（播放量、时长、信息区）表面效果。
+ * 轻模糊在滚动时会降级为软玻璃，避免列表掉帧。
+ */
+enum class HomeCardBadgeEffectMode(
+    val value: Int,
+    val label: String,
+    val subtitle: String
+) {
+    OFF(0, "关闭", "纯文字标签，性能最好"),
+    SOFT_GLASS(1, "软玻璃", "半透明描边拟态，默认推荐"),
+    LIGHT_BLUR(2, "轻模糊", "更通透；滚动时自动降为软玻璃");
+
+    companion object {
+        fun fromValue(value: Int): HomeCardBadgeEffectMode =
+            entries.find { it.value == value } ?: SOFT_GLASS
+    }
+}
+
 enum class BottomBarLiquidGlassPreset(
     val value: Int,
     val label: String,
@@ -454,8 +473,9 @@ data class HomeSettings(
     val smartVisualGuardEnabled: Boolean = false, // [Retired] 智能流畅优先已下线，固定关闭
     val compactVideoStatsOnCover: Boolean = true, //  播放量/评论数显示在封面底部（默认开启）
     val lowQualityHomeCoverInDataSaver: Boolean = false, // 省流量时首页封面使用低清晰度
-    val showHomeCoverGlassBadges: Boolean = false, // 首页封面玻璃标签已退役
-    val showHomeInfoGlassBadges: Boolean = false, // 首页信息区玻璃标签已退役
+    val showHomeCoverGlassBadges: Boolean = true, // 兼容旧字段：由 [homeCardBadgeEffectMode] 推导
+    val showHomeInfoGlassBadges: Boolean = true, // 兼容旧字段：由 [homeCardBadgeEffectMode] 推导
+    val homeCardBadgeEffectMode: HomeCardBadgeEffectMode = HomeCardBadgeEffectMode.SOFT_GLASS,
     val homeWallpaperEffectMode: HomeWallpaperEffectMode = HomeWallpaperEffectMode.SOFT_BLUR,
     val homeWallpaperEffectScope: HomeWallpaperEffectScope = HomeWallpaperEffectScope.HOME_ONLY,
     val showHomeUpBadges: Boolean = true, // 首页和相关推荐 UP 主标识显示
@@ -1198,6 +1218,7 @@ object SettingsManager {
         booleanPreferencesKey("low_quality_home_cover_in_data_saver")
     private val KEY_HOME_COVER_GLASS_BADGES_VISIBLE = booleanPreferencesKey("home_cover_glass_badges_visible")
     private val KEY_HOME_INFO_GLASS_BADGES_VISIBLE = booleanPreferencesKey("home_info_glass_badges_visible")
+    private val KEY_HOME_CARD_BADGE_EFFECT_MODE = intPreferencesKey("home_card_badge_effect_mode")
     private val KEY_HOME_WALLPAPER_URI = stringPreferencesKey("home_wallpaper_uri")
     private val KEY_HOME_WALLPAPER_EFFECT_MODE = intPreferencesKey("home_wallpaper_effect_mode")
     private val KEY_HOME_WALLPAPER_EFFECT_SCOPE = intPreferencesKey("home_wallpaper_effect_scope")
@@ -1327,8 +1348,11 @@ object SettingsManager {
             compactVideoStatsOnCover = preferences[KEY_COMPACT_VIDEO_STATS_ON_COVER] ?: true,
             lowQualityHomeCoverInDataSaver =
                 preferences[KEY_LOW_QUALITY_HOME_COVER_IN_DATA_SAVER] ?: false,
-            showHomeCoverGlassBadges = false,
-            showHomeInfoGlassBadges = false,
+            showHomeCoverGlassBadges = resolveHomeCardBadgeEffectMode(preferences)
+                != HomeCardBadgeEffectMode.OFF,
+            showHomeInfoGlassBadges = resolveHomeCardBadgeEffectMode(preferences)
+                != HomeCardBadgeEffectMode.OFF,
+            homeCardBadgeEffectMode = resolveHomeCardBadgeEffectMode(preferences),
             homeWallpaperEffectMode = HomeWallpaperEffectMode.fromValue(
                 preferences[KEY_HOME_WALLPAPER_EFFECT_MODE] ?: HomeWallpaperEffectMode.SOFT_BLUR.value
             ),
@@ -2480,20 +2504,55 @@ object SettingsManager {
     }
 
     fun getHomeCoverGlassBadgesVisible(context: Context): Flow<Boolean> = context.settingsDataStore.data
-        .map { preferences -> preferences[KEY_HOME_COVER_GLASS_BADGES_VISIBLE] ?: true }
+        .map { preferences ->
+            resolveHomeCardBadgeEffectMode(preferences) != HomeCardBadgeEffectMode.OFF
+        }
 
     suspend fun setHomeCoverGlassBadgesVisible(context: Context, value: Boolean) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[KEY_HOME_COVER_GLASS_BADGES_VISIBLE] = value
-        }
+        setHomeCardBadgeEffectMode(
+            context,
+            if (value) HomeCardBadgeEffectMode.SOFT_GLASS else HomeCardBadgeEffectMode.OFF
+        )
     }
 
     fun getHomeInfoGlassBadgesVisible(context: Context): Flow<Boolean> = context.settingsDataStore.data
-        .map { preferences -> preferences[KEY_HOME_INFO_GLASS_BADGES_VISIBLE] ?: true }
+        .map { preferences ->
+            resolveHomeCardBadgeEffectMode(preferences) != HomeCardBadgeEffectMode.OFF
+        }
 
     suspend fun setHomeInfoGlassBadgesVisible(context: Context, value: Boolean) {
+        setHomeCardBadgeEffectMode(
+            context,
+            if (value) HomeCardBadgeEffectMode.SOFT_GLASS else HomeCardBadgeEffectMode.OFF
+        )
+    }
+
+    fun getHomeCardBadgeEffectMode(context: Context): Flow<HomeCardBadgeEffectMode> =
+        context.settingsDataStore.data.map { preferences ->
+            resolveHomeCardBadgeEffectMode(preferences)
+        }
+
+    suspend fun setHomeCardBadgeEffectMode(context: Context, mode: HomeCardBadgeEffectMode) {
         context.settingsDataStore.edit { preferences ->
-            preferences[KEY_HOME_INFO_GLASS_BADGES_VISIBLE] = value
+            preferences[KEY_HOME_CARD_BADGE_EFFECT_MODE] = mode.value
+            val enabled = mode != HomeCardBadgeEffectMode.OFF
+            preferences[KEY_HOME_COVER_GLASS_BADGES_VISIBLE] = enabled
+            preferences[KEY_HOME_INFO_GLASS_BADGES_VISIBLE] = enabled
+        }
+    }
+
+    private fun resolveHomeCardBadgeEffectMode(preferences: Preferences): HomeCardBadgeEffectMode {
+        preferences[KEY_HOME_CARD_BADGE_EFFECT_MODE]?.let { raw ->
+            return HomeCardBadgeEffectMode.fromValue(raw)
+        }
+        // Legacy: both old toggles defaulted true when unset; retired path forced OFF in map.
+        // Prefer soft glass when either legacy flag is still true.
+        val cover = preferences[KEY_HOME_COVER_GLASS_BADGES_VISIBLE]
+        val info = preferences[KEY_HOME_INFO_GLASS_BADGES_VISIBLE]
+        return if (cover == false && info == false) {
+            HomeCardBadgeEffectMode.OFF
+        } else {
+            HomeCardBadgeEffectMode.SOFT_GLASS
         }
     }
 
