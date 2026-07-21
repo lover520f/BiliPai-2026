@@ -594,13 +594,15 @@ data class SpaceDynamicRichText(
     val orig_text: String = "",
     val emoji: SpaceDynamicEmoji? = null,
     val jump_url: String? = null,
-    /** AT 节点对应用户 mid */
+    /** AT 节点对应用户 mid；API 偶发 number，用 flexible string 避免整段 desc 解析失败 */
+    @Serializable(with = FlexibleStringSerializer::class)
     val rid: String? = null
 )
 
 @kotlinx.serialization.Serializable
 data class SpaceDynamicEmoji(
     val icon_url: String = "",
+    @Serializable(with = FlexibleIntSerializer::class)
     val size: Int = 1,
     val text: String = ""
 )
@@ -616,6 +618,7 @@ data class SpaceDynamicMajor(
 
 @kotlinx.serialization.Serializable
 data class SpaceDynamicArchive(
+    @Serializable(with = FlexibleStringSerializer::class)
     val aid: String = "",
     val bvid: String = "",
     val title: String = "",

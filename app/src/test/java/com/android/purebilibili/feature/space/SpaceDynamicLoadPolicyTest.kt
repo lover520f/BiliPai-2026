@@ -148,6 +148,83 @@ class SpaceDynamicLoadPolicyTest {
     }
 
     @Test
+    fun filterSpaceDynamicItemsByQuery_matchesContinuousPhraseAcrossRichTextNodes() {
+        // UI joins rich nodes without separators; search must match the continuous phrase.
+        val items = listOf(
+            SpaceDynamicItem(
+                id_str = "phrase",
+                modules = SpaceDynamicModules(
+                    module_dynamic = SpaceDynamicContent(
+                        desc = SpaceDynamicDesc(
+                            text = "",
+                            rich_text_nodes = listOf(
+                                com.android.purebilibili.data.model.response.SpaceDynamicRichText(
+                                    type = "RICH_TEXT_NODE_TYPE_TEXT",
+                                    text = "今天天气"
+                                ),
+                                com.android.purebilibili.data.model.response.SpaceDynamicRichText(
+                                    type = "RICH_TEXT_NODE_TYPE_TEXT",
+                                    text = "真不错啊"
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("phrase"),
+            filterSpaceDynamicItemsByQuery(items, "天气真不错").map { it.id_str }
+        )
+        assertEquals(
+            listOf("phrase"),
+            filterSpaceDynamicItemsByQuery(items, "今天天气真不错啊").map { it.id_str }
+        )
+    }
+
+    @Test
+    fun filterSpaceDynamicItemsByQuery_matchesOpusSummaryRichNodesWithoutPlainText() {
+        val items = listOf(
+            SpaceDynamicItem(
+                id_str = "opus-only",
+                modules = SpaceDynamicModules(
+                    module_dynamic = SpaceDynamicContent(
+                        major = SpaceDynamicMajor(
+                            type = "MAJOR_TYPE_OPUS",
+                            opus = SpaceDynamicOpus(
+                                title = "",
+                                summary = SpaceDynamicOpusSummary(
+                                    text = "",
+                                    rich_text_nodes = listOf(
+                                        com.android.purebilibili.data.model.response.SpaceDynamicRichText(
+                                            type = "RICH_TEXT_NODE_TYPE_TEXT",
+                                            text = "深夜加班写代码"
+                                        ),
+                                        com.android.purebilibili.data.model.response.SpaceDynamicRichText(
+                                            type = "RICH_TEXT_NODE_TYPE_TEXT",
+                                            text = "只为修一个搜索bug"
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("opus-only"),
+            filterSpaceDynamicItemsByQuery(items, "加班写代码只为修").map { it.id_str }
+        )
+        assertEquals(
+            listOf("opus-only"),
+            filterSpaceDynamicItemsByQuery(items, "搜索bug").map { it.id_str }
+        )
+    }
+
+    @Test
     fun filterSpaceDynamicItemsByQuery_matchesRichTextNodesAndRepostOrig() {
         val items = listOf(
             SpaceDynamicItem(

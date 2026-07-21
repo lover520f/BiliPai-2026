@@ -13,15 +13,16 @@ import com.android.purebilibili.data.model.response.DynamicMajor
 import com.android.purebilibili.data.model.response.DynamicModules
 import com.android.purebilibili.data.model.response.DynamicStatModule
 import com.android.purebilibili.data.model.response.EmojiInfo
+import com.android.purebilibili.data.model.response.OpusContentBlock
 import com.android.purebilibili.data.model.response.OpusMajor
 import com.android.purebilibili.data.model.response.OpusPic
 import com.android.purebilibili.data.model.response.OpusSummary
 import com.android.purebilibili.data.model.response.RichTextNode
 import com.android.purebilibili.data.model.response.SpaceDynamicContent
 import com.android.purebilibili.data.model.response.SpaceDynamicDesc
+import com.android.purebilibili.data.model.response.SpaceDynamicEmoji
 import com.android.purebilibili.data.model.response.SpaceDynamicItem
 import com.android.purebilibili.data.model.response.SpaceDynamicMajor
-import com.android.purebilibili.data.model.response.SpaceDynamicOpusSummary
 import com.android.purebilibili.data.model.response.SpaceDynamicRichText
 import com.android.purebilibili.data.model.response.StatItem
 
@@ -49,18 +50,6 @@ fun resolveSpaceDynamicPresentationState(
     if (isLoading || !hasLoadedOnce) return SpaceDynamicPresentationState.LOADING
     if (lastLoadFailed) return SpaceDynamicPresentationState.ERROR
     return SpaceDynamicPresentationState.EMPTY
-}
-
-internal fun filterSpaceDynamicItemsByQuery(
-    items: List<SpaceDynamicItem>,
-    query: String
-): List<SpaceDynamicItem> {
-    val normalizedQuery = query.trim()
-    if (normalizedQuery.isEmpty()) return items
-
-    return items.filter { item ->
-        resolveSpaceDynamicSearchText(item).contains(normalizedQuery, ignoreCase = true)
-    }
 }
 
 /** Extra feed pages to pull when local search has no hit yet. */
@@ -104,39 +93,79 @@ internal fun mergeSpaceDynamicPages(
 
 /**
  * Build searchable plain text for a space dynamic.
+ *
  * Bilibili space feeds often leave [SpaceDynamicDesc.text] empty and put body only in
- * rich_text_nodes, or only put content on the reposted [SpaceDynamicItem.orig].
+ * rich_text_nodes (or only on reposted [SpaceDynamicItem.orig]). UI concatenates those nodes
+ * without separators, so search must also join continuously — newline-joined node text
+ * fails phrases that span multiple rich-text nodes (looks like "only video titles work").
  */
 internal fun resolveSpaceDynamicSearchText(item: SpaceDynamicItem): String {
     return buildString {
         appendSpaceDynamicContentSearchText(item.modules.module_dynamic)
         item.orig?.let { orig ->
-            append('\n')
             appendSpaceDynamicContentSearchText(orig.modules.module_dynamic)
-            orig.modules.module_author?.name?.takeIf { it.isNotBlank() }?.let {
-                append('\n')
-                append(it)
-            }
+            appendLineIfNotBlank(orig.modules.module_author?.name)
         }
-        item.modules.module_author?.name?.takeIf { it.isNotBlank() }?.let {
-            append('\n')
-            append(it)
+        appendLineIfNotBlank(item.modules.module_author?.name)
+        appendLineIfNotBlank(item.type)
+        appendLineIfNotBlank(item.id_str)
+    }
+}
+
+/**
+ * Prefer the same text surface users see on the card (mapped [DynamicItem]), then fall back
+ * to raw [SpaceDynamicItem] fields. This covers presentation fallbacks (e.g. article desc).
+ */
+internal fun resolveSpaceDynamicSearchTextForFilter(item: SpaceDynamicItem): String {
+    val fromCard = resolveDynamicItemSearchText(resolveSpaceDynamicCardItem(item))
+    val fromRaw = resolveSpaceDynamicSearchText(item)
+    return when {
+        fromCard.isBlank() -> fromRaw
+        fromRaw.isBlank() -> fromCard
+        fromCard == fromRaw -> fromCard
+        else -> "$fromCard\n$fromRaw"
+    }
+}
+
+internal fun filterSpaceDynamicItemsByQuery(
+    items: List<SpaceDynamicItem>,
+    query: String
+): List<SpaceDynamicItem> {
+    val normalizedQuery = normalizeSpaceDynamicSearchQuery(query)
+    if (normalizedQuery.isEmpty()) return items
+
+    return items.filter { item ->
+        normalizeSpaceDynamicSearchHaystack(resolveSpaceDynamicSearchTextForFilter(item))
+            .contains(normalizedQuery)
+    }
+}
+
+internal fun resolveDynamicItemSearchText(item: DynamicItem): String {
+    return buildString {
+        appendDynamicContentSearchText(item.modules.module_dynamic)
+        item.orig?.let { orig ->
+            appendDynamicContentSearchText(orig.modules.module_dynamic)
+            appendLineIfNotBlank(orig.modules.module_author?.name)
         }
+        appendLineIfNotBlank(item.modules.module_author?.name)
+        appendLineIfNotBlank(item.type)
+        appendLineIfNotBlank(item.id_str)
     }
 }
 
 private fun StringBuilder.appendSpaceDynamicContentSearchText(content: SpaceDynamicContent?) {
     if (content == null) return
-    appendSpaceDynamicDescSearchText(content.desc)
+    appendRichDescSearchText(content.desc?.text, content.desc?.rich_text_nodes.orEmpty())
     val major = content.major ?: return
     major.archive?.let { archive ->
         appendLineIfNotBlank(archive.title)
         appendLineIfNotBlank(archive.desc)
         appendLineIfNotBlank(archive.bvid)
+        appendLineIfNotBlank(archive.aid)
     }
     major.opus?.let { opus ->
         appendLineIfNotBlank(opus.title)
-        appendSpaceDynamicOpusSummarySearchText(opus.summary)
+        appendRichDescSearchText(opus.summary?.text, opus.summary?.rich_text_nodes.orEmpty())
     }
     major.article?.let { article ->
         appendLineIfNotBlank(article.title)
@@ -145,22 +174,131 @@ private fun StringBuilder.appendSpaceDynamicContentSearchText(content: SpaceDyna
     }
 }
 
-private fun StringBuilder.appendSpaceDynamicDescSearchText(desc: SpaceDynamicDesc?) {
-    if (desc == null) return
-    appendLineIfNotBlank(desc.text)
-    desc.rich_text_nodes.forEach { node ->
-        appendLineIfNotBlank(node.text)
-        appendLineIfNotBlank(node.orig_text)
+private fun StringBuilder.appendDynamicContentSearchText(content: DynamicContentModule?) {
+    if (content == null) return
+    appendRichDescSearchText(
+        plainText = content.desc?.text,
+        nodes = content.desc?.rich_text_nodes.orEmpty().map { node ->
+            SpaceDynamicRichText(
+                type = node.type,
+                text = node.text,
+                orig_text = "",
+                emoji = node.emoji?.let { emoji ->
+                    SpaceDynamicEmoji(
+                        icon_url = emoji.icon_url,
+                        size = emoji.size,
+                        text = emoji.text
+                    )
+                },
+                jump_url = node.jump_url,
+                rid = node.rid
+            )
+        }
+    )
+    val major = content.major ?: return
+    major.archive?.let { archive ->
+        appendLineIfNotBlank(archive.title)
+        appendLineIfNotBlank(archive.desc)
+        appendLineIfNotBlank(archive.bvid)
+        appendLineIfNotBlank(archive.aid)
+    }
+    major.pgc?.let { pgc ->
+        appendLineIfNotBlank(pgc.title)
+        appendLineIfNotBlank(pgc.desc)
+        appendLineIfNotBlank(pgc.bvid)
+    }
+    major.opus?.let { opus ->
+        appendLineIfNotBlank(opus.title)
+        appendRichDescSearchText(
+            plainText = opus.summary?.text,
+            nodes = opus.summary?.rich_text_nodes.orEmpty().map { node ->
+                SpaceDynamicRichText(
+                    type = node.type,
+                    text = node.text,
+                    orig_text = "",
+                    emoji = node.emoji?.let { emoji ->
+                        SpaceDynamicEmoji(
+                            icon_url = emoji.icon_url,
+                            size = emoji.size,
+                            text = emoji.text
+                        )
+                    },
+                    jump_url = node.jump_url,
+                    rid = node.rid
+                )
+            }
+        )
+        opus.contentBlocks.forEach { block ->
+            when (block) {
+                is OpusContentBlock.Text -> appendLineIfNotBlank(block.text)
+                is OpusContentBlock.LinkCard -> {
+                    appendLineIfNotBlank(block.card.title)
+                    appendLineIfNotBlank(block.card.description)
+                    appendLineIfNotBlank(block.card.label)
+                }
+                is OpusContentBlock.Image -> Unit
+            }
+        }
+    }
+    major.article?.let { article ->
+        appendLineIfNotBlank(article.title)
+        appendLineIfNotBlank(article.desc)
+        appendLineIfNotBlank(article.label)
+    }
+    major.ugc_season?.let { season ->
+        appendLineIfNotBlank(season.title)
+        appendLineIfNotBlank(season.desc)
+        appendLineIfNotBlank(season.intro)
+    }
+    major.live_rcmd?.let { live ->
+        appendLineIfNotBlank(live.content)
     }
 }
 
-private fun StringBuilder.appendSpaceDynamicOpusSummarySearchText(summary: SpaceDynamicOpusSummary?) {
-    if (summary == null) return
-    appendLineIfNotBlank(summary.text)
-    summary.rich_text_nodes.forEach { node ->
+private fun StringBuilder.appendRichDescSearchText(
+    plainText: String?,
+    nodes: List<SpaceDynamicRichText>
+) {
+    appendLineIfNotBlank(plainText)
+    if (nodes.isEmpty()) return
+
+    // Match on-screen concatenation (no separators between rich nodes).
+    val continuous = buildString {
+        nodes.forEach { node ->
+            append(resolveSpaceDynamicRichTextNodeSearchToken(node))
+        }
+    }
+    appendLineIfNotBlank(continuous)
+
+    // Also keep per-node tokens so short unique fragments still match.
+    nodes.forEach { node ->
         appendLineIfNotBlank(node.text)
         appendLineIfNotBlank(node.orig_text)
+        appendLineIfNotBlank(node.emoji?.text)
     }
+}
+
+private fun resolveSpaceDynamicRichTextNodeSearchToken(node: SpaceDynamicRichText): String {
+    val emojiText = node.emoji?.text.orEmpty()
+    return when {
+        node.text.isNotBlank() -> node.text
+        node.orig_text.isNotBlank() -> node.orig_text
+        emojiText.isNotBlank() -> emojiText
+        else -> ""
+    }
+}
+
+internal fun normalizeSpaceDynamicSearchQuery(query: String): String {
+    return query.trim().lowercase()
+}
+
+internal fun normalizeSpaceDynamicSearchHaystack(text: String): String {
+    // Keep CJK continuity; only collapse common whitespace so node joins still match.
+    return text
+        .replace('\u00A0', ' ')
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .lowercase()
 }
 
 private fun StringBuilder.appendLineIfNotBlank(value: String?) {
