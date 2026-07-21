@@ -107,6 +107,8 @@ class MiuixV2MigrationStructureTest {
         assertTrue(source.contains("MiuixPullToRefresh("))
         assertTrue(source.contains("PresetPrimitiveRenderer.MIUIX_BRIDGED"))
         assertTrue(source.contains("ComfortablePullToRefreshBox("))
+        assertTrue(source.contains("indicatorTopInset"))
+        assertTrue(source.contains("mergedContentPadding"))
     }
 
     @Test

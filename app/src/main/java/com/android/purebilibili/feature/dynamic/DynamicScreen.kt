@@ -596,10 +596,18 @@ fun DynamicScreen(
                                 } else {
                                     "以下是之前的${tab.title}"
                                 }
+                                val pageListTopExtra = resolveDynamicListTopPaddingExtraDp(
+                                    isHorizontalMode = false,
+                                    isTopBarCollapsed = shouldCollapseTopBar
+                                ).dp
+                                // Overlay top bar (not Scaffold-padded) — anchor indicator under chrome.
+                                val dynamicRefreshIndicatorTopInset =
+                                    statusBarHeight + pageListTopExtra
                                 AdaptivePullToRefreshBox(
                                     isRefreshing = isRefreshing,
                                     onRefresh = { viewModel.refresh(tab.logicalIndex) },
                                     state = pullRefreshState,
+                                    indicatorTopInset = dynamicRefreshIndicatorTopInset,
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     DynamicList(
@@ -612,10 +620,7 @@ fun DynamicScreen(
                                         filteredItems = pagePresentation.items,
                                         listState = pageListState,
                                         statusBarHeight = statusBarHeight,
-                                        topPaddingExtra = resolveDynamicListTopPaddingExtraDp(
-                                            isHorizontalMode = false,
-                                            isTopBarCollapsed = shouldCollapseTopBar
-                                        ).dp,
+                                        topPaddingExtra = pageListTopExtra,
                                         bottomPadding = dynamicListBottomPadding,
                                         oldContentDividerIndex = pageDividerIndex,
                                         oldContentDividerLabel = pageDividerLabel,
@@ -722,10 +727,19 @@ fun DynamicScreen(
                             } else {
                                 "以下是之前的${tab.title}"
                             }
+                            val pageListTopExtra = resolveDynamicListTopPaddingExtraDp(
+                                isHorizontalMode = true,
+                                isHorizontalUserListCollapsed = shouldCollapseHorizontalUserList,
+                                shouldShowHorizontalUserList = shouldShowHorizontalUserList,
+                                isTopBarCollapsed = shouldCollapseTopBar
+                            ).dp
+                            val dynamicRefreshIndicatorTopInset =
+                                statusBarHeight + pageListTopExtra
                             AdaptivePullToRefreshBox(
                                 isRefreshing = isRefreshing,
                                 onRefresh = { viewModel.refresh(tab.logicalIndex) },
                                 state = pullRefreshState,
+                                indicatorTopInset = dynamicRefreshIndicatorTopInset,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 DynamicList(
@@ -738,12 +752,7 @@ fun DynamicScreen(
                                     filteredItems = pagePresentation.items,
                                     listState = pageListState,
                                     statusBarHeight = statusBarHeight,
-                                    topPaddingExtra = resolveDynamicListTopPaddingExtraDp(
-                                        isHorizontalMode = true,
-                                        isHorizontalUserListCollapsed = shouldCollapseHorizontalUserList,
-                                        shouldShowHorizontalUserList = shouldShowHorizontalUserList,
-                                        isTopBarCollapsed = shouldCollapseTopBar
-                                    ).dp,
+                                    topPaddingExtra = pageListTopExtra,
                                     bottomPadding = dynamicListBottomPadding,
                                     oldContentDividerIndex = pageDividerIndex,
                                     oldContentDividerLabel = pageDividerLabel,

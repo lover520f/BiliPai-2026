@@ -106,9 +106,11 @@ fun InboxScreen(
                     )
                 }
                 else -> {
+                    // Scaffold body already below topBar.
                     AdaptivePullToRefreshBox(
                         isRefreshing = uiState.isRefreshing,
-                        onRefresh = { viewModel.refresh() }
+                        onRefresh = { viewModel.refresh() },
+                        indicatorTopInset = 0.dp
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),

@@ -1501,28 +1501,25 @@ fun HomeScreen(
                         
                         //  把 GridState 提升给父级用于控制 Header? 
                         
+                        // Overlay chrome (status + search + tabs); not for Scaffold-padded screens.
+                        val homeRefreshIndicatorTopInset = listTopPadding
                         AdaptivePullToRefreshBox(
                             isRefreshing = isRefreshing && currentCategory == category,
                             onRefresh = {
                                 viewModel.refresh(category)
                             },
                             state = pullRefreshState,
-                            contentPadding = if (
-                                pullRefreshIndicatorStyle == HomePullRefreshIndicatorStyle.MIUIX_NATIVE
-                            ) {
-                                PaddingValues(top = listTopPadding)
-                            } else {
-                                PaddingValues()
-                            },
+                            indicatorTopInset = homeRefreshIndicatorTopInset,
                             modifier = Modifier.fillMaxSize(),
                              //  不同原生外观使用不同下拉刷新指示器，位移策略仍由 policy 统一控制。
+                             //  Custom indicators must include the same top inset as MIUIX contentPadding.
                              indicator = {
                                 when (pullRefreshIndicatorStyle) {
                                     HomePullRefreshIndicatorStyle.MATERIAL_DEFAULT -> {
                                         PullToRefreshDefaults.Indicator(
                                             modifier = Modifier
                                                 .align(Alignment.TopCenter)
-                                                .padding(top = listTopPadding),
+                                                .padding(top = homeRefreshIndicatorTopInset),
                                             isRefreshing = isPageRefreshing,
                                             state = pullRefreshState
                                         )
@@ -1543,7 +1540,7 @@ fun HomeScreen(
                                             indicatorHeight = indicatorHeight,
                                             modifier = Modifier
                                                 .align(Alignment.TopCenter)
-                                                .padding(top = listTopPadding)
+                                                .padding(top = homeRefreshIndicatorTopInset)
                                                 .zIndex(1f)
                                                 .graphicsLayer {
                                                     val currentDragOffset = calculateDragOffset()
@@ -1562,7 +1559,7 @@ fun HomeScreen(
                                             isRefreshing = isPageRefreshing,
                                             modifier = Modifier
                                                 .align(Alignment.TopCenter)
-                                                .padding(top = listTopPadding)
+                                                .padding(top = homeRefreshIndicatorTopInset)
                                                 .zIndex(1f)
                                                 .graphicsLayer {
                                                     val currentDragOffset = calculateDragOffset()

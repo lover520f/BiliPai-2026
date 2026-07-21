@@ -800,6 +800,7 @@ fun FollowingListScreen(
                         val selectedCount = selectedMids.size
                         val hasSelection = selectedCount > 0
 
+                        // Scaffold + search sit above this box; indicator at list region top.
                         AdaptivePullToRefreshBox(
                             isRefreshing = isPullRefreshing,
                             onRefresh = {
@@ -809,6 +810,7 @@ fun FollowingListScreen(
                                 }
                             },
                             state = pullRefreshState,
+                            indicatorTopInset = 0.dp,
                             modifier = Modifier.fillMaxSize()
                         ) {
                             if (filteredUsers.isEmpty() && searchQuery.isNotEmpty()) {

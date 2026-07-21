@@ -233,9 +233,11 @@ fun CategoryScreen(
                     color = MaterialTheme.colorScheme.error
                 )
             } else {
+                // Scaffold body already below topBar.
                 AdaptivePullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = viewModel::refresh,
+                    indicatorTopInset = 0.dp,
                     modifier = Modifier.fillMaxSize()
                 ) {
                     // 视频网格

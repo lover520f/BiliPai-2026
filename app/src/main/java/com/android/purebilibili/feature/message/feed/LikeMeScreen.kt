@@ -212,9 +212,11 @@ fun LikeMeScreen(
                     text = "暂无点赞消息",
                     modifier = Modifier.fillMaxSize()
                 )
+                // Scaffold already pads out the top bar — indicator at box top (inset 0).
                 else -> AdaptivePullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = viewModel::refresh,
+                    indicatorTopInset = 0.dp,
                     modifier = Modifier.fillMaxSize()
                 ) {
                     LazyColumn(

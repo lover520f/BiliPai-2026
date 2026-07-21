@@ -70,8 +70,9 @@ class HomePullRefreshUiPolicyTest {
 
         assertTrue(source.contains("AdaptivePullToRefreshBox("))
         assertTrue(source.contains("HomePullRefreshIndicatorStyle.MIUIX_NATIVE -> Unit"))
-        assertTrue(source.contains("pullRefreshIndicatorStyle == HomePullRefreshIndicatorStyle.MIUIX_NATIVE"))
-        assertTrue(source.contains("PaddingValues(top = listTopPadding)"))
+        // Overlay chrome height via indicatorTopInset (not scaffold default 0).
+        assertTrue(source.contains("indicatorTopInset = homeRefreshIndicatorTopInset"))
+        assertTrue(source.contains("homeRefreshIndicatorTopInset = listTopPadding"))
     }
 
     @Test

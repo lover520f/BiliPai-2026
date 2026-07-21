@@ -457,9 +457,12 @@ fun PartitionContent(
                 }
             )
 
+            // Match list content top (status/insets + 8dp) so indicator sits above first row.
+            val partitionRefreshIndicatorTopInset = topPadding + 8.dp
             AdaptivePullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
+                indicatorTopInset = partitionRefreshIndicatorTopInset,
                 modifier = Modifier
                     .weight(1f)
                     .graphicsLayer { translationX = sideRailVideoPushPx }
@@ -470,7 +473,7 @@ fun PartitionContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 8.dp,
-                        top = topPadding + 8.dp,
+                        top = partitionRefreshIndicatorTopInset,
                         end = endPadding,
                         bottom = bottomPadding
                     ),

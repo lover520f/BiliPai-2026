@@ -173,9 +173,11 @@ fun AtMeScreen(
                     text = "暂无@我消息",
                     modifier = Modifier.fillMaxSize()
                 )
+                // Scaffold body already below topBar.
                 else -> AdaptivePullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = viewModel::refresh,
+                    indicatorTopInset = 0.dp,
                     modifier = Modifier.fillMaxSize()
                 ) {
                     LazyColumn(

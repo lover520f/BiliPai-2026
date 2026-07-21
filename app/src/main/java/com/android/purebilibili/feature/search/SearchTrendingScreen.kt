@@ -113,10 +113,12 @@ fun SearchTrendingScreen(
                 )
             }
 
+            // Scaffold padding applied on the box — indicator at content top.
             else -> AdaptivePullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
                 state = pullRefreshState,
+                indicatorTopInset = 0.dp,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
