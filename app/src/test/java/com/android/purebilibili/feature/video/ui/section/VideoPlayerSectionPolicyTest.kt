@@ -1328,6 +1328,24 @@ class VideoPlayerSectionPolicyTest {
     }
 
     @Test
+    fun longPressSpeedLockHint_waitsUntilAccelerationEnds() {
+        assertFalse(
+            shouldShowLongPressSpeedLockHint(
+                hintRequested = true,
+                isLongPressing = true,
+                isInPipMode = false,
+            )
+        )
+        assertTrue(
+            shouldShowLongPressSpeedLockHint(
+                hintRequested = true,
+                isLongPressing = false,
+                isInPipMode = false,
+            )
+        )
+    }
+
+    @Test
     fun longPressSpeedLockHint_dismissActionEndsCurrentLongPressSpeed() {
         val source = loadVideoPlayerSectionSource()
         val dismissAction = source

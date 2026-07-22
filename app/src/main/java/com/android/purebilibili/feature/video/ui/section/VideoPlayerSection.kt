@@ -1099,8 +1099,8 @@ fun VideoPlayerSection(
         }
     }
 
-    LaunchedEffect(showLongPressSpeedLockHint, longPressSpeedLockHintGeneration) {
-        if (showLongPressSpeedLockHint) {
+    LaunchedEffect(showLongPressSpeedLockHint, isLongPressing, longPressSpeedLockHintGeneration) {
+        if (showLongPressSpeedLockHint && !isLongPressing) {
             delay(5_000L)
             showLongPressSpeedLockHint = false
         }
@@ -3931,7 +3931,11 @@ fun VideoPlayerSection(
         }
 
         AnimatedVisibility(
-            visible = showLongPressSpeedLockHint && !isInPipMode,
+            visible = shouldShowLongPressSpeedLockHint(
+                hintRequested = showLongPressSpeedLockHint,
+                isLongPressing = isLongPressing,
+                isInPipMode = isInPipMode,
+            ),
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 62.dp, start = 16.dp, end = 16.dp),

@@ -241,6 +241,14 @@ internal fun shouldShowHiResLongPressCompatHint(
     return requestedSpeed - effectiveSpeed > 0.001f
 }
 
+internal fun shouldShowLongPressSpeedLockHint(
+    hintRequested: Boolean,
+    isLongPressing: Boolean,
+    isInPipMode: Boolean,
+): Boolean {
+    return hintRequested && !isLongPressing && !isInPipMode
+}
+
 internal fun shouldEnableLongPressSpeedGesture(
     isScreenLocked: Boolean,
     scale: Float,
