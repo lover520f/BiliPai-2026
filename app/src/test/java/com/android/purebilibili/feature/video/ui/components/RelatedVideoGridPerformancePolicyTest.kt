@@ -27,4 +27,26 @@ class RelatedVideoGridPerformancePolicyTest {
             ),
         )
     }
+
+    @Test
+    fun navigation_waitsForSharedBoundsWhenTapEndsAScroll() {
+        assertTrue(
+            shouldDeferRelatedVideoNavigationForSharedTransition(
+                sharedTransitionEnabled = true,
+                cardTransitionEnabled = false,
+            ),
+        )
+        assertFalse(
+            shouldDeferRelatedVideoNavigationForSharedTransition(
+                sharedTransitionEnabled = true,
+                cardTransitionEnabled = true,
+            ),
+        )
+        assertFalse(
+            shouldDeferRelatedVideoNavigationForSharedTransition(
+                sharedTransitionEnabled = false,
+                cardTransitionEnabled = false,
+            ),
+        )
+    }
 }

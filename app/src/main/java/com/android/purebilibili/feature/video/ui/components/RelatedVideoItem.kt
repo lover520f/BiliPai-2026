@@ -27,7 +27,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +96,11 @@ internal fun shouldEnableRelatedVideoGridSharedTransition(
     sharedTransitionEnabled: Boolean,
     isListScrolling: Boolean,
 ): Boolean = sharedTransitionEnabled && !isListScrolling
+
+internal fun shouldDeferRelatedVideoNavigationForSharedTransition(
+    sharedTransitionEnabled: Boolean,
+    cardTransitionEnabled: Boolean,
+): Boolean = sharedTransitionEnabled && !cardTransitionEnabled
 
 /**
  * Related Videos Header
@@ -166,15 +173,20 @@ fun RelatedVideoItem(
     video: RelatedVideo,
     isFollowed: Boolean = false,
     transitionEnabled: Boolean = false,
+    sharedTransitionEnabled: Boolean = transitionEnabled,
     showUpBadge: Boolean = true,
     coverAspectRatio: Float = RELATED_VIDEO_CARD_COVER_ASPECT_RATIO,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onMoreClick: (() -> Unit)? = null
 ) {
+    val clickScope = rememberCoroutineScope()
+    var forceSharedTransitionForClick by remember { mutableStateOf(false) }
+    val effectiveTransitionEnabled = transitionEnabled || forceSharedTransitionForClick
+    val latestOnClick by rememberUpdatedState(onClick)
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
-    val coverSharedEnabled = transitionEnabled &&
+    val coverSharedEnabled = effectiveTransitionEnabled &&
         sharedTransitionScope != null &&
         animatedVisibilityScope != null
     val configuration = LocalConfiguration.current
@@ -190,10 +202,10 @@ fun RelatedVideoItem(
         LocalVideoCardSharedElementSourceRoute.current
     )
     val sharedTransitionSpeedSettings = LocalVideoSharedTransitionSpeedSettings.current
-    val cardSharedTransitionMotionSpec = remember(sourceRoute, transitionEnabled, sharedTransitionSpeedSettings) {
+    val cardSharedTransitionMotionSpec = remember(sourceRoute, effectiveTransitionEnabled, sharedTransitionSpeedSettings) {
         resolveVideoCardSharedTransitionMotionSpec(
             sourceRoute = sourceRoute,
-            transitionEnabled = transitionEnabled,
+            transitionEnabled = effectiveTransitionEnabled,
             speedSettings = sharedTransitionSpeedSettings
         )
     }
@@ -210,7 +222,21 @@ fun RelatedVideoItem(
                 sourceCornerDp = 12
             )
         }
-        onClick()
+        if (shouldDeferRelatedVideoNavigationForSharedTransition(
+                sharedTransitionEnabled = sharedTransitionEnabled,
+                cardTransitionEnabled = effectiveTransitionEnabled,
+            )
+        ) {
+            forceSharedTransitionForClick = true
+            clickScope.launch {
+                // First frame applies the shared-bounds modifier; the second measures it before navigation.
+                withFrameNanos { }
+                withFrameNanos { }
+                latestOnClick()
+            }
+        } else {
+            latestOnClick()
+        }
     }
     val cardShape = RoundedCornerShape(12.dp)
     val coverShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
@@ -415,6 +441,7 @@ fun RelatedVideoGridRow(
                 video = video,
                 isFollowed = video.owner.mid in followingMids,
                 transitionEnabled = cardTransitionEnabled,
+                sharedTransitionEnabled = transitionEnabled,
                 showUpBadge = showUpBadge,
                 coverAspectRatio = cardLayout.coverAspectRatio,
                 modifier = Modifier.weight(1f),
