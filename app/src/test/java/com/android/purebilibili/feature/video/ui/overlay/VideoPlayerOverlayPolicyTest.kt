@@ -519,6 +519,54 @@ class VideoPlayerOverlayPolicyTest {
     }
 
     @Test
+    fun playbackInsight_usesOnlyAvailableMeasuredValuesAndGroupsDetails() {
+        val insight = resolvePlaybackInsightPresentation(
+            PlaybackDebugInfo(
+                resolution = "3840 x 2160",
+                videoCodec = "HEVC",
+                frameRate = "59.94 fps",
+                videoDecoder = "c2.qti.hevc.decoder",
+                playbackState = "READY",
+                droppedFrames = "0"
+            )
+        )
+
+        assertEquals("3840 x 2160 · HEVC · 59.94 fps", insight.summary)
+        assertEquals(PlaybackInsightLevel.LIVE, insight.level)
+        assertEquals("实时数据", insight.statusText)
+        assertEquals(
+            listOf("视频编码", "帧率", "视频解码器", "掉帧"),
+            insight.sections.getValue(PlaybackInsightSection.VIDEO).map { it.label }
+        )
+        assertFalse(insight.summary.contains("HDR"))
+    }
+
+    @Test
+    fun playbackInsight_reportsObservedDroppedFramesWithoutInventingNetworkDiagnosis() {
+        val insight = resolvePlaybackInsightPresentation(
+            PlaybackDebugInfo(
+                videoBitrate = "8.4 Mbps",
+                bandwidthEstimate = "2.1 Mbps",
+                droppedFrames = "7"
+            )
+        )
+
+        assertEquals(PlaybackInsightLevel.ATTENTION, insight.level)
+        assertEquals("已记录 7 个掉帧", insight.statusText)
+        assertFalse(insight.statusText.contains("带宽"))
+        assertFalse(insight.statusText.contains("网络"))
+    }
+
+    @Test
+    fun playbackInsight_marksMissingDataAsUnavailable() {
+        val insight = resolvePlaybackInsightPresentation(PlaybackDebugInfo())
+
+        assertEquals(PlaybackInsightLevel.UNAVAILABLE, insight.level)
+        assertEquals("等待播放器数据", insight.summary)
+        assertTrue(insight.sections.isEmpty())
+    }
+
+    @Test
     fun appendPlaybackDiagnosticEvent_keepsNewestEntriesWithinLimit() {
         val result = (1..4).fold(emptyList<String>()) { events, index ->
             appendPlaybackDiagnosticEvent(

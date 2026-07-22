@@ -2374,6 +2374,13 @@ object SettingsManager {
     fun getPreferredPlayerVolumeSync(context: Context): Float =
         PlayerSettingsStore.getPreferredPlayerVolumeSync(context)
 
+    fun getPlayerInsightMode(context: Context): Flow<PlayerSettingsStore.PlayerInsightMode> =
+        PlayerSettingsStore.getPlayerInsightMode(context)
+
+    suspend fun setPlayerInsightMode(context: Context, mode: PlayerSettingsStore.PlayerInsightMode) {
+        PlayerSettingsStore.setPlayerInsightMode(context, mode)
+    }
+
     //  [新增] --- 主题色索引 (默认 0 = 经典蓝) ---
     fun getThemeColorIndex(context: Context): Flow<Int> = context.settingsDataStore.data
         .map { preferences -> normalizeThemeColorIndex(preferences[KEY_THEME_COLOR_INDEX] ?: 0) }

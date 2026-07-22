@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.purebilibili.core.store.resolvePreferredPlaybackSpeed as resolvePreferredPlaybackSpeedPolicy
 import com.android.purebilibili.core.store.normalizePlaybackSpeed as normalizePlaybackSpeedPolicy
 import com.android.purebilibili.core.store.settingsDataStore
@@ -12,15 +13,24 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 object PlayerSettingsStore {
+    enum class PlayerInsightMode {
+        OFF,
+        SMART,
+        ALWAYS
+    }
+
     private val keyDefaultPlaybackSpeed = floatPreferencesKey("default_playback_speed")
     private val keyRememberLastPlaybackSpeed = booleanPreferencesKey("remember_last_playback_speed")
     private val keyLastPlaybackSpeed = floatPreferencesKey("last_playback_speed")
     private val keyPreferredPlayerVolume = floatPreferencesKey("preferred_player_volume")
+    private val keyPlayerInsightMode = stringPreferencesKey("player_insight_mode")
     private const val playbackSpeedCachePrefs = "playback_speed_cache"
     private const val cacheKeyDefaultPlaybackSpeed = "default_speed"
     private const val cacheKeyRememberLastSpeed = "remember_last_speed"
     private const val cacheKeyLastPlaybackSpeed = "last_speed"
     private const val cacheKeyPreferredPlayerVolume = "preferred_player_volume"
+    private const val legacyAppPrefs = "app_prefs"
+    private const val legacyShowStatsKey = "show_stats"
 
     const val PLAYER_VOLUME_STEP = 0.02f
 
@@ -133,5 +143,32 @@ object PlayerSettingsStore {
             context.getSharedPreferences(playbackSpeedCachePrefs, Context.MODE_PRIVATE)
                 .getFloat(cacheKeyPreferredPlayerVolume, 1.0f)
         )
+    }
+
+    fun getPlayerInsightMode(context: Context): Flow<PlayerInsightMode> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[keyPlayerInsightMode]
+                ?.let { stored -> PlayerInsightMode.entries.firstOrNull { it.name == stored } }
+                ?: resolveLegacyPlayerInsightMode(context)
+        }
+
+    suspend fun setPlayerInsightMode(context: Context, mode: PlayerInsightMode) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[keyPlayerInsightMode] = mode.name
+        }
+        context.getSharedPreferences(legacyAppPrefs, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(legacyShowStatsKey, mode != PlayerInsightMode.OFF)
+            .apply()
+    }
+
+    private fun resolveLegacyPlayerInsightMode(context: Context): PlayerInsightMode {
+        val legacyPreferences = context.getSharedPreferences(legacyAppPrefs, Context.MODE_PRIVATE)
+        if (!legacyPreferences.contains(legacyShowStatsKey)) return PlayerInsightMode.SMART
+        return if (legacyPreferences.getBoolean(legacyShowStatsKey, false)) {
+            PlayerInsightMode.ALWAYS
+        } else {
+            PlayerInsightMode.OFF
+        }
     }
 }

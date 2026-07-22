@@ -32,6 +32,27 @@ data class DebugStatRow(
     val value: String
 )
 
+internal enum class PlaybackInsightLevel {
+    LIVE,
+    ATTENTION,
+    UNAVAILABLE
+}
+
+internal enum class PlaybackInsightSection(val title: String) {
+    OVERVIEW("概览"),
+    VIDEO("视频"),
+    AUDIO("音频"),
+    RUNTIME("播放"),
+    EVENTS("事件")
+}
+
+internal data class PlaybackInsightPresentation(
+    val summary: String,
+    val level: PlaybackInsightLevel,
+    val statusText: String,
+    val sections: Map<PlaybackInsightSection, List<DebugStatRow>>
+)
+
 internal enum class CenterLoadingReason {
     QUALITY_SWITCH,
     SEEK_BUFFERING
@@ -100,6 +121,65 @@ internal fun resolvePlaybackDebugRows(
         DebugStatRow("Last audio event", info.lastAudioEvent)
     )
     return candidates.filter { it.value.isNotBlank() }
+}
+
+internal fun resolvePlaybackInsightPresentation(
+    info: PlaybackDebugInfo
+): PlaybackInsightPresentation {
+    val summaryParts = listOf(info.resolution, info.videoCodec, info.frameRate)
+        .filter { it.isNotBlank() }
+        .take(3)
+    val droppedFrames = info.droppedFrames.toIntOrNull()?.coerceAtLeast(0) ?: 0
+    val usesSoftwareVideoDecoder = info.videoDecoder.lowercase(Locale.ROOT).let { decoder ->
+        decoder.contains("software") ||
+            decoder.contains("omx.google") ||
+            decoder.contains("c2.android")
+    }
+    val rows = resolvePlaybackDebugRows(info)
+    val (level, statusText) = when {
+        rows.isEmpty() -> PlaybackInsightLevel.UNAVAILABLE to "等待播放器数据"
+        droppedFrames > 0 -> PlaybackInsightLevel.ATTENTION to "已记录 $droppedFrames 个掉帧"
+        usesSoftwareVideoDecoder -> PlaybackInsightLevel.ATTENTION to "当前使用软件视频解码"
+        else -> PlaybackInsightLevel.LIVE to "实时数据"
+    }
+    val sections = linkedMapOf(
+        PlaybackInsightSection.OVERVIEW to listOf(
+            DebugStatRow("分辨率", info.resolution),
+            DebugStatRow("视频码率", info.videoBitrate),
+            DebugStatRow("音频码率", info.audioBitrate),
+            DebugStatRow("带宽估算", info.bandwidthEstimate)
+        ),
+        PlaybackInsightSection.VIDEO to listOf(
+            DebugStatRow("视频编码", info.videoCodec),
+            DebugStatRow("帧率", info.frameRate),
+            DebugStatRow("视频解码器", info.videoDecoder),
+            DebugStatRow("掉帧", info.droppedFrames)
+        ),
+        PlaybackInsightSection.AUDIO to listOf(
+            DebugStatRow("音频编码", info.audioCodec),
+            DebugStatRow("音频解码器", info.audioDecoder)
+        ),
+        PlaybackInsightSection.RUNTIME to listOf(
+            DebugStatRow("播放状态", info.playbackState),
+            DebugStatRow("准备播放", info.playWhenReady),
+            DebugStatRow("正在播放", info.isPlaying),
+            DebugStatRow("首帧", info.firstFrame)
+        ),
+        PlaybackInsightSection.EVENTS to listOf(
+            DebugStatRow("最近视频事件", info.lastVideoEvent),
+            DebugStatRow("最近音频事件", info.lastAudioEvent)
+        )
+    ).mapValues { (_, sectionRows) -> sectionRows.filter { it.value.isNotBlank() } }
+        .filterValues { it.isNotEmpty() }
+
+    return PlaybackInsightPresentation(
+        summary = summaryParts.joinToString(" · ").ifBlank {
+            info.playbackState.ifBlank { "等待播放器数据" }
+        },
+        level = level,
+        statusText = statusText,
+        sections = sections
+    )
 }
 
 internal fun appendPlaybackDiagnosticEvent(
